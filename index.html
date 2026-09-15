@@ -26,9 +26,19 @@
   [hidden]{display:none!important}
 
   /* controls */
-  .row{display:grid;grid-template-columns:84px 1fr 44px;align-items:center;gap:10px;font-size:13px}
-  .row output{font:12px var(--mono);color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
-  input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+  .row{display:grid;grid-template-columns:84px 1fr;align-items:center;gap:10px;font-size:13px}
+  /* filled slider: track, fill, pill thumb, value inside on the roomier side */
+  .fs{--p:0.5;--x:calc(10px + (100% - 20px) * var(--p));position:relative;height:36px;border-radius:10px;background:var(--bg);border:1px solid var(--line);overflow:hidden;user-select:none}
+  .fs .fill{position:absolute;left:0;top:0;bottom:0;width:calc(var(--x) + 4px);background:var(--surface-2)}
+  .fs .thumb{position:absolute;top:6px;bottom:6px;width:8px;border-radius:4px;background:var(--muted);left:calc(var(--x) - 4px);transition:background .12s}
+  .fs .val{position:absolute;top:0;bottom:0;display:flex;align-items:center;font:500 13px var(--mono);font-variant-numeric:tabular-nums;color:var(--ink);pointer-events:none;left:calc(var(--x) + 14px)}
+  .fs.flip .val{left:auto;right:calc(100% - var(--x) + 14px);color:var(--muted)}
+  .fs input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:ew-resize;z-index:1}
+  .fs:hover .thumb{background:var(--ink)}
+  .fs.drag .thumb{background:var(--accent)}
+  .fs.drag .val{color:var(--accent)}
+  .fs:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+  .fs:has(input:disabled){opacity:.45;pointer-events:none}
   .gaze{display:grid;grid-template-columns:140px 1fr;gap:14px;align-items:center}
   .pad{position:relative;width:140px;height:140px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line);cursor:crosshair;touch-action:none;user-select:none}
   .pad .ax{position:absolute;background:var(--line)}
@@ -170,7 +180,7 @@
         <label><input type="checkbox" id="shaded" checked>Shaded</label>
         <label><input type="checkbox" id="wireframe">Show sphere</label>
       </div>
-      <div class="row" id="roundRow"><span>Rounding</span><input type="range" id="round" min="0" max="1" value="0.5" step="0.05"><output id="roundV">0.50</output></div>
+      <div class="row" id="roundRow"><span>Rounding</span><div class="fs"><input type="range" id="round" min="0" max="1" value="0.5" step="0.05" aria-label="Rounding"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
       <h3>Colour</h3>
       <div class="toggles swatches" id="colorPick"></div>
       <div id="blobBox">
@@ -179,7 +189,7 @@
           <button id="dBlobNew">New blob</button>
           <label>Seed <input type="number" id="dSeed" min="0" step="1"></label>
         </div>
-        <div class="row" style="margin-top:10px"><span>Complexity</span><input type="range" id="complexity" min="0" max="1" value="0.5" step="0.05"><output id="complexityV">0.50</output></div>
+        <div class="row" style="margin-top:10px"><span>Complexity</span><div class="fs"><input type="range" id="complexity" min="0" max="1" value="0.5" step="0.05" aria-label="Complexity"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
       </div>
     </div>
   </div>
@@ -237,6 +247,18 @@
     ['Surprised', {y:0,p:6,scale:1.25}], ['Happy', {y:0,p:0,squash:0.45,scale:1.05}], ['Suspicious', {y:22,p:-4,squash:0.55}], ['Thinking', {y:26,p:20,squash:0.8}],
   ];
 
+  // ---------- filled slider ----------
+  function filledSlider(input, fmtVal) {
+    const box = input.parentElement, val = box.querySelector('.val');
+    const draw = () => { const p = (input.value - input.min) / (input.max - input.min); box.style.setProperty('--p', p); box.classList.toggle('flip', p > 0.5); val.textContent = fmtVal(+input.value); };
+    input.addEventListener('input', draw);
+    input.addEventListener('pointerdown', () => box.classList.add('drag'));
+    window.addEventListener('pointerup', () => box.classList.remove('drag'));
+    draw(); return draw;
+  }
+  const drawRound = filledSlider($('round'), v => v.toFixed(2));
+  const drawComplexity = filledSlider($('complexity'), v => v.toFixed(2));
+
   // ---------- settings shared across bodies ----------
   const settings = { color: Mascot.COLORS.black, round: 0.5, shaded: true, wireframe: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true, seed: 1, complexity: 0.5 };
   const blobs = new Map();
@@ -278,7 +300,7 @@
     l.append(i, document.createElement('i'), document.createTextNode(cap(name))); $('colorPick').append(l);
     i.addEventListener('change', () => { settings.color = hex; applySettings(); });
   }
-  $('round').addEventListener('input', () => { settings.round = +$('round').value; $('roundV').textContent = settings.round.toFixed(2); applySettings(); });
+  $('round').addEventListener('input', () => { settings.round = +$('round').value; applySettings(); });
   for (const k of ['follow', 'idle', 'autoBlink', 'lean', 'breathe', 'shaded', 'wireframe']) $(k).addEventListener('change', e => { settings[k] = e.target.checked; applySettings(); });
   // gaze pad: x -> yaw (-60..60), y -> pitch (40..-40)
   const pad = $('pad'), knob = $('knob'), MAXY = 60, MAXP = 40;
@@ -345,7 +367,8 @@
     $('dScen').innerHTML = '';
     for (const [label, demo, hint] of scen) { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.title = hint; b.addEventListener('click', () => runScenario(demo, b, hint)); $('dScen').append(b); }
     $('roundRow').hidden = !comp; $('blobBox').hidden = !def;
-    if (def) { $('dSeed').value = def.seed; $('complexity').value = settings.complexity; $('complexityV').textContent = settings.complexity.toFixed(2); }
+    if (def) { $('dSeed').value = def.seed; $('complexity').value = settings.complexity; drawComplexity(); }
+    $('round').value = settings.round; drawRound();
     const params = comp
       ? { type: 'composed', pieces: comp.c.length, core: comp.main === -1 ? 'none (all move)' : 'piece ' + (comp.main ?? 0), 'inner sphere': fmt(comp.sphereR) + ' R', 'head follow': fmt(comp.head ?? 0.35), 'spring k': fmt(comp.k ?? 50), 'damping d': fmt(comp.d ?? 13), 'lag rule': comp.lag ? 'yes' : 'no', 'idle motion': comp.anim ? 'yes' : 'no' }
       : { type: 'outline', 'inner sphere': 'set by shape' };
@@ -397,7 +420,7 @@
   const reopenBlob = () => { buildBlob(); const h = '#blob-' + settings.seed; if (location.hash === h) openBody('blob-' + settings.seed); else location.hash = h; };
   $('dBlobNew').addEventListener('click', () => { settings.seed = newSeed(); reopenBlob(); });
   $('dSeed').addEventListener('change', () => { settings.seed = Math.max(0, +$('dSeed').value | 0); reopenBlob(); });
-  $('complexity').addEventListener('input', () => { settings.complexity = +$('complexity').value; $('complexityV').textContent = settings.complexity.toFixed(2); reopenBlob(); });
+  $('complexity').addEventListener('input', () => { settings.complexity = +$('complexity').value; reopenBlob(); });
   const goHome = () => { if (location.hash) location.hash = ''; else closeBody(); };
   $('dClose').addEventListener('click', goHome);
   $('backdrop').addEventListener('click', goHome);
