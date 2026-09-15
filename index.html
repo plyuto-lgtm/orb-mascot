@@ -69,6 +69,14 @@
   .cpick b{font:500 12px var(--mono);font-variant-numeric:tabular-nums}
   .cpick input[type=color]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
   .cpick:hover{border-color:var(--muted)}
+  /* switch: track + knob, label after it */
+  .switch{display:inline-flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;user-select:none;margin-top:4px}
+  .switch input{position:absolute;opacity:0;width:0;height:0}
+  .switch .track{position:relative;width:34px;height:20px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);transition:background .15s,border-color .15s}
+  .switch .knob{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--bg);box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+  .switch input:checked + .track{background:var(--ink);border-color:var(--ink)}
+  .switch input:checked + .track .knob{transform:translateX(14px)}
+  .switch:hover .track{border-color:var(--muted)}
   button{font:500 13px var(--sans);padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);cursor:pointer}
   *:focus,*:focus-visible{outline:none}
 
@@ -205,7 +213,7 @@
         </div>
         <div class="row" style="margin-top:10px"><span>Angle</span><div class="fs"><input type="range" id="gAngle" min="0" max="360" value="90" step="5" aria-label="Gradient angle"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
       </div></div>
-      <div class="toggles"><label><input type="checkbox" id="gradient">Shader</label></div>
+      <label class="switch"><input type="checkbox" id="gradient"><span class="track"><span class="knob"></span></span><span>Shader</span></label>
       <h3>Scenarios</h3>
       <div class="scen" id="dScen"></div>
       <div id="uniqueBox"><h3>Unique to this body</h3><div class="scen" id="dScenUnique"></div></div>
