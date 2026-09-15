@@ -290,11 +290,13 @@
       return { m: [E[0] * kx, -E[1] * ky, -N[0] * kx, N[1] * ky, 100 + R * (su.cx + su.rx * P[0]), 100 + R * (su.cy - su.ry * P[1])], z: P[2] };
     }
 
-    _eye(rect, lon) {
-      const o = this.o, f = this._frame(lon, o.eyeLat);
+    _eye(rect, side) {
+      const o = this.o, A = this._A; let lon = side * o.eyeLon, lat = o.eyeLat;
+      if (A && A.eyeOrbit) { const th = A.eyeOrbit * D2R; lon = side * o.eyeLon * Math.cos(th); lat = o.eyeLat + side * o.eyeLon * Math.sin(th); }   // eyes orbit their midpoint
+      const f = this._frame(lon, lat);
       const w = o.eyeW, h = o.eyeH, rx = Math.min(w, h) / 2 * o.corner;
       const open = 1 - this.blinkAmt * 0.94;
-      const A = this._A, sx = this.eyeScale * (A ? A.eyeScale : 1), sy = this.eyeScale * this.squash * open * (A ? A.eyeSquash : 1);
+      const sx = this.eyeScale * (A ? A.eyeScale : 1), sy = this.eyeScale * this.squash * open * (A ? A.eyeSquash : 1);
       const jx = A && A.eyeShake ? (Math.random() * 2 - 1) * A.eyeShake : 0, jy = A && A.eyeShake ? (Math.random() * 2 - 1) * A.eyeShake : 0;
       rect.setAttribute('x', -w / 2); rect.setAttribute('y', -h / 2);
       rect.setAttribute('width', w); rect.setAttribute('height', h); rect.setAttribute('rx', rx);
@@ -374,8 +376,8 @@
       }
       this.eyeL.setAttribute('fill', eyeFill); this.eyeR.setAttribute('fill', eyeFill);
       this._wireframe();
-      this.zL = this._eye(this.eyeL, -o.eyeLon);
-      this.zR = this._eye(this.eyeR, o.eyeLon);
+      this.zL = this._eye(this.eyeL, -1);
+      this.zR = this._eye(this.eyeR, 1);
       const lx = o.lean ? (this.yaw / o.maxYaw) * 3 : 0, ly = o.lean ? (-this.pitch / o.maxPitch) * 2 : 0, A = this._A;
       let tf = `translate(${(lx + (A ? A.dx : 0)).toFixed(2)} ${(ly + (A ? A.dy : 0)).toFixed(2)})`;
       if (A && (A.rot || A.sx !== 1 || A.sy !== 1)) { const py = 100 + o.radius * (A.pivotY == null ? 1 : A.pivotY); tf += ` translate(100 ${py.toFixed(2)}) rotate(${A.rot.toFixed(2)}) scale(${A.sx.toFixed(3)} ${A.sy.toFixed(3)}) translate(-100 ${(-py).toFixed(2)})`; }
@@ -414,6 +416,10 @@
       return act.dur * 1000;
     }
     stopAct() { this._act = null; this._A = null; }
+    // run an ad-hoc act definition {dur, run} on any body
+    act(def) { this._act = { def, t0: performance.now() }; this.manual = true; this.look(0, 0); return def.dur * 1000; }
+    // thinking: the two eyes orbit their midpoint like a spinner, three turns, easing in and out
+    think() { return this.act({ dur: 3.2, run: (t, A) => { const u = seg(t, 0, 2.9); A.eyeOrbit = 1080 * E.io(u); A.eyeScale = 1 - 0.15 * S(Math.PI * u); } }); }
     twitch(i = 1) { this._twitch = { i, t0: performance.now(), p: 0 }; }   // one ear wiggle on a body whose anim uses it (bear)
     poke() { this._poke = 1; this.set({ eyeScale: 1.22, squash: 1.1 }); clearTimeout(this._pokeT); this._pokeT = setTimeout(() => { this.set({ eyeScale: 1, squash: 1 }); this.blink(1); }, 420); }
 
@@ -454,7 +460,7 @@
         if (this._act) {
           const t = (now - this._act.t0) / 1000;
           if (t >= this._act.def.dur) { this._act = null; this._A = null; }
-          else { const A = { rot: 0, dx: 0, dy: 0, sx: 1, sy: 1, pivotY: 1, pieces: null, eyeScale: 1, eyeSquash: 1, eyeShake: 0, look: null }; this._act.def.run(t, A, { R: o.radius, comp: this._comp }); if (A.look) this.look(A.look[0], A.look[1]); this._A = A; }
+          else { const A = { rot: 0, dx: 0, dy: 0, sx: 1, sy: 1, pivotY: 1, pieces: null, eyeScale: 1, eyeSquash: 1, eyeShake: 0, eyeOrbit: 0, look: null }; this._act.def.run(t, A, { R: o.radius, comp: this._comp }); if (A.look) this.look(A.look[0], A.look[1]); this._A = A; }
         }
         // signals for the extra pieces
         this._t = now / 1000; this._dt = dt / 1000;
