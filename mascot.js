@@ -72,6 +72,8 @@
     back: t => { const c = 1.70158, c3 = c + 1; return 1 + c3 * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); },
     spring: t => 1 - Math.exp(-6 * t) * Math.cos(11 * t),
   };
+  // spring from 0 to 1 that starts at rest (zero velocity), overshoots slightly and settles: a = damping, w = frequency
+  const spr0 = (u, a, w) => 1 - Math.exp(-a * u) * (Math.cos(w * u) + (a / w) * Math.sin(w * u));
   const rotP = (p, deg) => { const a = deg * D2R, c = Math.cos(a), sn = Math.sin(a), q = p.slice(); q[0] = p[0] * c - p[1] * sn; q[1] = p[0] * sn + p[1] * c; if (q.length > 3) q[4] = (p[4] || 0) + deg; return q; };
   const pulse = (t, a, b) => S(Math.PI * seg(t, a, b));                                  // 0 -> 1 -> 0 across [a, b]
   // press the body against a floor: pieces whose bottom passes the floor line flatten and spread (normalised units)
@@ -170,12 +172,12 @@
     flower: {
       // both acts run off one master value so rotation, fillet, petals and eyes always move together
       spin: { label: 'Spin', hint: 'Eyes merge into one circle, a springy half turn with sharper petals, eyes part as it settles. One curve drives it all.', dur: 3.0,
-        run: (t, A) => { const u = seg(t, 0, 2.7), k = 1 - Math.exp(-5 * u) * Math.cos(6.5 * u);              // master: springy 0 -> 1 (slight overshoot, settles)
+        run: (t, A) => { const u = seg(t, 0, 2.7), k = spr0(u, 4.5, 6);                                       // master: starts at rest, springy 0 -> 1 with a slight overshoot
           const kc = clamp01(k), m = Math.min(E.io(clamp01(kc / 0.22)), 1 - E.io(clamp01((kc - 0.8) / 0.2)));   // merged from 22% to 80% of the turn, smooth edges
           A.pieces = cs => cs.map((p, i) => i ? rotP(p, 180 * k) : p);
           A.roundMul = 1 - 0.6 * m; A.eyeMerge = m; A.eyeScale = 1 + 0.6 * m; } },
       inflate: { label: 'Inflate', hint: 'Swells into one big circle with a soft spring, holds, then shrinks past its size and springs back. One curve drives it all.', dur: 3.2,
-        run: (t, A) => { const p = t < 1.0 ? 1 - Math.exp(-5 * seg(t, 0, 1.0)) * Math.cos(5 * seg(t, 0, 1.0)) : t < 1.5 ? 1 : Math.exp(-4 * seg(t, 1.5, 3.1)) * Math.cos(7 * seg(t, 1.5, 3.1));   // master: in, hold, spring out through an undershoot
+        run: (t, A) => { const p = t < 1.0 ? spr0(seg(t, 0, 1.0), 5, 5.5) : t < 1.5 ? 1 : 1 - spr0(seg(t, 1.5, 3.1), 4, 6.5);   // master: in at rest, hold, spring out through an undershoot
           A.pieces = cs => cs.map((p2, i) => i ? [p2[0], p2[1], p2[2] * (1 + 0.1 * p)] : [p2[0], p2[1], p2[2] * (1 + 0.22 * p)]);
           A.eyeScale = 1 + 0.3 * p; } },
     },
