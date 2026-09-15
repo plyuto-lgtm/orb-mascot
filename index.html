@@ -29,6 +29,16 @@
   .row{display:grid;grid-template-columns:84px 1fr 44px;align-items:center;gap:10px;font-size:13px}
   .row output{font:12px var(--mono);color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
   input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+  .gaze{display:grid;grid-template-columns:140px 1fr;gap:14px;align-items:center}
+  .pad{position:relative;width:140px;height:140px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line);cursor:crosshair;touch-action:none;user-select:none}
+  .pad .ax{position:absolute;background:var(--line)}
+  .pad .ax.h{left:8px;right:8px;top:50%;height:1px}
+  .pad .ax.v{top:8px;bottom:8px;left:50%;width:1px}
+  .pad .ring{position:absolute;inset:22px;border:1px dashed var(--line);border-radius:50%}
+  .pad .knob{position:absolute;width:16px;height:16px;border-radius:50%;background:var(--ink);left:50%;top:50%;transform:translate(-50%,-50%);box-shadow:0 1px 3px rgba(0,0,0,.3);pointer-events:none}
+  .pad.active .knob{background:var(--accent)}
+  .gazeVals{display:flex;flex-direction:column;gap:4px;font-size:13px}
+  .gazeVals output{font:12px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
   .toggles{display:flex;flex-wrap:wrap;gap:6px}
   .toggles label{font-size:13px;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--line);border-radius:999px;cursor:pointer;user-select:none}
   .toggles label:has(:checked){background:var(--ink);color:var(--bg);border-color:var(--ink)}
@@ -130,8 +140,12 @@
       <div class="scen" id="dScen"></div>
       <div class="hint" id="dHint"></div>
       <h3>Gaze</h3>
-      <div class="row"><span>Yaw</span><input type="range" id="yaw" min="-60" max="60" value="0" step="1"><output id="yawV">0&deg;</output></div>
-      <div class="row"><span>Pitch</span><input type="range" id="pitch" min="-40" max="40" value="0" step="1"><output id="pitchV">0&deg;</output></div>
+      <div class="gaze">
+        <div class="pad" id="pad" role="slider" aria-label="Gaze: drag horizontally for yaw, vertically for pitch" tabindex="0" aria-valuetext="yaw 0, pitch 0">
+          <i class="ax h"></i><i class="ax v"></i><i class="ring"></i><b class="knob" id="knob"></b>
+        </div>
+        <div class="gazeVals"><span>yaw <output id="yawV">0&deg;</output></span><span>pitch <output id="pitchV">0&deg;</output></span><span class="note" style="margin:0">Drag the dot. Auto resumes when you let go.</span></div>
+      </div>
       <h3>Behaviour</h3>
       <div class="toggles">
         <label><input type="checkbox" id="follow" checked>Follow cursor</label>
@@ -241,9 +255,27 @@
   }
   $('round').addEventListener('input', () => { settings.round = +$('round').value; $('roundV').textContent = settings.round.toFixed(2); applySettings(); });
   for (const k of ['follow', 'idle', 'autoBlink', 'lean', 'breathe', 'shaded', 'wireframe']) $(k).addEventListener('change', e => { settings[k] = e.target.checked; applySettings(); });
-  let manualT = 0;
-  const manualGaze = () => { if (!live) return; live.manual = true; live.look(+$('yaw').value, +$('pitch').value); clearTimeout(manualT); manualT = setTimeout(() => { live.manual = false; }, 1500); };
-  $('yaw').addEventListener('input', manualGaze); $('pitch').addEventListener('input', manualGaze);
+  // gaze pad: x -> yaw (-60..60), y -> pitch (40..-40)
+  const pad = $('pad'), knob = $('knob'), MAXY = 60, MAXP = 40;
+  let manualT = 0, padGaze = { y: 0, p: 0 };
+  const setKnob = (y, p) => { knob.style.left = (50 + y / MAXY * 46) + '%'; knob.style.top = (50 - p / MAXP * 46) + '%'; $('yawV').textContent = Math.round(y) + '\u00b0'; $('pitchV').textContent = Math.round(p) + '\u00b0'; pad.setAttribute('aria-valuetext', `yaw ${Math.round(y)}, pitch ${Math.round(p)}`); };
+  const holdThenAuto = () => { clearTimeout(manualT); manualT = setTimeout(() => { if (live) live.manual = false; }, 1500); };
+  const aim = (y, p) => { padGaze = { y, p }; if (live) { live.manual = true; live.look(y, p); } setKnob(y, p); };
+  const aimFromPointer = e => {
+    const r = pad.getBoundingClientRect();
+    const nx = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width - 0.5) / 0.46)), ny = Math.max(-1, Math.min(1, (0.5 - (e.clientY - r.top) / r.height) / 0.46));
+    aim(nx * MAXY, ny * MAXP);
+  };
+  pad.addEventListener('pointerdown', e => { pad.setPointerCapture(e.pointerId); pad.classList.add('active'); clearTimeout(manualT); aimFromPointer(e); });
+  pad.addEventListener('pointermove', e => { if (pad.classList.contains('active')) aimFromPointer(e); });
+  const release = () => { if (!pad.classList.contains('active')) return; pad.classList.remove('active'); holdThenAuto(); };
+  pad.addEventListener('pointerup', release); pad.addEventListener('pointercancel', release);
+  pad.addEventListener('keydown', e => {
+    const step = e.shiftKey ? 10 : 3, k = e.key; if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(k)) return; e.preventDefault();
+    aim(Math.max(-MAXY, Math.min(MAXY, padGaze.y + (k === 'ArrowRight' ? step : k === 'ArrowLeft' ? -step : 0))),
+        Math.max(-MAXP, Math.min(MAXP, padGaze.p + (k === 'ArrowUp' ? step : k === 'ArrowDown' ? -step : 0))));
+    holdThenAuto();
+  });
 
   // ---------- scenarios ----------
   let demoTimers = [];
@@ -334,8 +366,7 @@
   (function tick() {
     if (live) {
       $('dReadout').textContent = `yaw ${live.yaw.toFixed(1).padStart(5)}°  pitch ${live.pitch.toFixed(1).padStart(5)}°`;
-      if (!live.manual) { $('yaw').value = Math.round(live.yaw); $('pitch').value = Math.round(live.pitch); }
-      $('yawV').textContent = $('yaw').value + '°'; $('pitchV').textContent = $('pitch').value + '°';
+      if (!live.manual) setKnob(live.yaw, live.pitch);
     }
     requestAnimationFrame(tick);
   })();
