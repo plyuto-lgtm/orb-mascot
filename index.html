@@ -59,14 +59,14 @@
   .swatches label{padding:4px 10px 4px 6px}
   .swatches i{width:14px;height:14px;border-radius:50%;background:var(--sw);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
   #customDot{background:linear-gradient(90deg,var(--g1,#1E6DF6),var(--g2,#DBDBDB))}
-  .gradRow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .gradRow{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}
+  .gradRow .arrow{width:7px;height:7px;border-top:1.5px solid var(--muted);border-right:1.5px solid var(--muted);transform:rotate(45deg)}
   .pop{flex-basis:100%;width:100%;margin-top:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
   #customChip .chev{width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;border-radius:0;background:none;box-shadow:none;transform:translateY(-1px) rotate(45deg);margin-left:2px}
   #customChip .chev{width:6px;height:6px}
-  .cpick{position:relative;flex:1 1 0;display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);height:32px;padding:0 12px 0 8px;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:var(--bg)}
+  .cpick{position:relative;display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);height:32px;padding:0 10px 0 8px;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:var(--bg);min-width:0}
   .cpick b{margin-left:auto}
   .cpick i{width:16px;height:16px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
-  .cpick span{color:var(--muted)}
   .cpick b{font:500 12px var(--mono);font-variant-numeric:tabular-nums;margin-left:auto}
   .cpick input[type=color]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
   .cpick:hover{border-color:var(--muted)}
@@ -209,10 +209,11 @@
       <h3>Colour</h3>
       <div class="toggles swatches" id="colorPick" style="position:relative"><label id="customChip"><input type="radio" name="color" id="color-custom" autocomplete="off"><i id="customDot"></i>Gradient<i class="chev"></i></label>
       <div id="customBox" class="pop" hidden>
-        <div class="gradRow">
-          <label class="cpick"><i id="g1dot"></i><span>From</span><b id="g1hex">#1E6DF6</b><input type="color" id="g1" value="#1E6DF6" aria-label="Gradient start colour"></label>
-          <label class="cpick"><i id="g2dot"></i><span>To</span><b id="g2hex">#DBDBDB</b><input type="color" id="g2" value="#DBDBDB" aria-label="Gradient end colour"></label>
-        </div>
+        <div class="row"><span>Colours</span><div class="gradRow">
+          <label class="cpick" title="From"><i id="g1dot"></i><b id="g1hex">#1E6DF6</b><input type="color" id="g1" value="#1E6DF6" aria-label="Gradient start colour"></label>
+          <i class="arrow"></i>
+          <label class="cpick" title="To"><i id="g2dot"></i><b id="g2hex">#DBDBDB</b><input type="color" id="g2" value="#DBDBDB" aria-label="Gradient end colour"></label>
+        </div></div>
         <div class="row" style="margin-top:10px"><span>Angle</span><div class="fs"><input type="range" id="gAngle" min="0" max="360" value="90" step="5" aria-label="Gradient angle"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
       </div></div>
       <label class="switch"><input type="checkbox" id="gradient"><span class="track"><span class="knob"></span></span><span>Shader</span></label>

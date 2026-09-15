@@ -183,6 +183,13 @@
     },
   };
   for (const k in ACTS) if (COMPOSED[k]) COMPOSED[k].acts = ACTS[k];
+  // visual balance: scale every composed body so its rest silhouette reaches the same extent (in R units)
+  const FIT_TARGET = 0.95;
+  const extentOf = cs => Math.max(...cs.map(p => {
+    if (p.length > 3) { const a = (p[4] || 0) * D2R, c = Math.cos(a), sn = Math.sin(a), ex = Math.hypot(p[2] * c, p[3] * sn), ey = Math.hypot(p[2] * sn, p[3] * c); return Math.max(Math.abs(p[0]) + ex, Math.abs(p[1]) + ey); }
+    return Math.max(Math.abs(p[0]), Math.abs(p[1])) + p[2];
+  }));
+  const fitOf = comp => { if (comp._fit == null) comp._fit = FIT_TARGET / extentOf(comp.c); return comp._fit; };
 
   // Generative blob bodies: a seed produces a whole body definition (pieces, spring, idle motion, lag rule)
   function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -260,6 +267,7 @@
         contrast: 1,        // shading strength multiplier
         eyeColor: null,     // null = auto (white on dark bodies, ink on light ones)
         twitch: false,      // bear only: occasional single ear wiggle
+        fit: true,          // scale composed bodies to a common visual extent
       }, opts);
       // live values
       this.yaw = 0; this.pitch = 0; this.tYaw = 0; this.tPitch = 0;
@@ -399,13 +407,15 @@
       const comp = Array.isArray(o.body) ? { c: o.body, sphereR: 0.85, main: 0, head: 0.35, k: 50, d: 13 } : (o.body && o.body.c) ? o.body : COMPOSED[o.body];
       this._comp = comp;
       if (comp) {
-        this.sR = o.radius * comp.sphereR; this._surf = Object.assign({ cx: 0, cy: 0, rx: comp.sphereR, ry: comp.sphereR }, comp.surf || {});
+        const fit = o.fit === false ? 1 : fitOf(comp);
+        this.sR = o.radius * comp.sphereR * fit; { const su = Object.assign({ cx: 0, cy: 0, rx: comp.sphereR, ry: comp.sphereR }, comp.surf || {}); this._surf = { cx: su.cx * fit, cy: su.cy * fit, rx: su.rx * fit, ry: su.ry * fit }; }
         this.sphere.setAttribute('d', ''); this.clipCircle.setAttribute('d', '');
         const head = comp.head == null ? 0.35 : comp.head;
         if (!this._running) { this._hy = this._sy = this.yaw * head; this._hp = this._sp = this.pitch * head; }       // static render: head already turned
         let cs = comp.anim ? comp.anim(comp.c, { t: this._t, dt: this._dt, vel: this._vel, poke: this._pokeS, twitch: this._twitch, mem: this._mem, hy: this._hy, hp: this._hp }) : comp.c;
         if (this._A && this._A.pieces) cs = this._A.pieces(cs);
         if (this._A && this._A.floor) cs = squashFloor(cs, this._A.floor);
+        if (fit !== 1) cs = cs.map(p => p.length > 3 ? [p[0] * fit, p[1] * fit, p[2] * fit, p[3] * fit, p[4]] : [p[0] * fit, p[1] * fit, p[2] * fit]);
         const main = comp.main == null ? 0 : comp.main;
         const lagCtx = { pitch: this.pitch, yaw: this.yaw, pitchT: this.tPitch, yawT: this.tYaw };
         if (!this._lagS || this._lagS.length !== cs.length) this._lagS = cs.map(() => 0);
