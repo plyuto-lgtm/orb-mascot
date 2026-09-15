@@ -58,8 +58,11 @@
   .toggles input{position:absolute;opacity:0;width:0;height:0}
   .swatches label{padding:4px 10px 4px 6px}
   .swatches i{width:14px;height:14px;border-radius:50%;background:var(--sw);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
-  #customDot{background:linear-gradient(45deg,var(--g1,#1E6DF6),var(--g2,#CF72D9))}
-  .gradRow{display:flex;gap:8px;margin-top:10px}
+  #customDot{background:linear-gradient(90deg,var(--g1,#1E6DF6),var(--g2,#DBDBDB))}
+  .gradRow{display:flex;gap:8px}
+  .pop{position:absolute;left:0;top:calc(100% + 8px);z-index:5;width:100%;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,.15)}
+  #customChip .chev{width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;border-radius:0;background:none;box-shadow:none;transform:translateY(-1px) rotate(45deg);margin-left:2px}
+  #customChip .chev{width:6px;height:6px}
   .cpick{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);padding:5px 10px 5px 6px;border:1px solid var(--line);border-radius:999px;cursor:pointer}
   .cpick input[type=color]{width:22px;height:22px;padding:0;border:none;border-radius:50%;background:none;cursor:pointer}
   .cpick input[type=color]::-webkit-color-swatch-wrapper{padding:0}
@@ -190,14 +193,14 @@
         <label><input type="checkbox" id="gradient">Gradient</label>
       </div>
       <h3>Colour</h3>
-      <div class="toggles swatches" id="colorPick"><label id="customChip"><input type="radio" name="color" id="color-custom" autocomplete="off"><i id="customDot"></i>Custom gradient</label></div>
-      <div id="customBox" hidden>
+      <div class="toggles swatches" id="colorPick" style="position:relative"><label id="customChip"><input type="radio" name="color" id="color-custom" autocomplete="off"><i id="customDot"></i>Custom gradient<i class="chev"></i></label>
+      <div id="customBox" class="pop" hidden>
         <div class="gradRow">
           <label class="cpick"><input type="color" id="g1" value="#1E6DF6"><span>From</span></label>
-          <label class="cpick"><input type="color" id="g2" value="#CF72D9"><span>To</span></label>
+          <label class="cpick"><input type="color" id="g2" value="#DBDBDB"><span>To</span></label>
         </div>
-        <div class="row" style="margin-top:10px"><span>Angle</span><div class="fs"><input type="range" id="gAngle" min="0" max="360" value="45" step="5" aria-label="Gradient angle"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
-      </div>
+        <div class="row" style="margin-top:10px"><span>Angle</span><div class="fs"><input type="range" id="gAngle" min="0" max="360" value="90" step="5" aria-label="Gradient angle"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
+      </div></div>
       <h3>Scenarios</h3>
       <div class="scen" id="dScen"></div>
       <div id="uniqueBox"><h3>Unique to this body</h3><div class="scen" id="dScenUnique"></div></div>
@@ -292,8 +295,8 @@
   }
 
   // ---------- settings shared across bodies ----------
-  const settings = { colorName: 'black', mode: 'light', round: 0.5, wireframe: false, gradient: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true };
-  settings.g1 = '#1E6DF6'; settings.g2 = '#CF72D9'; settings.gAngle = 45;
+  const settings = { colorName: 'custom', mode: 'light', round: 0.5, wireframe: false, gradient: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true };
+  settings.g1 = '#1E6DF6'; settings.g2 = '#DBDBDB'; settings.gAngle = 90;
   const palette = () => settings.mode === 'dark' ? Mascot.COLORS_DARK : Mascot.COLORS;
   const colorHex = () => settings.colorName === 'custom' ? [settings.g1, settings.g2] : palette()[settings.colorName];
   const cardColor = () => settings.colorName === 'custom' ? [settings.g1, settings.g2] : Mascot.COLORS[settings.colorName];
@@ -306,7 +309,7 @@
     const a = document.createElement('a'); a.className = 'card'; a.href = '#' + name; a.dataset.name = name;
     const svg = svgEl(label); const b = document.createElement('b'); b.textContent = label; const sm = document.createElement('small'); sm.textContent = sub;
     a.append(svg, b, sm); host.append(a);
-    const m = new Mascot(svg, { body: def, round: settings.round, color: Mascot.COLORS[settings.colorName] }); m.snap(-16, 6); m.render(); m.cardHost = host; return m;
+    const m = new Mascot(svg, { body: def, round: settings.round, color: cardColor(), gradientAngle: settings.gAngle }); m.snap(-16, 6); m.render(); m.cardHost = host; return m;
   }
   for (const n of Object.keys(Mascot.COMPOSED)) cardBots.push(card($('gComposed'), n, cap(n), `body: '${n}'`, n));
   for (const n of Mascot.SHAPES) cardBots.push(card($('gSimple'), n, cap(n), `body: '${n}'`, n));
@@ -325,8 +328,9 @@
     const opts = { round: settings.round, wireframe: settings.wireframe, shade: settings.gradient ? 'gradient' : 'flat' };
     if (live) Object.assign(live.o, opts, { color: colorHex(), gradientAngle: settings.gAngle, follow: settings.follow, idle: settings.idle, autoBlink: settings.autoBlink, lean: settings.lean, breathe: settings.breathe });
     for (const m of statics) { Object.assign(m.o, opts, { color: cardColor(), gradientAngle: settings.gAngle }); m.render(); }
-    $('customBox').hidden = settings.colorName !== 'custom';
+    if (settings.colorName !== 'custom') $('customBox').hidden = true;
     $('customDot').style.setProperty('--g1', settings.g1); $('customDot').style.setProperty('--g2', settings.g2);
+    $('color-custom').checked = settings.colorName === 'custom';
     $('stage').classList.toggle('dark', settings.mode === 'dark');
     for (const l of document.querySelectorAll('#colorPick label[data-name]')) l.style.setProperty('--sw', palette()[l.dataset.name]);
     refreshCards(); writeConfig();
@@ -338,6 +342,10 @@
     i.addEventListener('change', () => { settings.colorName = name; applySettings(); });
   }
   $('color-custom').addEventListener('change', () => { settings.colorName = 'custom'; applySettings(); });
+  $('customChip').addEventListener('click', e => {                     // clicking the already-selected chip opens the gradient menu
+    if (settings.colorName === 'custom' && !e.target.closest('#customBox')) { e.preventDefault(); $('customBox').hidden = !$('customBox').hidden; }
+  });
+  document.addEventListener('pointerdown', e => { if (!$('customBox').hidden && !e.target.closest('#customChip, #customBox')) $('customBox').hidden = true; });
   const drawAngle = filledSlider($('gAngle'), v => v + '\u00b0');
   $('gAngle').addEventListener('input', () => { settings.gAngle = +$('gAngle').value; applySettings(); });
   $('g1').addEventListener('input', () => { settings.g1 = $('g1').value; applySettings(); });

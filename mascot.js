@@ -369,9 +369,6 @@
       const style = custom ? 'custom' : o.shaded === false ? 'flat' : (o.shade || 'soft');
       if (custom) {
         this.linStops[0].setAttribute('stop-color', o.color[0]); this.linStops[1].setAttribute('stop-color', o.color[1]);
-        const a = (o.gradientAngle == null ? 45 : o.gradientAngle) * D2R, lon = 62 * Math.cos(a), lat = -62 * Math.sin(a);   // axis anchored on the head sphere: it shifts with the gaze
-        const f1 = this._frame(-lon, -lat), f2 = this._frame(lon, lat);
-        this.lin.setAttribute('x1', f1.m[4].toFixed(1)); this.lin.setAttribute('y1', f1.m[5].toFixed(1)); this.lin.setAttribute('x2', f2.m[4].toFixed(1)); this.lin.setAttribute('y2', f2.m[5].toFixed(1));
       }
       const shadeKey = baseHex + '|' + style + '|' + o.light + '|' + o.contrast + '|' + o.radius;
       if (this._shadeKey !== shadeKey) {
@@ -437,6 +434,11 @@
       this._wireframe();
       { const ov = this._A && this._A.overlay; this.over.innerHTML = '';
         if (ov) for (const [x, y, r] of ov) this.over.append(el('circle', { cx: (100 + x * o.radius).toFixed(2), cy: (100 + y * o.radius).toFixed(2), r: (r * o.radius).toFixed(2), fill })); }
+      if (custom) {                                                                                  // gradient axis anchored on the head sphere: it shifts with the gaze
+        const a = (o.gradientAngle == null ? 45 : o.gradientAngle) * D2R, lon = 62 * Math.cos(a), lat = -62 * Math.sin(a);
+        const f1 = this._frame(-lon, -lat), f2 = this._frame(lon, lat);
+        this.lin.setAttribute('x1', f1.m[4].toFixed(1)); this.lin.setAttribute('y1', f1.m[5].toFixed(1)); this.lin.setAttribute('x2', f2.m[4].toFixed(1)); this.lin.setAttribute('y2', f2.m[5].toFixed(1));
+      }
       this.zL = this._eye(this.eyeL, -1);
       this.zR = this._eye(this.eyeR, 1);
       const lx = o.lean ? (this.yaw / o.maxYaw) * 3 : 0, ly = o.lean ? (-this.pitch / o.maxPitch) * 2 : 0, A = this._A;
