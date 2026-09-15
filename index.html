@@ -105,8 +105,13 @@
   .scen button{position:relative;padding:6px 12px 6px 26px;border-radius:999px;background:transparent}
   .scen button::before{content:'';position:absolute;left:11px;top:50%;transform:translateY(-50%);border-style:solid;border-width:4px 0 4px 7px;border-color:transparent transparent transparent var(--muted)}
   .scen button:hover{background:var(--surface-2)}
-  .scen button[aria-pressed]{border-color:var(--accent);background:var(--surface-2)}
+  .scen button{overflow:hidden}
+  .scen button::after{content:'';position:absolute;left:12px;right:12px;bottom:3px;height:2px;border-radius:1px;background:var(--accent);transform:scaleX(0);transform-origin:left}
+  .scen button[aria-pressed]{background:var(--surface-2)}
   .scen button[aria-pressed]::before{border-color:transparent transparent transparent var(--accent)}
+  .scen button[aria-pressed]::after{animation:scenProgress var(--dur,1s) linear forwards}
+  @keyframes scenProgress{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  @media (prefers-reduced-motion:reduce){.scen button[aria-pressed]::after{animation:none;transform:scaleX(1)}}
   .hint{font-size:13px;line-height:1.45;color:var(--muted);height:calc(2 * 1.45em);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
   .params{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
   .params div{background:var(--surface);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
@@ -162,9 +167,6 @@
       <div class="readout" id="dReadout"></div>
     </div>
     <div class="panel">
-      <h3>Scenarios</h3>
-      <div class="scen" id="dScen"></div>
-      <div class="hint" id="dHint"></div>
       <h3>Gaze</h3>
       <div class="gaze">
         <div class="pad" id="pad" role="slider" aria-label="Gaze: drag horizontally for yaw, vertically for pitch" tabindex="0" aria-valuetext="yaw 0, pitch 0">
@@ -182,9 +184,11 @@
         <label><input type="checkbox" id="shaded" checked>Shaded</label>
         <label><input type="checkbox" id="wireframe">Show sphere</label>
       </div>
-      <div class="row" id="roundRow"><span>Rounding</span><div class="fs"><input type="range" id="round" min="0" max="1" value="0.5" step="0.05" aria-label="Rounding"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
       <h3>Colour</h3>
       <div class="toggles swatches" id="colorPick"></div>
+      <h3>Scenarios</h3>
+      <div class="scen" id="dScen"></div>
+      <div class="hint" id="dHint"></div>
       <div id="blobBox">
         <h3>Blob</h3>
         <div class="blobTools">
@@ -258,7 +262,6 @@
     window.addEventListener('pointerup', () => box.classList.remove('drag'));
     draw(); return draw;
   }
-  const drawRound = filledSlider($('round'), v => v.toFixed(2));
   const drawComplexity = filledSlider($('complexity'), v => v.toFixed(2));
 
   // ---------- settings shared across bodies ----------
@@ -302,7 +305,6 @@
     l.append(i, document.createElement('i'), document.createTextNode(cap(name))); $('colorPick').append(l);
     i.addEventListener('change', () => { settings.color = hex; applySettings(); });
   }
-  $('round').addEventListener('input', () => { settings.round = +$('round').value; applySettings(); });
   for (const k of ['follow', 'idle', 'autoBlink', 'lean', 'breathe', 'shaded', 'wireframe']) $(k).addEventListener('change', e => { settings[k] = e.target.checked; applySettings(); });
   // gaze pad: x -> yaw (-60..60), y -> pitch (40..-40)
   const pad = $('pad'), knob = $('knob'), MAXY = 60, MAXP = 40;
@@ -332,20 +334,22 @@
     const m = live; if (!m) return;
     for (const t of demoTimers) clearTimeout(t); demoTimers = [];
     for (const b of document.querySelectorAll('.scen [aria-pressed]')) b.removeAttribute('aria-pressed');
-    btn.setAttribute('aria-pressed', 'true'); $('dHint').textContent = hint;
+    $('dHint').textContent = hint;
     const at = (ms, fn) => demoTimers.push(setTimeout(fn, ms));
-    const seq = (steps, hold) => { m.manual = true; steps.forEach(([y, p], i) => at(i * hold, () => m.look(y, p))); at(steps.length * hold, () => { m.look(0, 0); m.manual = false; }); return steps.length * hold + 400; };
+    m.manual = true;                                                   // cursor follow and idle are ignored for the whole run
+    const seq = (steps, hold) => { steps.forEach(([y, p], i) => at(i * hold, () => m.look(y, p))); at(steps.length * hold, () => m.look(0, 0)); return steps.length * hold + 500; };
     let dur = 1200;
     switch (kind) {
       case 'turn':  dur = seq([[-45, 0], [45, 0]], 1300); break;
       case 'pitch': dur = seq([[0, 30], [0, -30]], 1300); break;
       case 'fast':  dur = seq([[45, 0], [-45, 0], [45, 0], [-45, 0]], 420); break;
-      case 'poke':  m.poke(); dur = 900; break;
-      case 'blink': m.blink(2); dur = 900; break;
-      case 'twitch': m.twitch(1 + Math.floor(Math.random() * 2)); dur = 900; break;
-      case 'idle':  m.manual = true; m.look(0, 0); at(2500, () => { m.manual = false; }); dur = 2600; break;
+      case 'poke':  m.look(0, 0); m.poke(); dur = 1100; break;
+      case 'blink': m.look(0, 0); m.blink(2); dur = 1000; break;
+      case 'twitch': m.look(0, 0); m.twitch(1 + Math.floor(Math.random() * 2)); dur = 900; break;
+      case 'idle':  m.look(0, 0); dur = 2600; break;
     }
-    at(dur, () => btn.removeAttribute('aria-pressed'));
+    btn.style.setProperty('--dur', dur + 'ms'); btn.setAttribute('aria-pressed', 'true');
+    at(dur, () => { btn.removeAttribute('aria-pressed'); m.manual = false; });
   }
 
   // ---------- modal ----------
@@ -353,7 +357,7 @@
   const bodyArg = name => blobs.has(name) ? `Mascot.blob(${blobs.get(name).seed}, { complexity: ${settings.complexity} })` : `'${name}'`;
   function writeConfig() {
     if (!current) return;
-    $('dCfg').textContent = `new Mascot(svg, {\n  body: ${bodyArg(current)},\n  color: '${settings.color}',\n  round: ${settings.round}\n})`;
+    $('dCfg').textContent = `new Mascot(svg, {\n  body: ${bodyArg(current)},\n  color: '${settings.color}'\n})`;
   }
   function openBody(name) {
     if (/^blob-\d+$/.test(name)) { const seed = +name.slice(5); if (settings.seed !== seed || !blobs.has(name)) { settings.seed = seed; buildBlob(); } }
@@ -368,9 +372,8 @@
     $('dName').textContent = title; $('dTitle').textContent = title; fillPick(); $('dBlurb').textContent = def ? `Generated, ${def.temperament} temperament` : INFO[name].blurb;
     $('dScen').innerHTML = '';
     for (const [label, demo, hint] of scen) { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.title = hint; b.addEventListener('click', () => runScenario(demo, b, hint)); $('dScen').append(b); }
-    $('roundRow').hidden = !comp; $('blobBox').hidden = !def;
+    $('blobBox').hidden = !def;
     if (def) { $('dSeed').value = def.seed; $('complexity').value = settings.complexity; drawComplexity(); }
-    $('round').value = settings.round; drawRound();
     const params = comp
       ? { type: 'composed', pieces: comp.c.length, core: comp.main === -1 ? 'none (all move)' : 'piece ' + (comp.main ?? 0), 'inner sphere': fmt(comp.sphereR) + ' R', 'head follow': fmt(comp.head ?? 0.35), 'spring k': fmt(comp.k ?? 50), 'damping d': fmt(comp.d ?? 13), 'lag rule': comp.lag ? 'yes' : 'no', 'idle motion': comp.anim ? 'yes' : 'no' }
       : { type: 'outline', 'inner sphere': 'set by shape' };
