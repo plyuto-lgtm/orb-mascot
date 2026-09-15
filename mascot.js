@@ -254,7 +254,7 @@
         shaded: true, wireframe: false, lean: true, breathe: true,
         follow: true, idle: true, autoBlink: true,
         color: '#0a0a0a',   // body colour; shading is derived from it
-        shade: 'flat',      // flat | soft | glossy | rim   (shaded:false forces flat)
+        shade: 'flat',      // flat | gradient | soft | glossy | rim   (gradient: a lighter tint on the front of the sphere that moves with the gaze)
         light: -135,        // direction the light comes from, degrees: 0 right, -90 top, -135 top-left
         contrast: 1,        // shading strength multiplier
         eyeColor: null,     // null = auto (white on dark bodies, ink on light ones)
@@ -366,9 +366,11 @@
       if (this._shadeKey !== shadeKey) {
         this._shadeKey = shadeKey; const c = hex2(o.color), W = [255, 255, 255], K = [0, 0, 0], k = o.contrast == null ? 1 : o.contrast, lum0 = lum(c);
         const a = (o.light == null ? -135 : o.light) * D2R, dx = Math.cos(a), dy = Math.sin(a), R = o.radius;
-        const glossy = style === 'glossy';
-        this.stops[0].setAttribute('stop-color', mix(c, W, (glossy ? 0.34 : 0.24) * k)); this.stops[1].setAttribute('stop-color', mix(c, K, 0.08 * k)); this.stops[2].setAttribute('stop-color', mix(c, K, (glossy ? 0.55 : 0.45) * k));
-        this.grad.setAttribute('cx', (100 + dx * 0.45 * R).toFixed(1)); this.grad.setAttribute('cy', (100 + dy * 0.45 * R).toFixed(1)); this.grad.setAttribute('r', (1.7 * R).toFixed(1));
+        const glossy = style === 'glossy', grad = style === 'gradient';
+        if (grad) { this.stops[0].setAttribute('stop-color', mix(c, W, 0.34 * k)); this.stops[1].setAttribute('stop-color', mix(c, W, 0.06 * k)); this.stops[1].setAttribute('offset', '0.5'); this.stops[2].setAttribute('stop-color', mix(c, K, 0.2 * k)); this.grad.setAttribute('r', (1.35 * R).toFixed(1)); }
+        else this.stops[1].setAttribute('offset', '0.45');
+        if (!grad) { this.stops[0].setAttribute('stop-color', mix(c, W, (glossy ? 0.34 : 0.24) * k)); this.stops[1].setAttribute('stop-color', mix(c, K, 0.08 * k)); this.stops[2].setAttribute('stop-color', mix(c, K, (glossy ? 0.55 : 0.45) * k));
+          this.grad.setAttribute('cx', (100 + dx * 0.45 * R).toFixed(1)); this.grad.setAttribute('cy', (100 + dy * 0.45 * R).toFixed(1)); this.grad.setAttribute('r', (1.7 * R).toFixed(1)); }
         // specular: a soft highlight toward the light (glossy only), fainter on light bodies
         this.spec.style.display = glossy ? '' : 'none';
         if (glossy) { const sx = 100 + dx * 0.5 * R, sy = 100 + dy * 0.5 * R; this.spec.setAttribute('cx', sx.toFixed(1)); this.spec.setAttribute('cy', sy.toFixed(1)); this.spec.setAttribute('rx', (0.34 * R).toFixed(1)); this.spec.setAttribute('ry', (0.22 * R).toFixed(1)); this.spec.setAttribute('transform', `rotate(${(a / D2R + 90).toFixed(1)} ${sx.toFixed(1)} ${sy.toFixed(1)})`); this.specGrad.setAttribute('cx', sx.toFixed(1)); this.specGrad.setAttribute('cy', sy.toFixed(1)); this.specGrad.setAttribute('r', (0.34 * R).toFixed(1)); this.spec.setAttribute('opacity', (lum0 > 0.5 ? 0.35 : 0.7) * k); }
@@ -376,6 +378,7 @@
         this.rimEl.style.display = style === 'rim' ? '' : 'none';
         if (style === 'rim') { this.rimGrad.setAttribute('cx', (100 - dx * 0.35 * R).toFixed(1)); this.rimGrad.setAttribute('cy', (100 - dy * 0.35 * R).toFixed(1)); this.rimGrad.setAttribute('r', (1.25 * R).toFixed(1)); this.rimEl.setAttribute('opacity', (lum0 > 0.5 ? 0.5 : 1) * k); }
       }
+      if (style === 'gradient') { const f = this._frame(0, 28); this.grad.setAttribute('cx', (f.m[4] - 0.12 * o.radius).toFixed(1)); this.grad.setAttribute('cy', (f.m[5] - 0.1 * o.radius).toFixed(1)); }
       const flat = style === 'flat';
       this.sphere.setAttribute('fill', flat ? o.color : `url(#${this.gradId})`);
       const eyeFill = o.eyeColor || (lum(hex2(o.color)) > 0.55 ? '#141416' : '#ffffff');
@@ -533,7 +536,7 @@
     }
     stop() { this._running = false; global.removeEventListener('pointermove', this._onMove); document.removeEventListener('pointerleave', this._onLeave); }
   }
-  global.Mascot = Mascot; Mascot.SHAPES = Object.keys(SHAPES); Mascot.ACTS = ACTS; Mascot.SHADES = ['flat', 'soft', 'glossy', 'rim']; Mascot.COMPOSED = COMPOSED; Mascot.blob = blobBody; Mascot.BODIES = [...Object.keys(SHAPES), ...Object.keys(COMPOSED)]; Mascot.COLORS = { black: '#0a0a0a', blue: '#1E6DF6', olive: '#969640', cyan: '#00CCFF', orchid: '#CF72D9', lime: '#EEF679' };
+  global.Mascot = Mascot; Mascot.SHAPES = Object.keys(SHAPES); Mascot.ACTS = ACTS; Mascot.SHADES = ['flat', 'gradient', 'soft', 'glossy', 'rim']; Mascot.COMPOSED = COMPOSED; Mascot.blob = blobBody; Mascot.BODIES = [...Object.keys(SHAPES), ...Object.keys(COMPOSED)]; Mascot.COLORS = { black: '#0a0a0a', blue: '#1E6DF6', olive: '#969640', cyan: '#00CCFF', orchid: '#CF72D9', lime: '#EEF679' };
   // the same six, adapted for a dark ground: black becomes an off-white body, the others are lifted a step
   Mascot.COLORS_DARK = { black: '#ECECEA', blue: '#5A92FF', olive: '#B4B45C', cyan: '#4DDCFF', orchid: '#DD93E4', lime: '#F1F78C' }; Mascot.EYES = Object.keys(EYES);
 })(window);

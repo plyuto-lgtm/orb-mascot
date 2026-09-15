@@ -181,6 +181,7 @@
         <label><input type="checkbox" id="lean" checked>Lean</label>
         <label><input type="checkbox" id="breathe" checked>Breathe</label>
         <label><input type="checkbox" id="wireframe">Show sphere</label>
+        <label><input type="checkbox" id="gradient">Gradient</label>
       </div>
       <h3>Colour</h3>
       <div class="toggles swatches" id="colorPick"></div>
@@ -278,7 +279,7 @@
   }
 
   // ---------- settings shared across bodies ----------
-  const settings = { colorName: 'black', mode: 'light', round: 0.5, wireframe: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true };
+  const settings = { colorName: 'black', mode: 'light', round: 0.5, wireframe: false, gradient: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true };
   const palette = () => settings.mode === 'dark' ? Mascot.COLORS_DARK : Mascot.COLORS;
   const colorHex = () => palette()[settings.colorName];
   let current = null, live = null, statics = [];
@@ -294,7 +295,7 @@
   }
   for (const n of Object.keys(Mascot.COMPOSED)) cardBots.push(card($('gComposed'), n, cap(n), `body: '${n}'`, n));
   for (const n of Mascot.SHAPES) cardBots.push(card($('gSimple'), n, cap(n), `body: '${n}'`, n));
-  const refreshCards = () => { for (const m of cardBots) { Object.assign(m.o, { color: Mascot.COLORS[settings.colorName], round: settings.round }); m.render(); } };
+  const refreshCards = () => { for (const m of cardBots) { Object.assign(m.o, { color: Mascot.COLORS[settings.colorName], round: settings.round, shade: settings.gradient ? 'gradient' : 'flat' }); m.render(); } };
 
   function chips(host, list, key, onPick) {
     for (const name of list) {
@@ -306,7 +307,7 @@
   }
   // ---------- settings controls (inside the modal) ----------
   const applySettings = () => {
-    const opts = { round: settings.round, wireframe: settings.wireframe };
+    const opts = { round: settings.round, wireframe: settings.wireframe, shade: settings.gradient ? 'gradient' : 'flat' };
     if (live) Object.assign(live.o, opts, { color: colorHex(), follow: settings.follow, idle: settings.idle, autoBlink: settings.autoBlink, lean: settings.lean, breathe: settings.breathe });
     for (const m of statics) { Object.assign(m.o, opts, { color: Mascot.COLORS[settings.colorName] }); m.render(); }
     $('stage').classList.toggle('dark', settings.mode === 'dark');
@@ -320,7 +321,7 @@
     i.addEventListener('change', () => { settings.colorName = name; applySettings(); });
   }
   for (const r of document.querySelectorAll('input[name=mode]')) r.addEventListener('change', e => { settings.mode = e.target.value; applySettings(); });
-  for (const k of ['follow', 'idle', 'autoBlink', 'lean', 'breathe', 'wireframe']) $(k).addEventListener('change', e => { settings[k] = e.target.checked; applySettings(); });
+  for (const k of ['follow', 'idle', 'autoBlink', 'lean', 'breathe', 'wireframe', 'gradient']) $(k).addEventListener('change', e => { settings[k] = e.target.checked; applySettings(); });
   // gaze pad: x -> yaw (-60..60), y -> pitch (40..-40)
   const pad = $('pad'), knob = $('knob'), MAXY = 40, MAXP = 28;
   let manualT = 0, padGaze = { y: 0, p: 0 };
@@ -377,7 +378,7 @@
   const bodyArg = name => `'${name}'`;
   function writeConfig() {
     if (!current) return;
-    $('dCfg').textContent = `new Mascot(svg, {\n  body: ${bodyArg(current)},\n  color: '${colorHex()}'   // ${settings.colorName}, ${settings.mode} palette\n})`;
+    $('dCfg').textContent = `new Mascot(svg, {\n  body: ${bodyArg(current)},\n  color: '${colorHex()}'${settings.gradient ? ",   // " : "   // "}${settings.colorName}, ${settings.mode} palette${settings.gradient ? "\n  shade: 'gradient'" : ''}\n})`;
   }
   function openBody(name) {
     if (!Mascot.COMPOSED[name] && !Mascot.SHAPES.includes(name)) { closeBody(); return; }
