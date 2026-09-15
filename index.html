@@ -96,10 +96,10 @@
   .stage{background:var(--surface);border-radius:12px;display:grid;place-items:center;min-height:420px;max-width:100%;position:relative;overflow:hidden;container-type:size}
   @media (max-width:880px){.stage{min-height:360px;height:360px}}
   .stage svg{width:min(78cqw,78cqh);height:auto;cursor:pointer;touch-action:none}
-  .stage .readout{position:absolute;left:16px;bottom:12px;font:12px/1.6 var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
-  .stage .title{position:absolute;left:16px;top:14px;display:flex;flex-direction:column;gap:2px}
-  .stage .title b{font-size:18px;font-weight:600}
-  .stage .title span{font-size:13px;color:var(--muted)}
+  .stage.dark{background:#111113}
+  .panel .head{display:flex;flex-direction:column;gap:2px;margin-bottom:4px}
+  .panel .head b{font-size:18px;font-weight:600}
+  .panel .head span{font-size:13px;color:var(--muted)}
   .panel{background:var(--surface);border-radius:12px;padding:16px 18px 14px;display:flex;flex-direction:column;gap:12px}
   .scen{display:flex;flex-wrap:wrap;gap:6px}
   .scen button{position:relative;padding:6px 12px 6px 26px;border-radius:999px;background:transparent}
@@ -150,12 +150,11 @@
     <button class="close" id="dClose" aria-label="Close">&times;</button>
   </div>
   <div class="top">
-    <div class="stage">
-      <div class="title"><b id="dTitle"></b><span id="dBlurb"></span></div>
+    <div class="stage" id="stage">
       <svg id="dLive" aria-label="Selected body, live"></svg>
-      <div class="readout" id="dReadout"></div>
     </div>
     <div class="panel">
+      <div class="head"><b id="dTitle"></b><span id="dBlurb"></span></div>
       <div class="gaze">
         <div class="pad" id="pad" role="slider" aria-label="Gaze: drag horizontally for yaw, vertically for pitch" tabindex="0" aria-valuetext="yaw 0, pitch 0">
           <i class="ax h"></i><i class="ax v"></i><i class="ring"></i><b class="knob" id="knob"></b>
@@ -171,6 +170,7 @@
         <label><input type="checkbox" id="breathe" checked>Breathe</label>
         <label><input type="checkbox" id="shaded" checked>Shaded</label>
         <label><input type="checkbox" id="wireframe">Show sphere</label>
+        <label><input type="checkbox" id="darkStage">Dark canvas</label>
       </div>
       <h3>Colour</h3>
       <div class="toggles swatches" id="colorPick"></div>
@@ -297,6 +297,7 @@
     i.addEventListener('change', () => { settings.color = hex; applySettings(); });
   }
   for (const k of ['follow', 'idle', 'autoBlink', 'lean', 'breathe', 'shaded', 'wireframe']) $(k).addEventListener('change', e => { settings[k] = e.target.checked; applySettings(); });
+  $('darkStage').addEventListener('change', e => { $('stage').classList.toggle('dark', e.target.checked); });
   // gaze pad: x -> yaw (-60..60), y -> pitch (40..-40)
   const pad = $('pad'), knob = $('knob'), MAXY = 60, MAXP = 40;
   let manualT = 0, padGaze = { y: 0, p: 0 };
@@ -425,7 +426,6 @@
   // readout + slider sync
   (function tick() {
     if (live) {
-      $('dReadout').textContent = `yaw ${live.yaw.toFixed(1).padStart(5)}°  pitch ${live.pitch.toFixed(1).padStart(5)}°`;
       if (!live.manual) setKnob(live.yaw, live.pitch);
     }
     requestAnimationFrame(tick);
