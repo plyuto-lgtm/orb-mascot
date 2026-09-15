@@ -28,16 +28,18 @@
   /* controls */
   .row{display:grid;grid-template-columns:84px 1fr;align-items:center;gap:10px;font-size:13px}
   /* filled slider: track, fill, pill thumb, value inside on the roomier side */
-  .fs{--p:0.5;--x:calc(10px + (100% - 20px) * var(--p));position:relative;height:36px;border-radius:10px;background:var(--bg);border:1px solid var(--line);overflow:hidden;user-select:none}
-  .fs .fill{position:absolute;left:0;top:0;bottom:0;width:calc(var(--x) + 4px);background:var(--surface-2)}
-  .fs .thumb{position:absolute;top:6px;bottom:6px;width:8px;border-radius:4px;background:var(--muted);left:calc(var(--x) - 4px);transition:background .12s}
-  .fs .val{position:absolute;top:0;bottom:0;display:flex;align-items:center;font:500 13px var(--mono);font-variant-numeric:tabular-nums;color:var(--ink);pointer-events:none;left:calc(var(--x) + 14px)}
-  .fs.flip .val{left:auto;right:calc(100% - var(--x) + 14px);color:var(--muted)}
-  .fs input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:ew-resize;z-index:1}
-  .fs:hover .thumb{background:var(--ink)}
-  .fs.drag .thumb{background:var(--accent)}
-  .fs.drag .val{color:var(--accent)}
-  .fs:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+  .fs{--p:0.5;--x:calc(10px + (100% - 20px) * var(--p));position:relative;height:36px;border-radius:10px;background:var(--bg);border:1px solid var(--line);overflow:hidden;user-select:none;transition:border-color .12s}
+  .fs .fill{position:absolute;left:0;top:0;bottom:0;width:calc(var(--x) + 4px);background:var(--surface-2);transition:background .12s}
+  .fs .thumb{position:absolute;top:7px;bottom:7px;width:7px;border-radius:4px;background:var(--muted);left:calc(var(--x) - 3.5px);transition:background .12s,left .08s ease-out}
+  .fs .val{position:absolute;top:0;bottom:0;display:flex;align-items:center;font:500 13px var(--mono);font-variant-numeric:tabular-nums;color:var(--ink);pointer-events:none;left:calc(var(--x) + 13px);transition:left .08s ease-out}
+  .fs.flip .val{left:auto;right:calc(100% - var(--x) + 13px);color:var(--muted);transition:right .08s ease-out}
+  .fs input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:grab;z-index:1}
+  .fs.drag input{cursor:grabbing}
+  .fs:hover .thumb, .fs.drag .thumb, .fs:has(input:focus-visible) .thumb{background:var(--ink)}
+  .fs.drag .thumb, .fs.drag .val{transition:none}
+  .fs.drag .fill{background:var(--line)}
+  .fs.drag .val, .fs.drag.flip .val{color:var(--ink)}
+  .fs:has(input:focus-visible){border-color:var(--muted)}
   .fs:has(input:disabled){opacity:.45;pointer-events:none}
   .gaze{display:grid;grid-template-columns:140px 1fr;gap:14px;align-items:center}
   .pad{position:relative;width:140px;height:140px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line);cursor:crosshair;touch-action:none;user-select:none}
