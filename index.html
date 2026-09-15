@@ -61,10 +61,14 @@
   .grouphead .tools{display:flex;gap:8px;align-items:center}
   .grouphead input[type=number]{width:90px;font:12px var(--mono);padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
 
-  /* detail */
-  .detail{margin-bottom:8px}
-  .crumb{font-size:13px;color:var(--muted);margin-bottom:14px}
+  /* detail modal */
+  .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:20}
+  .detail{position:fixed;inset:16px;z-index:21;background:var(--bg);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:auto;overscroll-behavior:contain;padding:20px clamp(16px,3vw,36px) 40px}
+  .detail section{margin-top:32px}
+  .crumb{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);margin-bottom:16px;position:sticky;top:0;background:var(--bg);padding:4px 0 10px;z-index:1}
   .crumb a{color:var(--muted)}
+  .crumb .close{margin-left:auto;width:32px;height:32px;padding:0;border-radius:50%;font-size:18px;line-height:1;display:grid;place-items:center}
+  body.modal-open{overflow:hidden}
   .info{background:var(--surface);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px}
   .info h1{font-size:22px}
   .info p{margin:0}
@@ -126,8 +130,9 @@
 
   <!-- ============ CATALOG ============ -->
   <div id="catalog" hidden>
-    <div class="detail" id="detail" hidden>
-      <div class="crumb"><a href="#catalog">All bodies</a> / <span id="dName"></span></div>
+    <div class="backdrop" id="backdrop" hidden></div>
+    <div class="detail" id="detail" role="dialog" aria-modal="true" aria-labelledby="dTitle" hidden>
+      <div class="crumb"><a href="#catalog">All bodies</a> / <span id="dName"></span><button class="close" id="dClose" aria-label="Close">&times;</button></div>
       <div class="top">
         <div class="stage"><svg id="dLive" aria-label="Selected body, live"></svg><div class="readout" id="dReadout"></div></div>
         <div class="info">
@@ -273,9 +278,9 @@
   function showDetail(name) {
     if (!name || (!blobs.has(name) && !Mascot.COMPOSED[name] && !Mascot.SHAPES.includes(name))) {
       if (name && /^blob-\d+$/.test(name)) { const def = Mascot.blob(+name.slice(5)); blobs.set(def.name, def); }
-      else { $('detail').hidden = true; current = null; markCurrent(); if (detailLive) { detailLive.stop(); detailLive = null; } return; }
+      else { closeDetail(); return; }
     }
-    current = name; markCurrent(); $('detail').hidden = false;
+    current = name; markCurrent(); $('detail').hidden = false; $('backdrop').hidden = false; document.body.classList.add('modal-open'); $('detail').scrollTop = 0;
     const def = blobs.get(name), comp = def || Mascot.COMPOSED[name];
     const info = INFO[name] || { blurb: `Generated body, ${def.temperament} temperament.`, behaviours: def.traits };
     const title = def ? 'Blob ' + def.seed : cap(name);
@@ -308,8 +313,15 @@
       const m = new Mascot(svg, { body: def || name, color: settings.color, round: settings.round, lean: false }); m.snap(14, 4); m.render();
     }
     $('dUse').onclick = () => { settings.body = name; applySandbox(); location.hash = '#sandbox'; };
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    $('dClose').focus();
   }
+  function closeDetail() {
+    $('detail').hidden = true; $('backdrop').hidden = true; document.body.classList.remove('modal-open');
+    current = null; markCurrent(); if (detailLive) { detailLive.stop(); detailLive = null; }
+  }
+  $('dClose').addEventListener('click', () => { location.hash = '#catalog'; });
+  $('backdrop').addEventListener('click', () => { location.hash = '#catalog'; });
+  window.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('detail').hidden) location.hash = '#catalog'; });
 
   // ---------- routing ----------
   function route() {
@@ -318,7 +330,7 @@
     const inCatalog = tab === 'catalog';
     $('sandbox').hidden = inCatalog; $('catalog').hidden = !inCatalog;
     $('tabSandbox').toggleAttribute('aria-current', !inCatalog); $('tabCatalog').toggleAttribute('aria-current', inCatalog);
-    if (inCatalog) showDetail(item ? decodeURIComponent(item) : null); else if (detailLive) { detailLive.stop(); detailLive = null; }
+    if (inCatalog) showDetail(item ? decodeURIComponent(item) : null); else closeDetail();
   }
   window.addEventListener('hashchange', route);
   applySandbox(); route();
