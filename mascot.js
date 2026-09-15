@@ -44,7 +44,7 @@
         const amp = 0.025 + Math.min(0.03, Math.abs(k.vel) / 2500);                   // tail waves; harder when the head moves
         return [x, y + S(k.t * PI2 / 1.7 + i * 1.2) * amp + k.poke * 0.012, r * (1 + k.poke * 0.02)];
       }) },
-    cloud: { c: [[0,0,0.94,0.5,-45],[0,0,0.94,0.5,45]], sphereR: 0.86, main: -1, head: 0.3, k: 40, d: 12,   // two pills crossed; the X tilts with the head
+    cloud: { c: [[0,0,0.94,0.5,-45],[0,0,0.94,0.5,45]], sphereR: 0.86, fitTarget: 0.86, main: -1, head: 0.3, k: 40, d: 12,   // two pills crossed; the X tilts with the head
       anim: (c, k) => c.map(([x, y, rx, ry, a], i) => {
         const b = S(k.t * PI2 / 2.8 + i * Math.PI) * 0.015, puff = k.poke * 0.03;
         return [x, y, rx * (1 + b + puff), ry * (1 + puff - b), a + k.hy * 0.35 + (i ? 1 : -1) * k.hp * 0.15];
@@ -189,7 +189,7 @@
     if (p.length > 3) { const a = (p[4] || 0) * D2R, c = Math.cos(a), sn = Math.sin(a), ex = Math.hypot(p[2] * c, p[3] * sn), ey = Math.hypot(p[2] * sn, p[3] * c); return Math.max(Math.abs(p[0]) + ex, Math.abs(p[1]) + ey); }
     return Math.max(Math.abs(p[0]), Math.abs(p[1])) + p[2];
   }));
-  const fitOf = comp => { if (comp._fit == null) comp._fit = FIT_TARGET / extentOf(comp.c); return comp._fit; };
+  const fitOf = comp => { if (comp._fit == null) comp._fit = (comp.fitTarget || FIT_TARGET) / extentOf(comp.c); return comp._fit; };
 
   // Generative blob bodies: a seed produces a whole body definition (pieces, spring, idle motion, lag rule)
   function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
