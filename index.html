@@ -124,7 +124,7 @@
   .stage.guides .guide{display:block}
 
   .mode{position:absolute;left:14px;top:14px;display:flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface);z-index:1}
-  .mode.sphereToggle{left:auto;right:14px}
+  .switch.gridToggle{position:absolute;right:14px;top:16px;margin:0;z-index:1}
   .mode label{font-size:12px;font-weight:500;padding:4px 10px;border-radius:999px;color:var(--muted);cursor:pointer;user-select:none}
   .mode label:has(:checked){background:var(--ink);color:var(--bg)}
   .mode input{position:absolute;opacity:0;width:0;height:0}
@@ -183,7 +183,7 @@
         <label><input type="radio" name="mode" value="light" checked>Light</label>
         <label><input type="radio" name="mode" value="dark">Dark</label>
       </div>
-      <div class="mode sphereToggle"><label><input type="checkbox" id="wireframe">Show sphere</label></div>
+      <label class="switch gridToggle"><input type="checkbox" id="wireframe"><span class="track"><span class="knob"></span></span><span>Show grid</span></label>
       <div class="guide"><b id="guideLabel">240</b><i>safe area</i></div>
       <svg id="dLive" aria-label="Selected body, live"></svg>
     </div>
