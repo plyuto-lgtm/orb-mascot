@@ -174,7 +174,7 @@
           A.roundMul = 1 - 0.6 * m; A.eyeMerge = m; A.eyeScale = 1 + 0.6 * m; } },
       inflate: { label: 'Inflate', hint: 'The core swells into one big circle that fills the gaps between the petals, then shrinks past its size and springs back up.', dur: 3.2,
         run: (t, A) => { const back = seg(t, 1.7, 3.0), sv = t < 1.1 ? E.back(E.io(seg(t, 0, 1.1))) : t < 1.7 ? 1 : 1 - (1 - Math.exp(-4.5 * back) * Math.cos(8 * back)) * (1 + 0.0);
-          const under = sv < 0 ? sv * 1.6 : 0;                                                       // past rest it goes noticeably smaller, then springs up
+          const under = sv < 0 ? sv * 0.8 : 0;                                                       // past rest it goes noticeably smaller, then springs up
           A.pieces = cs => cs.map((p, i) => i ? [p[0], p[1], p[2] * (1 + 0.5 * under)] : [p[0], p[1], p[2] * (1 + 0.22 * sv + 0.6 * under)]);
           A.eyeScale = 1 + 0.3 * Math.max(0, sv) + 0.8 * under; } },
     },
