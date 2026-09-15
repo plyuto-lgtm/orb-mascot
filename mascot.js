@@ -168,15 +168,16 @@
           A.look = [0, 0]; } },
     },
     flower: {
-      spin: { label: 'Spin', hint: 'The eyes merge into one circle, the flower makes a springy half turn with sharper petals, then the eyes part again.', dur: 2.8,
-        run: (t, A) => { const u = seg(t, 0.3, 2.5), th = 180 * E.spring(u), m = t < 0.35 ? E.io(seg(t, 0, 0.35)) : t < 2.2 ? 1 : 1 - E.io(seg(t, 2.2, 2.7));   // eyes become one circle first, stay one through the turn, part at the end
-          A.pieces = cs => cs.map((p, i) => i ? rotP(p, th) : p);
+      // both acts run off one master value so rotation, fillet, petals and eyes always move together
+      spin: { label: 'Spin', hint: 'Eyes merge into one circle, a springy half turn with sharper petals, eyes part as it settles. One curve drives it all.', dur: 3.0,
+        run: (t, A) => { const u = seg(t, 0, 2.7), k = 1 - Math.exp(-5 * u) * Math.cos(6.5 * u);              // master: springy 0 -> 1 (slight overshoot, settles)
+          const kc = clamp01(k), m = Math.min(E.io(clamp01(kc / 0.22)), 1 - E.io(clamp01((kc - 0.8) / 0.2)));   // merged from 22% to 80% of the turn, smooth edges
+          A.pieces = cs => cs.map((p, i) => i ? rotP(p, 180 * k) : p);
           A.roundMul = 1 - 0.6 * m; A.eyeMerge = m; A.eyeScale = 1 + 0.6 * m; } },
-      inflate: { label: 'Inflate', hint: 'The core swells into one big circle that fills the gaps between the petals, then shrinks past its size and springs back up.', dur: 3.2,
-        run: (t, A) => { const back = seg(t, 1.7, 3.0), sv = t < 1.1 ? E.back(E.io(seg(t, 0, 1.1))) : t < 1.7 ? 1 : 1 - (1 - Math.exp(-4.5 * back) * Math.cos(8 * back)) * (1 + 0.0);
-          const under = sv < 0 ? sv * 0.8 : 0;                                                       // past rest it goes noticeably smaller, then springs up
-          A.pieces = cs => cs.map((p, i) => i ? [p[0], p[1], p[2] * (1 + 0.5 * under)] : [p[0], p[1], p[2] * (1 + 0.22 * sv + 0.6 * under)]);
-          A.eyeScale = 1 + 0.3 * Math.max(0, sv) + 0.8 * under; } },
+      inflate: { label: 'Inflate', hint: 'Swells into one big circle with a soft spring, holds, then shrinks past its size and springs back. One curve drives it all.', dur: 3.2,
+        run: (t, A) => { const p = t < 1.0 ? 1 - Math.exp(-5 * seg(t, 0, 1.0)) * Math.cos(5 * seg(t, 0, 1.0)) : t < 1.5 ? 1 : Math.exp(-4 * seg(t, 1.5, 3.1)) * Math.cos(7 * seg(t, 1.5, 3.1));   // master: in, hold, spring out through an undershoot
+          A.pieces = cs => cs.map((p2, i) => i ? [p2[0], p2[1], p2[2] * (1 + 0.1 * p)] : [p2[0], p2[1], p2[2] * (1 + 0.22 * p)]);
+          A.eyeScale = 1 + 0.3 * p; } },
     },
   };
   for (const k in ACTS) if (COMPOSED[k]) COMPOSED[k].acts = ACTS[k];
