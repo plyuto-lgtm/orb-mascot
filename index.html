@@ -129,7 +129,8 @@
   .mode label:has(:checked){background:var(--ink);color:var(--bg)}
   .mode input{position:absolute;opacity:0;width:0;height:0}
 
-  .panel .head{display:flex;flex-direction:column;gap:2px;margin-bottom:4px}
+  .panel .head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:4px}
+  .panel .head > div{display:flex;flex-direction:column;gap:2px}
   .panel .head b{font-size:18px;font-weight:600}
   .panel .head span{font-size:13px;color:var(--muted)}
   .panel{background:transparent;padding:4px 0 0 4px;display:flex;flex-direction:column;gap:12px}
@@ -188,7 +189,7 @@
       <svg id="dLive" aria-label="Selected body, live"></svg>
     </div>
     <div class="panel">
-      <div class="head"><b id="dTitle"></b><span id="dBlurb"></span></div>
+      <div class="head"><div><b id="dTitle"></b><span id="dBlurb"></span></div><button id="dExport" title="Download the current body in its default pose as an SVG file">Export SVG</button></div>
       <div class="gaze">
         <div class="pad" id="pad" role="slider" aria-label="Gaze: drag horizontally for yaw, vertically for pitch" tabindex="0" aria-valuetext="yaw 0, pitch 0">
           <i class="ax h"></i><i class="ax v"></i><i class="ring"></i><b class="knob" id="knob"></b>
@@ -495,6 +496,21 @@
 
   document.documentElement.dataset.theme = settings.mode;
   for (const r of document.querySelectorAll('input[name=modeTop]')) r.checked = r.value === settings.mode;
+  // ---------- export: default pose as a standalone SVG ----------
+  $('dExport').addEventListener('click', async () => {
+    if (!current) return;
+    const size = +$('size').value, svg = svgEl(current + ' mascot');
+    svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg'); svg.setAttribute('width', size); svg.setAttribute('height', size);
+    const m = new Mascot(svg, { body: current, color: colorHex(), gradientAngle: settings.gAngle, shade: settings.gradient ? 'gradient' : 'flat', round: settings.round, lean: false, wireframe: false });
+    m.snap(0, 0); m.render();
+    const text = '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(svg);
+    const name = `orb-${current}.svg`;
+    try {
+      const url = URL.createObjectURL(new Blob([text], { type: 'image/svg+xml' }));
+      const a = document.createElement('a'); a.href = url; a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {}
+    try { await navigator.clipboard.writeText(text); $('dExport').textContent = 'Copied SVG'; setTimeout(() => { $('dExport').textContent = 'Export SVG'; }, 1400); } catch (e) {}
+  });
   // ---------- routing: #bear ----------
   function route() { const name = decodeURIComponent(location.hash.slice(1)); if (name) openBody(name); else closeBody(); }
   window.addEventListener('hashchange', route);
