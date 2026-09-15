@@ -153,18 +153,13 @@
 <div class="wrap">
   <header>
     <h1>Orb Mascot Catalog</h1>
-    <p>Bodies with two eyes on a 3D sphere. Open one to drive it: gaze, behaviour, colour and scenarios, with its state sheet and parameters.</p>
+    <p>Composed bodies with two eyes on a 3D sphere. Open one to drive it: gaze, behaviour, colour and scenarios, with its state sheet and parameters.</p>
   </header>
 
   <section style="margin-top:0">
-    <div class="grouphead"><h2>Composed bodies</h2></div>
+    <div class="grouphead"><h2>Bodies</h2></div>
     <div class="grid" id="gComposed"></div>
     <p class="note">Unions of circles and ellipses. Every extra piece sits on the head sphere and turns with the head, which follows the gaze through its own spring.</p>
-  </section>
-  <section>
-    <div class="grouphead"><h2>Simple bodies</h2></div>
-    <div class="grid" id="gSimple"></div>
-    <p class="note">Single outlines with the eyes on an inner sphere.</p>
   </section>
 </div>
 
@@ -324,7 +319,6 @@
     const m = new Mascot(svg, { body: def, round: settings.round, color: cardColor(), gradientAngle: settings.gAngle }); m.snap(-16, 6); m.render(); m.cardHost = host; return m;
   }
   for (const n of Object.keys(Mascot.COMPOSED)) cardBots.push(card($('gComposed'), n, cap(n), `body: '${n}'`, n));
-  for (const n of Mascot.SHAPES) cardBots.push(card($('gSimple'), n, cap(n), `body: '${n}'`, n));
   const refreshCards = () => { for (const m of cardBots) { Object.assign(m.o, { color: cardColor(), gradientAngle: settings.gAngle, round: settings.round, shade: settings.gradient ? 'gradient' : 'flat' }); m.render(); } };
 
   function chips(host, list, key, onPick) {
@@ -429,7 +423,7 @@
     $('dCfg').textContent = `new Mascot(svg, {\n  body: ${bodyArg(current)},\n  ${colorLine}${!custom && settings.gradient ? "\n  shade: 'gradient'" : ''}\n})`;
   }
   function openBody(name) {
-    if (!Mascot.COMPOSED[name] && !Mascot.SHAPES.includes(name)) { closeBody(); return; }
+    if (!Mascot.COMPOSED[name]) { closeBody(); return; }
     if (live) live.stop();
     for (const t of demoTimers) clearTimeout(t); demoTimers = [];
     current = name; markCurrent();
@@ -476,12 +470,11 @@
     current = null; markCurrent(); if (live) { live.stop(); live = null; } statics = [];
   }
   // switch bodies from inside the modal
-  const allNames = () => [...Object.keys(Mascot.COMPOSED), ...Mascot.SHAPES];
+  const allNames = () => Object.keys(Mascot.COMPOSED);
   function fillPick() {
     const sel = $('dPick'); sel.innerHTML = '';
     const group = (label, names, labelFn) => { const g = document.createElement('optgroup'); g.label = label; for (const n of names) { const o = document.createElement('option'); o.value = n; o.textContent = labelFn(n); g.append(o); } sel.append(g); };
     group('Composed', Object.keys(Mascot.COMPOSED), cap);
-    group('Simple', Mascot.SHAPES, cap);
     sel.value = current;
   }
   $('dPick').addEventListener('change', e => { location.hash = '#' + e.target.value; });
