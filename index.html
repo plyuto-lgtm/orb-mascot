@@ -107,7 +107,7 @@
   @media (max-width:880px){.top{grid-template-columns:1fr}}
   .stage{background:transparent;border-radius:12px;display:grid;place-items:center;min-height:420px;max-width:100%;position:relative;overflow:hidden;container-type:size}
   @media (max-width:880px){.stage{min-height:360px;height:360px}}
-  .stage{--max:480px;--frame:min(78cqw,78cqh,var(--max))}                  /* the orb frame never exceeds 480 x 480; Size sets a smaller cap */
+  .stage{--max:240px;--frame:min(78cqw,78cqh,var(--max))}                  /* the orb frame never exceeds 480 x 480; Size sets a smaller cap */
   .stage svg{width:var(--frame);height:auto;cursor:pointer;touch-action:none}
   .stage .guide{position:absolute;left:50%;top:50%;width:var(--frame);aspect-ratio:1;transform:translate(-50%,-50%);border:1px dashed var(--line);border-radius:6px;pointer-events:none;display:none}
   .stage .guide::after{content:'';position:absolute;inset:10%;border:1px dashed var(--muted);opacity:.7;border-radius:4px}
@@ -183,7 +183,7 @@
         <label><input type="radio" name="mode" value="dark">Dark</label>
       </div>
       <div class="mode sphereToggle"><label><input type="checkbox" id="wireframe">Show sphere</label></div>
-      <div class="guide"><b id="guideLabel">480 max</b><i>safe area</i></div>
+      <div class="guide"><b id="guideLabel">240</b><i>safe area</i></div>
       <svg id="dLive" aria-label="Selected body, live"></svg>
     </div>
     <div class="panel">
@@ -194,7 +194,7 @@
         </div>
         <div class="gazeVals"><span>yaw <output id="yawV">0&deg;</output></span><span>pitch <output id="pitchV">0&deg;</output></span><span class="note" style="margin:10px 0 0">Drag the dot. Auto resumes when you let go.</span></div>
       </div>
-      <div class="row"><span>Size</span><div class="fs"><input type="range" id="size" min="64" max="480" value="480" step="8" aria-label="Orb size"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
+      <div class="row"><span>Size</span><div class="fs"><input type="range" id="size" min="64" max="480" value="240" step="8" aria-label="Orb size"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
       <h3>Behaviour</h3>
       <div class="toggles">
         <label><input type="checkbox" id="follow" checked>Follow cursor</label>
@@ -307,7 +307,7 @@
   }
 
   // ---------- settings shared across bodies ----------
-  const settings = { colorName: 'custom', mode: 'light', round: 0.5, wireframe: false, gradient: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true };
+  const settings = { colorName: 'black', mode: 'light', round: 0.5, wireframe: false, gradient: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true };
   settings.g1 = '#1E6DF6'; settings.g2 = '#DBDBDB'; settings.gAngle = 90;
   const palette = () => settings.mode === 'dark' ? Mascot.COLORS_DARK : Mascot.COLORS;
   const colorHex = () => settings.colorName === 'custom' ? [settings.g1, settings.g2] : palette()[settings.colorName];
