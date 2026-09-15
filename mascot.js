@@ -81,13 +81,13 @@
     return cs.map(p => { const ry = p.length > 3 ? p[3] : p[2], rx = p[2], over = p[1] + ry - floor; if (over <= 0) return p;
       return [p[0], p[1] - over * 0.55, rx + over * 0.6, ry - over * 0.55, p.length > 3 ? p[4] : 0]; });
   };
-  // jelly hop: crouch, stretch on the way up, flatten on the floor, wobble back
-  const hop = (t, A, n, P, h) => {
+  // hop: soft crouch, arc, gentle landing (floor deformation optional), small settle
+  const hop = (t, A, n, P, h, useFloor) => {
     if (t >= n * P) return; const u = (t % P) / P;
-    if (u < 0.16) { const c = S(Math.PI * u / 0.16); A.sy = 1 - 0.10 * c; A.sx = 1 + 0.06 * c; A.floor = 0.06 * c; return; }
-    if (u < 0.62) { const f = (u - 0.16) / 0.46; A.dy = -h * S(Math.PI * f); return; }
-    if (u < 0.78) { const c = S(Math.PI * (u - 0.62) / 0.16); A.floor = 0.2 * c; A.sx = 1 + 0.08 * c; return; }
-    const w = (u - 0.78) / 0.22; A.sy = 1 + 0.03 * S(w * Math.PI * 2) * Math.exp(-w * 3);
+    if (u < 0.2) { const c = E.io(u / 0.2); A.sy = 1 - 0.06 * c; A.sx = 1 + 0.03 * c; return; }
+    if (u < 0.66) { const f = (u - 0.2) / 0.46; A.dy = -h * S(Math.PI * f); const c = 1 - E.o(Math.min(1, f * 3)); A.sy = 1 - 0.06 * c; A.sx = 1 + 0.03 * c; return; }
+    if (u < 0.82) { const c = S(Math.PI * (u - 0.66) / 0.16); if (useFloor) A.floor = 0.1 * c; else A.sy = 1 - 0.07 * c; A.sx = 1 + 0.05 * c; return; }
+    const w = (u - 0.82) / 0.18; A.sy = 1 + 0.02 * S(w * Math.PI) ;
   };
 
   const ACTS = {
@@ -127,10 +127,10 @@
         run: (t, A) => { const step = 0.85, k = Math.min(3, Math.floor(t / step)), u = seg(t, k * step, k * step + 0.62), th = t >= 4 * step ? 360 : 90 * k + 90 * E.back(u);
           A.pieces = cs => cs.map(p => p.length > 3 ? [p[0], p[1], p[2], p[3], (p[4] || 0) + th] : p); A.dy = -3 * S(Math.PI * u);
           A.eyeOrbit = 14 * S(Math.PI * Math.min(1, u * 1.3)); } },
-      hop: { label: 'Hop', hint: 'Three jelly hops: it stretches on the way up and flattens against the floor on landing.', dur: 2.6, run: (t, A) => hop(t, A, 3, 0.8, 22) },
+      hop: { label: 'Hop', hint: 'Two soft hops with a small squash on landing.', dur: 2.2, run: (t, A) => hop(t, A, 2, 1.0, 20, false) },
     },
     drop: {
-      hop: { label: 'Hop', hint: 'Three jelly hops, the bottom flattening and spreading on each landing.', dur: 2.6, run: (t, A) => hop(t, A, 3, 0.8, 24) },
+      hop: { label: 'Hop', hint: 'Two soft hops, the bottom flattening a little on each landing.', dur: 2.2, run: (t, A) => hop(t, A, 2, 1.0, 22, true) },
       sprout: { label: 'New sprout', hint: 'Eyes bump, the body tightens as the sprout pulls free and fades, then a new one grows out of it.', dur: 3.5,
         run: (t, A) => { const b = pulse(t, 0, 0.4); A.eyeScale = 1 + 0.25 * b;
           const up = E.i(seg(t, 0.4, 1.3)), grow = t < 1.8 ? 0 : E.back(seg(t, 1.8, 2.9)), pull = pulse(t, 0.4, 1.3);
@@ -139,10 +139,10 @@
           if (t >= 1.8) A.sy *= 1 - 0.04 * pulse(t, 1.8, 2.4); } },
     },
     stack: {
-      deflate: { label: 'Deflate', hint: 'Squeezes toward its centre, slow at first then all at once, bulging at the waist, then springs back.', dur: 3.0,
-        run: (t, A) => { const sv = t < 1.0 ? E.back(E.i(seg(t, 0, 1.0))) : t < 1.55 ? 1 + 0.02 * S(t * 18) : 1 - E.spring(seg(t, 1.55, 2.9)); const sp = Math.max(0, sv);
-          A.pieces = cs => cs.map((p, i) => i === 0 ? [p[0], p[1], p[2] * (1 + 0.25 * sp)] : [p[0], p[1] * (1 - 0.72 * sv), p[2] * (1 + 0.18 * sp), p[3] * (1 - 0.45 * sp)]);
-          A.eyeScale = 1 - 0.3 * sp; A.eyeSquash = 1 - 0.35 * sp; } },
+      deflate: { label: 'Deflate', hint: 'Squeezes toward its centre with a soft spring, holds, then springs back.', dur: 3.0,
+        run: (t, A) => { const sv = t < 1.1 ? E.back(E.io(seg(t, 0, 1.1))) : t < 1.6 ? 1 : 1 - E.spring(seg(t, 1.6, 2.9)); const sp = Math.max(0, sv);
+          A.pieces = cs => cs.map((p, i) => i === 0 ? p : [p[0], p[1] * (1 - 0.42 * sv), p[2] * (1 + 0.1 * sp), p[3] * (1 - 0.28 * sp)]);
+          A.eyeScale = 1 - 0.2 * sp; A.eyeSquash = 1 - 0.25 * sp; } },
       stretch: { label: 'Stretch', hint: 'A slow blink, then the halves pull apart with the eyes stretching too, hold, and snap back together.', dur: 3.2,
         run: (t, A) => { A.eyeSquash = 1 - 0.35 * pulse(t, 0, 0.7);
           const u = t < 0.7 ? 0 : t < 1.7 ? E.io(seg(t, 0.7, 1.7)) : t < 2.3 ? 1 : 1 - E.spring(seg(t, 2.3, 3.2));
@@ -154,23 +154,26 @@
         run: (t, A) => { const side = t < 1.55 ? 1 : 2, u = side === 1 ? seg(t, 0.1, 1.5) : seg(t, 1.6, 3.0), lift = S(Math.PI * u), wig = S(PI2 * u * 3) * 0.06 * lift;
           A.pieces = cs => cs.map((p, i) => i === side ? [p[0] + (side === 1 ? -0.12 : 0.12) * lift + wig, p[1] - 0.55 * lift, p[2]] : p);
           A.look = [side === 1 ? -18 : 18, 8]; A.rot = (side === 1 ? -4 : 4) * lift; } },
-      cover: { label: 'Cover eyes', hint: 'The flippers slide up inside the body and vanish, then come out on top to cover the eyes, hold, and go back.', dur: 3.4,
+      cover: { label: 'Cover eyes', hint: 'Each flipper travels up its own side of the body and in over the eye, holds, then goes back down the same way.', dur: 3.4,
         run: (t, A, ctx) => {
-          const inA = E.io(seg(t, 0, 0.8)), outA = E.back(seg(t, 0.8, 1.3)), hold = seg(t, 1.3, 2.3), rel = E.io(seg(t, 2.3, 2.8)), back = E.io(seg(t, 2.8, 3.4));
-          const hide = Math.max(0, inA - back);                                             // 0 at rest, 1 while hidden or covering
-          A.pieces = cs => cs.map((p, i) => i ? [p[0] * (1 - 0.15 * hide), p[1] - 0.55 * hide, p[2] * (1 - 0.35 * hide)] : p);   // flippers travel up into the body
-          const c = Math.max(0, outA - rel), o = ctx.self.o;                              // overlay hands over the eyes
-          if (c > 0) { const ex = Math.sin(o.eyeLon * D2R) * ctx.self._surf.rx, ey = ctx.self._surf.cy - Math.sin(o.eyeLat * D2R) * ctx.self._surf.ry;
-            A.overlay = [[-ex, ey + 0.02, 0.24 * c], [ex, ey + 0.02, 0.24 * c]]; }
-          A.eyeSquash = 1 - 0.25 * pulse(t, 2.2, 2.9); A.look = hold > 0 && hold < 1 ? [0, 0] : null; } },
+          const o = ctx.self.o, su = ctx.self._surf, ex = Math.sin(o.eyeLon * D2R) * su.rx, ey = su.cy - Math.sin(o.eyeLat * D2R) * su.ry;
+          const u = t < 1.0 ? E.io(seg(t, 0, 1.0)) : t < 2.1 ? 1 : 1 - E.io(seg(t, 2.1, 3.2));               // 0 at rest, 1 covering
+          const path = (side, k) => {                                                              // corner -> up the side -> in over the eye
+            const x0 = side * 0.62, y0 = 0.6, x1 = side * 0.7, y1 = 0.02, x2 = side * ex, y2 = ey;
+            if (k < 0.55) { const a = E.io(k / 0.55); return [x0 + (x1 - x0) * a, y0 + (y1 - y0) * a]; }
+            const a = E.io((k - 0.55) / 0.45); return [x1 + (x2 - x1) * a, y1 + (y2 - y1) * a]; };
+          const L = path(-1, u), R = path(1, u), r = 0.32 - 0.06 * u;
+          A.pieces = cs => cs.map((p, i) => i === 1 ? [L[0], L[1], r] : i === 2 ? [R[0], R[1], r] : p);
+          if (u > 0) A.overlay = [[L[0], L[1], r], [R[0], R[1], r]];
+          A.look = [0, 0]; } },
     },
     flower: {
-      spin: { label: 'Spin', hint: 'One springy turn that overshoots and settles; the petals sharpen and the eyes merge into one centre along the same curve.', dur: 3.0,
-        run: (t, A) => { const u = seg(t, 0, 2.6), k = E.spring(u), th = 360 * k, mid = S(Math.PI * Math.min(1, u * 1.15));
+      spin: { label: 'Spin', hint: 'A springy half turn; the eyes join into one at the middle of the turn and part again as it settles.', dur: 2.8,
+        run: (t, A) => { const u = seg(t, 0, 2.4), th = 180 * E.spring(u), mid = S(Math.PI * clamp01(u * 1.1));
           A.pieces = cs => cs.map((p, i) => i ? rotP(p, th) : p);
-          A.roundMul = 1 - 0.7 * mid; A.eyeMerge = mid; A.eyeScale = 1 + 0.6 * mid; } },
-      inflate: { label: 'Inflate', hint: 'The core swells into one big circle that fills the gaps between the petals, eyes growing with it, then settles back.', dur: 3.0,
-        run: (t, A) => { const sv = t < 1.0 ? E.io(seg(t, 0, 1.0)) : t < 1.6 ? 1 : 1 - E.back(seg(t, 1.6, 2.8)); const sp = Math.max(0, sv);
+          A.roundMul = 1 - 0.6 * mid; A.eyeMerge = mid; A.eyeScale = 1 + 0.6 * mid; } },
+      inflate: { label: 'Inflate', hint: 'The core swells into one big circle that fills the gaps between the petals, easing in with a soft spring, then settles back.', dur: 3.0,
+        run: (t, A) => { const sv = t < 1.1 ? E.back(E.io(seg(t, 0, 1.1))) : t < 1.7 ? 1 : 1 - E.spring(seg(t, 1.7, 2.9)); const sp = Math.max(0, sv);
           A.pieces = cs => cs.map((p, i) => i ? p : [p[0], p[1], p[2] * (1 + 0.22 * sv)]);
           A.eyeScale = 1 + 0.3 * sp; } },
     },
