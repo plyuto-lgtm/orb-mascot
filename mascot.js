@@ -491,7 +491,7 @@
             this.look(ny, np); this._nextIdle = now + 1200 + Math.random() * 2600;
           }
         }
-        if (o.autoBlink && now > this._nextBlink && !reduce && !this._act) {   // no blinking during a scripted act this.blink(Math.random() < 0.2 ? 2 : 1); this._nextBlink = now + 2000 + Math.random() * 4000; }
+        if (o.autoBlink && now > this._nextBlink && !reduce && !this._act) { this.blink(Math.random() < 0.2 ? 2 : 1); this._nextBlink = now + 2000 + Math.random() * 4000; }   // no blinking during a scripted act
         // smoothing (fast saccade, exponential ease-out)
         const k = reduce ? 1 : 1 - Math.exp(-dt / 70), k2 = reduce ? 1 : 1 - Math.exp(-dt / 90);
         const prevYaw = this.yaw;
