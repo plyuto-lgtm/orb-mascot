@@ -216,7 +216,7 @@
         shaded: true, wireframe: false, lean: true, breathe: true,
         follow: true, idle: true, autoBlink: true,
         color: '#0a0a0a',   // body colour; shading is derived from it
-        shade: 'soft',      // flat | soft | glossy | rim   (shaded:false forces flat)
+        shade: 'flat',      // flat | soft | glossy | rim   (shaded:false forces flat)
         light: -135,        // direction the light comes from, degrees: 0 right, -90 top, -135 top-left
         contrast: 1,        // shading strength multiplier
         eyeColor: null,     // null = auto (white on dark bodies, ink on light ones)
