@@ -173,7 +173,7 @@
       // both acts run off one master value so rotation, fillet, petals and eyes always move together
       spin: { label: 'Spin', hint: 'Eyes merge into one circle, a springy half turn with sharper petals, eyes part as it settles. One curve drives it all.', dur: 3.0,
         run: (t, A) => { const u = seg(t, 0, 2.7), k = spr0(u, 4.5, 6);                                       // master: starts at rest, springy 0 -> 1 with a slight overshoot
-          const kc = clamp01(k), m = Math.min(E.io(clamp01(kc / 0.22)), 1 - E.io(clamp01((kc - 0.8) / 0.2)));   // merged from 22% to 80% of the turn, smooth edges
+          const kc = clamp01(k), m = Math.min(E.io(clamp01(kc / 0.45)), 1 - E.io(clamp01((kc - 0.6) / 0.4)));   // eyes glide together over the first 45% of the turn and apart over the last 40%
           A.pieces = cs => cs.map((p, i) => i ? rotP(p, 180 * k) : p);
           A.roundMul = 1 - 0.6 * m; A.eyeMerge = m; A.eyeScale = 1 + 0.6 * m; } },
       inflate: { label: 'Inflate', hint: 'Swells into one big circle with a soft spring, holds, then shrinks past its size and springs back. One curve drives it all.', dur: 3.2,
