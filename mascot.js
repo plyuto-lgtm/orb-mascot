@@ -62,12 +62,14 @@
   };
   // Generative blob bodies: a seed produces a whole body definition (pieces, spring, idle motion, lag rule)
   function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-  function blobBody(seed) {
+  // complexity 0..1: low = one or two mirrored circles, high = up to five pieces, ellipses, asymmetry
+  function blobBody(seed, opts = {}) {
+    const cx = Math.max(0, Math.min(1, opts.complexity == null ? 0.5 : opts.complexity));
     const R = mulberry32((seed | 0) * 9973 + 17), rnd = (a, b) => a + (b - a) * R(), pick = arr => arr[Math.floor(R() * arr.length)];
     const mainR = rnd(0.74, 0.9), c = [[0, rnd(-0.08, 0.08), mainR]];
-    const n = 1 + Math.floor(R() * 4), mirror = R() < 0.55; let ellipses = 0;
+    const n = 1 + Math.floor(R() * (1 + cx * 4)), mirror = R() < 0.95 - cx * 0.7; let ellipses = 0;
     for (let i = 0; i < n; i++) {
-      const ang = rnd(-Math.PI, Math.PI), r = rnd(0.22, 0.4), ell = R() < 0.35;
+      const ang = rnd(-Math.PI, Math.PI), r = rnd(0.22, 0.3 + cx * 0.12), ell = R() < cx * 0.6;
       const dist = Math.max(rnd(0.55, 0.8), mainR - r + 0.16);                        // always pokes clearly out of the core
       const x = Math.cos(ang) * dist, y = Math.sin(ang) * dist;
       const piece = ell ? [x, y, r * rnd(1.1, 1.6), r * rnd(0.5, 0.85), rnd(-60, 60)] : [x, y, r];
@@ -86,7 +88,7 @@
       `breathes every ${speed.toFixed(1)} s at ${(amp * 100).toFixed(0)}% of piece size`,
     ];
     return {
-      name: 'blob-' + seed, seed, c, sphereR: mainR, main: 0, head, k, d, temperament, traits,
+      name: 'blob-' + seed, seed, complexity: cx, c, sphereR: mainR, main: 0, head, k, d, temperament, traits,
       anim: (cs, kk) => cs.map((p, i) => {
         if (i === 0) return p;
         const b = 1 + S(kk.t * PI2 / speed + phase[i]) * amp;

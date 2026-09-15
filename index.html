@@ -69,7 +69,11 @@
   .crumb{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);margin-bottom:16px;position:sticky;top:0;background:var(--bg);padding:6px 0 10px;z-index:1}
   .crumb a{color:var(--muted)}
   .crumb .close{margin-left:auto;width:32px;height:32px;padding:0;border-radius:50%;font-size:18px;line-height:1;display:grid;place-items:center}
-  .crumb .nav{width:28px;height:28px;padding:0;border-radius:50%;font-size:18px;line-height:1;display:grid;place-items:center}
+  .crumb .nav{width:28px;height:28px;padding:0;border-radius:50%;display:grid;place-items:center}
+  .crumb .nav i{display:block;width:7px;height:7px;border-right:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink)}
+  .crumb .nav.prev i{transform:translateX(2px) rotate(135deg)}
+  .crumb .nav.next i{transform:translateX(-2px) rotate(-45deg)}
+  .crumb .nav:hover{border-color:var(--muted)}
   .pick{position:relative;display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 10px;border:1px solid var(--line);border-radius:999px;color:var(--ink);font-weight:500;background:var(--surface-2)}
   .pick i{width:7px;height:7px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:translateY(-2px) rotate(45deg)}
   .pick select{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;font:inherit}
@@ -92,9 +96,13 @@
   .scen button[aria-pressed]{border-color:var(--accent);background:var(--surface-2)}
   .scen button[aria-pressed]::before{border-color:transparent transparent transparent var(--accent)}
   .hint{font-size:13px;color:var(--muted);min-height:1.5em}
-  .kv{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;font-size:13px}
-  .kv span:nth-child(odd){color:var(--muted)}
-  .kv span:nth-child(even){font:12.5px var(--mono);font-variant-numeric:tabular-nums}
+  .params{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .params div{background:var(--surface);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+  .params span{font-size:12px;color:var(--muted)}
+  .params b{font:500 14px var(--mono);font-variant-numeric:tabular-nums}
+  .blobTools{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:13px}
+  .blobTools label{display:inline-flex;align-items:center;gap:6px;color:var(--muted)}
+  .blobTools input[type=number]{width:96px;font:12px var(--mono);padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
   pre{background:var(--surface);border-radius:12px;padding:16px 18px;font:12px/1.55 var(--mono);overflow-x:auto;margin:0}
   .sizes{display:flex;align-items:flex-end;flex-wrap:wrap;gap:24px;background:var(--surface);border-radius:12px;padding:20px}
   .sizes div{display:flex;flex-direction:column;align-items:center;gap:8px}
@@ -120,14 +128,10 @@
   <section>
     <div class="grouphead">
       <h2>Blob bodies</h2>
-      <div class="tools">
-        <label for="blobSeed" style="font-size:13px;color:var(--muted)">Seed</label>
-        <input type="number" id="blobSeed" value="1" min="0" step="1">
-        <button id="blobNew">New set</button>
-      </div>
+      <div class="tools"><button id="blobNew">New blob</button></div>
     </div>
     <div class="grid" id="gBlob"></div>
-    <p class="note">Generated from a seed: pieces, symmetry, spring, breathing and lag rule all come from the number. Each set shows eight consecutive seeds; enter a seed to reproduce a body exactly.</p>
+    <p class="note">Generated from a seed: pieces, symmetry, spring, breathing and lag rule all come from the number. Open it to change the seed and complexity, or make a new one.</p>
   </section>
 </div>
 
@@ -136,7 +140,7 @@
   <div class="crumb">
     <a href="#">All bodies</a> /
     <span class="pick"><select id="dPick" aria-label="Switch body"></select><span id="dName"></span><i></i></span>
-    <button class="nav" id="dPrev" aria-label="Previous body">&lsaquo;</button><button class="nav" id="dNext" aria-label="Next body">&rsaquo;</button>
+    <button class="nav prev" id="dPrev" aria-label="Previous body"><i></i></button><button class="nav next" id="dNext" aria-label="Next body"><i></i></button>
     <button class="close" id="dClose" aria-label="Close">&times;</button>
   </div>
   <div class="top">
@@ -169,10 +173,20 @@
       <div class="row" id="roundRow"><span>Rounding</span><input type="range" id="round" min="0" max="1" value="0.5" step="0.05"><output id="roundV">0.50</output></div>
       <h3>Colour</h3>
       <div class="toggles swatches" id="colorPick"></div>
-      <h3>Parameters</h3>
-      <div class="kv" id="dParams"></div>
+      <div id="blobBox">
+        <h3>Blob</h3>
+        <div class="blobTools">
+          <button id="dBlobNew">New blob</button>
+          <label>Seed <input type="number" id="dSeed" min="0" step="1"></label>
+        </div>
+        <div class="row" style="margin-top:10px"><span>Complexity</span><input type="range" id="complexity" min="0" max="1" value="0.5" step="0.05"><output id="complexityV">0.50</output></div>
+      </div>
     </div>
   </div>
+  <section>
+    <h2>Parameters</h2>
+    <div class="params" id="dParams"></div>
+  </section>
   <section>
     <h2>States</h2>
     <div class="grid" id="dStates"></div>
@@ -224,7 +238,7 @@
   ];
 
   // ---------- settings shared across bodies ----------
-  const settings = { color: Mascot.COLORS.black, round: 0.5, shaded: true, wireframe: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true };
+  const settings = { color: Mascot.COLORS.black, round: 0.5, shaded: true, wireframe: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true, seed: 1, complexity: 0.5 };
   const blobs = new Map();
   let current = null, live = null, statics = [];
 
@@ -240,14 +254,15 @@
   for (const n of Object.keys(Mascot.COMPOSED)) cardBots.push(card($('gComposed'), n, cap(n), `body: '${n}'`, n));
   for (const n of Mascot.SHAPES) cardBots.push(card($('gSimple'), n, cap(n), `body: '${n}'`, n));
   let blobBots = [];
-  function buildBlobs(from) {
-    $('gBlob').innerHTML = ''; blobBots = [];
-    for (let s = from; s < from + 8; s++) { const def = Mascot.blob(s); blobs.set(def.name, def); blobBots.push(card($('gBlob'), def.name, 'Blob ' + s, `Mascot.blob(${s})`, def)); }
-    markCurrent();
+  const makeBlob = seed => { const def = Mascot.blob(seed, { complexity: settings.complexity }); blobs.clear(); blobs.set(def.name, def); return def; };
+  function buildBlob() {
+    const def = makeBlob(settings.seed);
+    $('gBlob').innerHTML = ''; blobBots = [card($('gBlob'), def.name, 'Blob ' + def.seed, `Mascot.blob(${def.seed})`, def)];
+    markCurrent(); return def;
   }
-  $('blobNew').addEventListener('click', () => { const s = Math.floor(Math.random() * 100000); $('blobSeed').value = s; buildBlobs(s); });
-  $('blobSeed').addEventListener('change', () => buildBlobs(Math.max(0, +$('blobSeed').value | 0)));
-  buildBlobs(1);
+  const newSeed = () => Math.floor(Math.random() * 100000);
+  $('blobNew').addEventListener('click', () => { settings.seed = newSeed(); buildBlob(); if (current) location.hash = '#blob-' + settings.seed; });
+  buildBlob();
   const refreshCards = () => { for (const m of [...cardBots, ...blobBots]) { m.o.color = settings.color; m.o.round = settings.round; m.o.shaded = settings.shaded; m.render(); } };
 
   // ---------- settings controls (inside the modal) ----------
@@ -311,13 +326,13 @@
 
   // ---------- modal ----------
   const fmt = v => typeof v === 'number' ? +v.toFixed(3) : v;
-  const bodyArg = name => blobs.has(name) ? `Mascot.blob(${blobs.get(name).seed})` : `'${name}'`;
+  const bodyArg = name => blobs.has(name) ? `Mascot.blob(${blobs.get(name).seed}, { complexity: ${settings.complexity} })` : `'${name}'`;
   function writeConfig() {
     if (!current) return;
     $('dCfg').textContent = `new Mascot(svg, {\n  body: ${bodyArg(current)},\n  color: '${settings.color}',\n  round: ${settings.round}\n})`;
   }
   function openBody(name) {
-    if (/^blob-\d+$/.test(name) && !blobs.has(name)) { const def = Mascot.blob(+name.slice(5)); blobs.set(def.name, def); }
+    if (/^blob-\d+$/.test(name)) { const seed = +name.slice(5); if (settings.seed !== seed || !blobs.has(name)) { settings.seed = seed; buildBlob(); } }
     if (!blobs.has(name) && !Mascot.COMPOSED[name] && !Mascot.SHAPES.includes(name)) { closeBody(); return; }
     if (live) live.stop();
     for (const t of demoTimers) clearTimeout(t); demoTimers = []; $('dHint').textContent = '';
@@ -329,11 +344,13 @@
     $('dName').textContent = title; $('dTitle').textContent = title; fillPick(); $('dBlurb').textContent = def ? `Generated, ${def.temperament} temperament` : INFO[name].blurb;
     $('dScen').innerHTML = '';
     for (const [label, demo, hint] of scen) { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.title = hint; b.addEventListener('click', () => runScenario(demo, b, hint)); $('dScen').append(b); }
-    $('roundRow').hidden = !comp;
+    $('roundRow').hidden = !comp; $('blobBox').hidden = !def;
+    if (def) { $('dSeed').value = def.seed; $('complexity').value = settings.complexity; $('complexityV').textContent = settings.complexity.toFixed(2); }
     const params = comp
       ? { type: 'composed', pieces: comp.c.length, core: comp.main === -1 ? 'none (all move)' : 'piece ' + (comp.main ?? 0), 'inner sphere': fmt(comp.sphereR) + ' R', 'head follow': fmt(comp.head ?? 0.35), 'spring k': fmt(comp.k ?? 50), 'damping d': fmt(comp.d ?? 13), 'lag rule': comp.lag ? 'yes' : 'no', 'idle motion': comp.anim ? 'yes' : 'no' }
       : { type: 'outline', 'inner sphere': 'set by shape' };
-    $('dParams').innerHTML = ''; for (const [k, v] of Object.entries(params)) { const a = document.createElement('span'); a.textContent = k; const b = document.createElement('span'); b.textContent = v; $('dParams').append(a, b); }
+    if (def) params.complexity = fmt(def.complexity);
+    $('dParams').innerHTML = ''; for (const [k, v] of Object.entries(params)) { const d = document.createElement('div'); const a = document.createElement('span'); a.textContent = k; const b = document.createElement('b'); b.textContent = v; d.append(a, b); $('dParams').append(d); }
     $('dDef').textContent = comp ? JSON.stringify({ pieces: comp.c.map(p => p.map(fmt)), sphereR: fmt(comp.sphereR), main: comp.main ?? 0, head: fmt(comp.head ?? 0.35), k: fmt(comp.k ?? 50), d: fmt(comp.d ?? 13) }, null, 2) : `body: '${name}'`;
     // live preview
     live = new Mascot($('dLive'), { body }); live.start();
@@ -369,13 +386,18 @@
     const group = (label, names, labelFn) => { const g = document.createElement('optgroup'); g.label = label; for (const n of names) { const o = document.createElement('option'); o.value = n; o.textContent = labelFn(n); g.append(o); } sel.append(g); };
     group('Composed', Object.keys(Mascot.COMPOSED), cap);
     group('Simple', Mascot.SHAPES, cap);
-    group('Blob', [...blobs.keys()].sort((a, b) => +a.slice(5) - +b.slice(5)), n => 'Blob ' + n.slice(5));
+    group('Blob', [...blobs.keys()], n => 'Blob ' + n.slice(5));
     sel.value = current;
   }
   $('dPick').addEventListener('change', e => { location.hash = '#' + e.target.value; });
   const step = dir => { const list = allNames(), i = list.indexOf(current); if (i < 0) return; location.hash = '#' + list[(i + dir + list.length) % list.length]; };
   $('dPrev').addEventListener('click', () => step(-1)); $('dNext').addEventListener('click', () => step(1));
   window.addEventListener('keydown', e => { if ($('detail').hidden || e.target.closest('input,select,textarea,.pad')) return; if (e.key === 'ArrowLeft') step(-1); if (e.key === 'ArrowRight') step(1); });
+  // blob controls inside the modal: new seed, typed seed, complexity (regenerates in place)
+  const reopenBlob = () => { buildBlob(); const h = '#blob-' + settings.seed; if (location.hash === h) openBody('blob-' + settings.seed); else location.hash = h; };
+  $('dBlobNew').addEventListener('click', () => { settings.seed = newSeed(); reopenBlob(); });
+  $('dSeed').addEventListener('change', () => { settings.seed = Math.max(0, +$('dSeed').value | 0); reopenBlob(); });
+  $('complexity').addEventListener('input', () => { settings.complexity = +$('complexity').value; $('complexityV').textContent = settings.complexity.toFixed(2); reopenBlob(); });
   const goHome = () => { if (location.hash) location.hash = ''; else closeBody(); };
   $('dClose').addEventListener('click', goHome);
   $('backdrop').addEventListener('click', goHome);
