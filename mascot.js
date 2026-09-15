@@ -77,6 +77,14 @@
   const pulse = (t, a, b) => S(Math.PI * seg(t, a, b));                                  // 0 -> 1 -> 0 across [a, b]
 
   const ACTS = {
+    bear: {
+      regrow: { label: 'New ears', hint: 'Pulls its ears up and off, they fade away, then fresh ones grow back out of the head.', dur: 3.6,
+        run: (t, A) => { const b = pulse(t, 0, 0.4); A.eyeScale = 1 + 0.2 * b;
+          const up = E.i(seg(t, 0.4, 1.4)), grow = t < 1.9 ? 0 : E.back(seg(t, 1.9, 3.1));
+          A.eyeSquash = 1 - 0.3 * pulse(t, 0.4, 1.4);
+          A.pieces = cs => cs.map((p, i) => { if (!i) return p; if (t < 1.9) return [p[0] * (1 + 0.15 * up), p[1] - 0.5 * up, p[2] * (1 - up)]; return [p[0] * (0.7 + 0.3 * grow), -0.3 + (p[1] + 0.3) * grow, p[2] * Math.max(0, grow)]; });
+          if (t >= 1.9) A.sy = 1 - 0.04 * pulse(t, 1.9, 2.5); } },
+    },
     lemon: {
       bell: { label: 'Bell', hint: 'Swings from its top nub like an old alarm-clock bell, ringing down to rest.', dur: 3.0,
         run: (t, A) => { const e = Math.exp(-t / 1.1); A.rot = 18 * S(PI2 * t / 0.85) * e; A.pivotY = -0.98;
