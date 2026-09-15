@@ -79,13 +79,13 @@
   const ACTS = {
     lemon: {
       bell: { label: 'Bell', hint: 'Swings from its top nub like an old alarm-clock bell, ringing down to rest.', dur: 3.0,
-        run: (t, A) => { const e = Math.exp(-t / 1.1); A.rot = 18 * S(PI2 * t / 0.85) * e; A.pivotY = -0.98; A.eyeShake = 1.4 * e;
+        run: (t, A) => { const e = Math.exp(-t / 1.1); A.rot = 18 * S(PI2 * t / 0.85) * e; A.pivotY = -0.98;
           const lag = 0.05 * S(PI2 * t / 0.85 - 1.2) * e; A.pieces = cs => cs.map((p, i) => i === 2 ? [p[0] + lag, p[1], p[2]] : p); } },
       propeller: { label: 'Propeller', hint: 'Eyes bump, then the nubs orbit the core two full turns and settle.', dur: 3.3,
         run: (t, A) => { const b = pulse(t, 0, 0.45); A.eyeScale = 1 + 0.3 * b; A.eyeSquash = 1 - 0.15 * b;
           const u = seg(t, 0.45, 2.75), th = 720 * E.io(u), spin = S(Math.PI * u);
           A.pieces = cs => cs.map((p, i) => i ? rotP(p, th) : p);
-          A.eyeSquash *= 1 - 0.4 * spin; A.dx = S(t * 90) * 1.2 * spin; } },
+          A.eyeSquash *= 1 - 0.4 * spin; } },
     },
     ghost: {
       tuck: { label: 'Tuck in', hint: 'Pulls its tail up into the body, holds, then pops it back out.', dur: 2.6,
@@ -116,11 +116,11 @@
       deflate: { label: 'Deflate', hint: 'Sags like a balloon losing air, then re-inflates with a bounce.', dur: 3.0,
         run: (t, A) => { const sv = t < 1.1 ? E.i(seg(t, 0, 1.1)) : t < 1.6 ? 1 : 1 - E.back(seg(t, 1.6, 2.8)); const sp = Math.max(0, sv);
           A.sy = 1 - 0.45 * sv; A.sx = 1 + 0.18 * sv; A.rot = 3 * S(t * 20) * sp * (1 - sp); A.eyeSquash = 1 - 0.3 * sp; } },
-      stretch: { label: 'Stretch', hint: 'Eyes tremble, the two halves pull apart, shiver, then snap back together.', dur: 3.2,
-        run: (t, A) => { A.eyeShake = 1.5 * pulse(t, 0, 0.7);
+      stretch: { label: 'Stretch', hint: 'A slow blink, then the two halves pull apart, hold, and snap back together.', dur: 3.2,
+        run: (t, A) => { A.eyeSquash = 1 - 0.35 * pulse(t, 0, 0.7);
           const u = t < 0.7 ? 0 : t < 1.7 ? E.io(seg(t, 0.7, 1.7)) : t < 2.3 ? 1 : 1 - E.spring(seg(t, 2.3, 3.2));
           A.pieces = cs => cs.map((p, i) => i === 1 ? [p[0], p[1] - 0.24 * u, p[2], p[3]] : i === 2 ? [p[0], p[1] + 0.24 * u, p[2], p[3]] : p);
-          if (t > 1.7 && t < 2.3) A.dx = S(t * 80) * 1.2; A.eyeScale = 1 + 0.1 * u; } },
+          A.eyeScale = 1 + 0.1 * u; } },
     },
     seacow: {
       wave: { label: 'Wave', hint: 'Lifts and waves the left flipper, then the right, glancing at each.', dur: 3.2,
@@ -137,7 +137,7 @@
         run: (t, A) => { const th = 720 * E.o(seg(t, 0, 2.6)), sc = t < 2.4 ? 0 : t < 2.9 ? E.io(seg(t, 2.4, 2.9)) : 1 - E.back(seg(t, 2.9, 3.7));
           const off = [17, -22, 12, -15, 20, -11, 14, -19];
           A.pieces = cs => cs.map((p, i) => { if (!i) return p; const q = rotP(p, th + off[i - 1] * sc); q[0] *= 1 + 0.1 * sc; q[1] *= 1 + 0.1 * sc; return q; });
-          A.eyeSquash = 1 - 0.3 * pulse(t, 0, 2.6); A.eyeShake = 1.5 * Math.max(0, sc); } },
+          A.eyeSquash = 1 - 0.3 * pulse(t, 0, 2.6); } },
       deflate: { label: 'Deflate', hint: 'Petals fold into the core and the eyes shrink; then it blooms back out.', dur: 3.0,
         run: (t, A) => { const sv = t < 1.0 ? E.io(seg(t, 0, 1.0)) : t < 1.6 ? 1 : 1 - E.back(seg(t, 1.6, 2.8)); const sp = Math.max(0, sv);
           A.pieces = cs => cs.map((p, i) => i ? [p[0] * (1 - 0.9 * sv), p[1] * (1 - 0.9 * sv), p[2] * (1 - 0.6 * sp)] : p);
