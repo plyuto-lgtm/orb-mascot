@@ -504,12 +504,20 @@
     const m = new Mascot(svg, { body: current, color: colorHex(), gradientAngle: settings.gAngle, shade: settings.gradient ? 'gradient' : 'flat', round: settings.round, lean: false, wireframe: false });
     m.snap(0, 0); m.render();
     const text = '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(svg);
-    const name = `orb-${current}.svg`;
+    const name = `orb-${current}.svg`, btn = $('dExport');
+    const flash = label => { btn.textContent = label; setTimeout(() => { btn.textContent = 'Export SVG'; }, 1400); };
+    // inside the claude.ai artifact viewer, saves go through its downloads capability; elsewhere a plain download
+    const downloads = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
+    if (downloads) {
+      try { await downloads.save({ filename: name, data: text }); flash('Saved'); }
+      catch (e) { if (e && e.code === 'declined') flash('Cancelled'); else { try { await navigator.clipboard.writeText(text); flash('Copied SVG'); } catch (_) { flash('Not available'); } } }
+      return;
+    }
     try {
       const url = URL.createObjectURL(new Blob([text], { type: 'image/svg+xml' }));
       const a = document.createElement('a'); a.href = url; a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (e) {}
-    try { await navigator.clipboard.writeText(text); $('dExport').textContent = 'Copied SVG'; setTimeout(() => { $('dExport').textContent = 'Export SVG'; }, 1400); } catch (e) {}
+      flash('Saved');
+    } catch (e) { try { await navigator.clipboard.writeText(text); flash('Copied SVG'); } catch (_) { flash('Not available'); } }
   });
   // ---------- routing: #bear ----------
   function route() { const name = decodeURIComponent(location.hash.slice(1)); if (name) openBody(name); else closeBody(); }
