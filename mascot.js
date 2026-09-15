@@ -285,7 +285,10 @@
       this.rimGrad.append(el('stop', { offset: '0', 'stop-color': '#fff', 'stop-opacity': '0' }), el('stop', { offset: '0.62', 'stop-color': '#fff', 'stop-opacity': '0' }), el('stop', { offset: '1', 'stop-color': '#fff', 'stop-opacity': '0.3' }));
       this.lin = el('linearGradient', { id: id + 'l', gradientUnits: 'userSpaceOnUse' });
       this.linStops = [el('stop', { offset: '0' }), el('stop', { offset: '1' })]; this.lin.append(...this.linStops);
-      defs.append(this.specGrad, this.rimGrad, this.lin); this.specId = id + 's'; this.rimId = id + 'r'; this.linId = id + 'l';
+      this.tintGrad = el('radialGradient', { id: id + 't', gradientUnits: 'userSpaceOnUse' });
+      this.tintGrad.append(el('stop', { offset: '0', 'stop-color': '#fff', 'stop-opacity': '0.34' }), el('stop', { offset: '0.55', 'stop-color': '#fff', 'stop-opacity': '0.1' }), el('stop', { offset: '1', 'stop-color': '#000', 'stop-opacity': '0.12' }));
+      defs.append(this.specGrad, this.rimGrad, this.lin, this.tintGrad); this.specId = id + 's'; this.rimId = id + 'r'; this.linId = id + 'l';
+      this.tintEl = el('rect', { x: -40, y: -40, width: 280, height: 280, fill: `url(#${id}t)` });
       this.blur = el('feGaussianBlur', { stdDeviation: 7, result: 'b' });
       const goo = el('filter', { id: id + 'f', x: '-20%', y: '-20%', width: '140%', height: '140%' });
       goo.append(this.blur, el('feColorMatrix', { in: 'b', type: 'matrix', values: '1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -11' }));
@@ -308,7 +311,7 @@
       this.rimEl = el('rect', { x: -40, y: -40, width: 280, height: 280, fill: `url(#${id}r)` });
       this.spec = el('ellipse', { fill: `url(#${id}s)` });
       this.over = el('g', {});
-      this.face.append(this.rimEl, this.spec, this.wire, this.eyeL, this.eyeR, this.over);
+      this.face.append(this.rimEl, this.tintEl, this.spec, this.wire, this.eyeL, this.eyeR, this.over);
       this.body.append(this.sphere, this.goo, this.face);
       this.root.append(this.body); s.append(this.root);
     }
@@ -387,6 +390,9 @@
         if (style === 'rim') { this.rimGrad.setAttribute('cx', (100 - dx * 0.35 * R).toFixed(1)); this.rimGrad.setAttribute('cy', (100 - dy * 0.35 * R).toFixed(1)); this.rimGrad.setAttribute('r', (1.25 * R).toFixed(1)); this.rimEl.setAttribute('opacity', (lum0 > 0.5 ? 0.5 : 1) * k); }
       }
       if (style === 'gradient') { const f = this._frame(0, 28); this.grad.setAttribute('cx', (f.m[4] - 0.12 * o.radius).toFixed(1)); this.grad.setAttribute('cy', (f.m[5] - 0.1 * o.radius).toFixed(1)); }
+      const tintOver = custom && o.shade === 'gradient';                                            // tint on top of a custom gradient: a light zone that follows the gaze
+      this.tintEl.style.display = tintOver ? '' : 'none';
+      if (tintOver) { const f = this._frame(0, 28); this.tintGrad.setAttribute('cx', (f.m[4] - 0.12 * o.radius).toFixed(1)); this.tintGrad.setAttribute('cy', (f.m[5] - 0.1 * o.radius).toFixed(1)); this.tintGrad.setAttribute('r', (1.35 * o.radius).toFixed(1)); }
       const flat = style === 'flat', fill = custom ? `url(#${this.linId})` : flat ? o.color : `url(#${this.gradId})`;
       this.sphere.setAttribute('fill', fill);
       const eyeFill = o.eyeColor || (lum(hex2(baseHex)) > 0.55 ? '#141416' : '#ffffff');
@@ -495,13 +501,13 @@
       this._onLeave = () => { this._ptr = null; };
       global.addEventListener('pointermove', this._onMove);
       document.addEventListener('pointerleave', this._onLeave);
-      // skip work while scrolled out of view or in a hidden tab
+      // skip work while scrolled out of view
       this._offscreen = false;
       if (global.IntersectionObserver) { this._io = new IntersectionObserver(es => { this._offscreen = !es[0].isIntersecting; }); this._io.observe(this.svg); }
       this.svg.addEventListener('pointerdown', () => this.poke());
       const loop = now => {
         if (!this._running) return;
-        if (this._offscreen || document.hidden) { this._last = now; requestAnimationFrame(loop); return; }
+        if (this._offscreen) { this._last = now; requestAnimationFrame(loop); return; }   // out of view: skip the work (hidden tabs are throttled by the browser already)
         const dt = Math.min(64, now - this._last); this._last = now; const o = this.o;
         // targets
         if (!this.manual) {
