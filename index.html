@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>Orb Mascot Workbench</title>
+<title>Orb Mascot Catalog</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
   :root{
@@ -15,26 +15,18 @@
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans);-webkit-font-smoothing:antialiased;padding-inline:clamp(16px,4vw,48px);padding-block:28px 72px}
   .wrap{max-width:1120px;margin:0 auto}
-  header{display:flex;flex-wrap:wrap;align-items:center;gap:12px 28px;margin-bottom:28px}
+  header{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 24px;margin-bottom:28px}
   h1{font-size:20px;font-weight:600;letter-spacing:-.01em;margin:0}
-  .tabs{display:flex;gap:4px;background:var(--surface);padding:4px;border-radius:10px}
-  .tabs a{font-size:13px;font-weight:500;padding:6px 14px;border-radius:7px;color:var(--muted);text-decoration:none}
-  .tabs a[aria-current]{background:var(--bg);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  header p{margin:0;color:var(--muted);max-width:62ch}
   h2{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 14px}
+  h3{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:6px 0 0}
   section{margin-top:40px}
   .note{color:var(--muted);font-size:13px;max-width:65ch;margin:10px 0 0}
   code{font:12.5px var(--mono)}
   [hidden]{display:none!important}
 
-  /* stage + panel */
-  .top{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:stretch}
-  @media (max-width:820px){.top{grid-template-columns:1fr}}
-  .stage{background:var(--surface);border-radius:12px;display:grid;place-items:center;min-height:380px;position:relative;overflow:hidden}
-  .stage svg{width:min(76%,372px);height:auto;cursor:pointer;touch-action:none}
-  .stage .readout{position:absolute;left:16px;bottom:12px;font:12px/1.6 var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
-  .panel{background:var(--surface);border-radius:12px;padding:18px 18px 14px;display:flex;flex-direction:column;gap:14px}
-  .panel h3, .info h3{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:6px 0 0}
-  .row{display:grid;grid-template-columns:96px 1fr 44px;align-items:center;gap:10px;font-size:13px}
+  /* controls */
+  .row{display:grid;grid-template-columns:84px 1fr 44px;align-items:center;gap:10px;font-size:13px}
   .row output{font:12px var(--mono);color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
   input[type=range]{width:100%;accent-color:var(--accent);margin:0}
   .toggles{display:flex;flex-wrap:wrap;gap:6px}
@@ -44,10 +36,9 @@
   .swatches label{padding:4px 10px 4px 6px}
   .swatches i{width:14px;height:14px;border-radius:50%;background:var(--sw);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
   button{font:500 13px var(--sans);padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);cursor:pointer}
-  button.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
   button:focus-visible,input:focus-visible,label:focus-within,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
-  /* grids */
+  /* catalog grids */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
   .card{background:var(--card);border-radius:10px;padding:14px 12px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;border:1px solid transparent}
   .card svg{width:128px;height:128px;margin:-8px}
@@ -61,24 +52,32 @@
   .grouphead .tools{display:flex;gap:8px;align-items:center}
   .grouphead input[type=number]{width:90px;font:12px var(--mono);padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
 
-  /* detail modal */
+  /* body modal */
   .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:20}
-  .detail{position:fixed;inset:16px;z-index:21;background:var(--bg);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:auto;overscroll-behavior:contain;padding:20px clamp(16px,3vw,36px) 40px}
+  .detail{position:fixed;inset:16px;z-index:21;background:var(--bg);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:auto;overscroll-behavior:contain;padding:16px clamp(16px,3vw,36px) 40px}
   .detail section{margin-top:32px}
-  .crumb{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);margin-bottom:16px;position:sticky;top:0;background:var(--bg);padding:4px 0 10px;z-index:1}
+  .crumb{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);margin-bottom:16px;position:sticky;top:0;background:var(--bg);padding:6px 0 10px;z-index:1}
   .crumb a{color:var(--muted)}
   .crumb .close{margin-left:auto;width:32px;height:32px;padding:0;border-radius:50%;font-size:18px;line-height:1;display:grid;place-items:center}
   body.modal-open{overflow:hidden}
-  .info{background:var(--surface);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px}
-  .info h1{font-size:22px}
-  .info p{margin:0}
-  .info ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
-  .demo{width:100%;text-align:left;font:14px/1.45 var(--sans);padding:8px 12px 8px 30px;border-radius:8px;border:1px solid var(--line);background:transparent;position:relative;color:var(--ink)}
-  .demo::before{content:'';position:absolute;left:12px;top:50%;transform:translateY(-50%);border-style:solid;border-width:5px 0 5px 8px;border-color:transparent transparent transparent var(--muted)}
-  .demo:hover{background:var(--surface-2)}
-  .demo[aria-pressed]{border-color:var(--accent);background:var(--surface-2)}
-  .demo[aria-pressed]::before{border-color:transparent transparent transparent var(--accent)}
-  .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13px}
+  .top{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:20px;align-items:start}
+  @media (max-width:880px){.top{grid-template-columns:1fr}}
+  .stage{background:var(--surface);border-radius:12px;display:grid;place-items:center;min-height:420px;position:sticky;top:44px;overflow:hidden}
+  @media (max-width:880px){.stage{position:static;min-height:340px}}
+  .stage svg{width:min(78%,420px);height:auto;cursor:pointer;touch-action:none}
+  .stage .readout{position:absolute;left:16px;bottom:12px;font:12px/1.6 var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+  .stage .title{position:absolute;left:16px;top:14px;display:flex;flex-direction:column;gap:2px}
+  .stage .title b{font-size:18px;font-weight:600}
+  .stage .title span{font-size:13px;color:var(--muted)}
+  .panel{background:var(--surface);border-radius:12px;padding:16px 18px 14px;display:flex;flex-direction:column;gap:12px}
+  .scen{display:flex;flex-wrap:wrap;gap:6px}
+  .scen button{position:relative;padding:6px 12px 6px 26px;border-radius:999px;background:transparent}
+  .scen button::before{content:'';position:absolute;left:11px;top:50%;transform:translateY(-50%);border-style:solid;border-width:4px 0 4px 7px;border-color:transparent transparent transparent var(--muted)}
+  .scen button:hover{background:var(--surface-2)}
+  .scen button[aria-pressed]{border-color:var(--accent);background:var(--surface-2)}
+  .scen button[aria-pressed]::before{border-color:transparent transparent transparent var(--accent)}
+  .hint{font-size:13px;color:var(--muted);min-height:1.5em}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;font-size:13px}
   .kv span:nth-child(odd){color:var(--muted)}
   .kv span:nth-child(even){font:12.5px var(--mono);font-variant-numeric:tabular-nums}
   pre{background:var(--surface);border-radius:12px;padding:16px 18px;font:12px/1.55 var(--mono);overflow-x:auto;margin:0}
@@ -89,105 +88,85 @@
 
 <div class="wrap">
   <header>
-    <h1>Orb Mascot Workbench</h1>
-    <nav class="tabs" aria-label="Views">
-      <a href="#sandbox" id="tabSandbox">Sandbox</a>
-      <a href="#catalog" id="tabCatalog">Catalog</a>
-    </nav>
+    <h1>Orb Mascot Catalog</h1>
+    <p>Bodies with two eyes on a 3D sphere. Open one to drive it: gaze, behaviour, colour and named scenarios, with its state sheet and parameters.</p>
   </header>
 
-  <!-- ============ SANDBOX ============ -->
-  <div id="sandbox">
-    <div class="top">
-      <div class="stage">
-        <svg id="live" aria-label="Orb mascot, live"></svg>
-        <div class="readout" id="readout">yaw 0.0&deg;  pitch 0.0&deg;</div>
-      </div>
-      <div class="panel">
-        <h3>Gaze</h3>
-        <div class="row"><span>Yaw</span><input type="range" id="yaw" min="-60" max="60" value="0" step="1"><output id="yawV">0&deg;</output></div>
-        <div class="row"><span>Pitch</span><input type="range" id="pitch" min="-40" max="40" value="0" step="1"><output id="pitchV">0&deg;</output></div>
-        <h3>Behaviour</h3>
-        <div class="toggles">
-          <label><input type="checkbox" id="follow" checked>Follow cursor</label>
-          <label><input type="checkbox" id="idle" checked>Idle wander</label>
-          <label><input type="checkbox" id="autoBlink" checked>Auto blink</label>
-          <label><input type="checkbox" id="lean" checked>Lean</label>
-          <label><input type="checkbox" id="breathe" checked>Breathe</label>
-          <label><input type="checkbox" id="shaded" checked>Shaded</label>
-          <label><input type="checkbox" id="wireframe">Show sphere</label>
-        </div>
-        <h3>Simple body</h3>
-        <div class="toggles" id="bodyPick"></div>
-        <h3>Composed body</h3>
-        <div class="toggles" id="compPick" data-no-default="1"></div>
-        <div class="row"><span>Rounding</span><input type="range" id="round" min="0" max="1" value="0.5" step="0.05"><output id="roundV">0.50</output></div>
-        <h3>Colour</h3>
-        <div class="toggles swatches" id="colorPick"></div>
+  <section style="margin-top:0">
+    <div class="grouphead"><h2>Composed bodies</h2></div>
+    <div class="grid" id="gComposed"></div>
+    <p class="note">Unions of circles and ellipses. Every extra piece sits on the head sphere and turns with the head, which follows the gaze through its own spring.</p>
+  </section>
+  <section>
+    <div class="grouphead"><h2>Simple bodies</h2></div>
+    <div class="grid" id="gSimple"></div>
+    <p class="note">Single outlines with the eyes on an inner sphere.</p>
+  </section>
+  <section>
+    <div class="grouphead">
+      <h2>Blob bodies</h2>
+      <div class="tools">
+        <label for="blobSeed" style="font-size:13px;color:var(--muted)">Seed</label>
+        <input type="number" id="blobSeed" value="1" min="0" step="1">
+        <button id="blobNew">New set</button>
       </div>
     </div>
-    <section>
-      <h2>Config</h2>
-      <pre id="cfg"></pre>
-      <p class="note">Drop <code>mascot.js</code> into a page, give it an <code>&lt;svg&gt;</code>, and pass this object to the constructor. Call <code>start()</code> for the live behaviour.</p>
-    </section>
-  </div>
+    <div class="grid" id="gBlob"></div>
+    <p class="note">Generated from a seed: pieces, symmetry, spring, breathing and lag rule all come from the number. Each set shows eight consecutive seeds; enter a seed to reproduce a body exactly.</p>
+  </section>
+</div>
 
-  <!-- ============ CATALOG ============ -->
-  <div id="catalog" hidden>
-    <div class="backdrop" id="backdrop" hidden></div>
-    <div class="detail" id="detail" role="dialog" aria-modal="true" aria-labelledby="dTitle" hidden>
-      <div class="crumb"><a href="#catalog">All bodies</a> / <span id="dName"></span><button class="close" id="dClose" aria-label="Close">&times;</button></div>
-      <div class="top">
-        <div class="stage"><svg id="dLive" aria-label="Selected body, live"></svg><div class="readout" id="dReadout"></div></div>
-        <div class="info">
-          <h1 id="dTitle"></h1>
-          <p id="dBlurb"></p>
-          <h3>Behaviour <span style="font-weight:400;letter-spacing:0;text-transform:none">&middot; click to play</span></h3>
-          <ul id="dBehaviours"></ul>
-          <h3>Parameters</h3>
-          <div class="kv" id="dParams"></div>
-          <div><button id="dUse" class="primary">Use in sandbox</button></div>
-        </div>
-      </div>
-      <section>
-        <h2>States</h2>
-        <div class="grid" id="dStates"></div>
-        <p class="note">Numbers are yaw / pitch in degrees; extra values are eye scale, vertical squash and blink amount.</p>
-      </section>
-      <section>
-        <h2>At avatar sizes</h2>
-        <div class="sizes" id="dSizes"></div>
-      </section>
-      <section>
-        <h2>Definition</h2>
-        <pre id="dDef"></pre>
-      </section>
+<div class="backdrop" id="backdrop" hidden></div>
+<div class="detail" id="detail" role="dialog" aria-modal="true" aria-labelledby="dTitle" hidden>
+  <div class="crumb"><a href="#">All bodies</a> / <span id="dName"></span><button class="close" id="dClose" aria-label="Close">&times;</button></div>
+  <div class="top">
+    <div class="stage">
+      <div class="title"><b id="dTitle"></b><span id="dBlurb"></span></div>
+      <svg id="dLive" aria-label="Selected body, live"></svg>
+      <div class="readout" id="dReadout"></div>
     </div>
-
-    <section id="groups">
-      <div class="grouphead"><h2>Composed bodies</h2></div>
-      <div class="grid" id="gComposed"></div>
-      <p class="note">Unions of circles and ellipses. Every extra piece sits on the head sphere and turns with the head, which follows the gaze through its own spring.</p>
-    </section>
-    <section>
-      <div class="grouphead"><h2>Simple bodies</h2></div>
-      <div class="grid" id="gSimple"></div>
-      <p class="note">Single outlines with the eyes on an inner sphere.</p>
-    </section>
-    <section>
-      <div class="grouphead">
-        <h2>Blob bodies</h2>
-        <div class="tools">
-          <label for="blobSeed" style="font-size:13px;color:var(--muted)">Seed</label>
-          <input type="number" id="blobSeed" value="1" min="0" step="1">
-          <button id="blobNew">New set</button>
-        </div>
+    <div class="panel">
+      <h3>Scenarios</h3>
+      <div class="scen" id="dScen"></div>
+      <div class="hint" id="dHint"></div>
+      <h3>Gaze</h3>
+      <div class="row"><span>Yaw</span><input type="range" id="yaw" min="-60" max="60" value="0" step="1"><output id="yawV">0&deg;</output></div>
+      <div class="row"><span>Pitch</span><input type="range" id="pitch" min="-40" max="40" value="0" step="1"><output id="pitchV">0&deg;</output></div>
+      <h3>Behaviour</h3>
+      <div class="toggles">
+        <label><input type="checkbox" id="follow" checked>Follow cursor</label>
+        <label><input type="checkbox" id="idle" checked>Idle wander</label>
+        <label><input type="checkbox" id="autoBlink" checked>Auto blink</label>
+        <label><input type="checkbox" id="lean" checked>Lean</label>
+        <label><input type="checkbox" id="breathe" checked>Breathe</label>
+        <label><input type="checkbox" id="shaded" checked>Shaded</label>
+        <label><input type="checkbox" id="wireframe">Show sphere</label>
       </div>
-      <div class="grid" id="gBlob"></div>
-      <p class="note">Generated from a seed: pieces, symmetry, spring, breathing and lag rule all come from the number. Each set shows eight consecutive seeds; enter a seed to reproduce a body exactly.</p>
-    </section>
+      <div class="row" id="roundRow"><span>Rounding</span><input type="range" id="round" min="0" max="1" value="0.5" step="0.05"><output id="roundV">0.50</output></div>
+      <h3>Colour</h3>
+      <div class="toggles swatches" id="colorPick"></div>
+      <h3>Parameters</h3>
+      <div class="kv" id="dParams"></div>
+    </div>
   </div>
+  <section>
+    <h2>States</h2>
+    <div class="grid" id="dStates"></div>
+    <p class="note">Numbers are yaw / pitch in degrees; extra values are eye scale, vertical squash and blink amount.</p>
+  </section>
+  <section>
+    <h2>At avatar sizes</h2>
+    <div class="sizes" id="dSizes"></div>
+  </section>
+  <section>
+    <h2>Config</h2>
+    <pre id="dCfg"></pre>
+    <p class="note">Drop <code>mascot.js</code> into a page, give it an <code>&lt;svg&gt;</code>, pass this object to the constructor and call <code>start()</code>.</p>
+  </section>
+  <section>
+    <h2>Definition</h2>
+    <pre id="dDef"></pre>
+  </section>
 </div>
 
 <script src="mascot.js"></script>
@@ -197,23 +176,22 @@
   const cap = t => t[0].toUpperCase() + t.slice(1);
   const svgEl = label => { const e = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); e.setAttribute('aria-label', label); return e; };
 
-  // ---------- catalog copy ----------
-  // behaviour lines: [text, demo]  demo: turn | pitch | fast | poke | twitch | idle
+  // ---------- scenarios: [name, demo, hint]   demo: turn | pitch | fast | poke | twitch | blink | idle ----------
   const INFO = {
-    bear:   { blurb: 'A round head with two ears on top.', behaviours: [['Ears sit on the head sphere: turning right swings the left ear inward and the right ear out and back.', 'turn'], ['Snappy, well-damped head spring.', 'fast'], ['Ears settle back a touch on a poke.', 'poke'], ['Single ear twitch (optional in the library with twitch: true).', 'twitch']] },
-    lemon:  { blurb: 'A body with a nub at the top and one at the bottom.', behaviours: [['Looking up rolls the top nub back over the head and brings the chin forward; looking down does the opposite.', 'pitch'], ['Slow idle sway of both nubs.', 'idle'], ['Stretches a hair taller on a poke.', 'poke']] },
-    ghost:  { blurb: 'A rounded head with three tail bumps underneath.', behaviours: [['Tail bumps wave in a rolling sine, out of phase.', 'idle'], ['Lazy head spring, so the tail trails a turn.', 'turn'], ['The wave grows slightly on fast turns.', 'fast'], ['Bumps lift a touch on a poke.', 'poke']] },
-    cloud:  { blurb: 'Two pills crossed into an X, read as a four-lobed clover.', behaviours: [['No fixed core: the whole X tilts with the head, one way for yaw and a scissor for pitch.', 'turn'], ['The pills breathe against each other.', 'idle'], ['Puffs slightly on a poke.', 'poke']] },
-    drop:   { blurb: 'A round body with a sprout on top.', behaviours: [['The sprout rides an under-damped spring: it overshoots a turn and settles with one soft bounce.', 'fast'], ['Lifts and grows a little on a poke.', 'poke']] },
-    stack:  { blurb: 'Two wide ellipses stacked with a soft waist.', behaviours: [['Both halves turn with the head around a hidden core.', 'turn'], ['Lead and lag: looking up, the bottom half moves first and the top catches up; looking down, the roles swap.', 'pitch'], ['The halves breathe in opposite phase.', 'idle']] },
-    seacow: { blurb: 'The bear flipped: a round head with feet at the bottom corners.', behaviours: [['Feet turn with the head like the bear\'s ears.', 'turn'], ['Feet settle in slightly on a poke.', 'poke'], ['Faint idle shuffle.', 'idle']] },
-    flower: { blurb: 'A core ringed by eight petals.', behaviours: [['Petals rotate with the head at a low fraction so the ring stays readable.', 'turn'], ['Petals breathe in a ripple around the circle.', 'idle'], ['Petals swell a little on a poke.', 'poke']] },
-    circle:   { blurb: 'The original orb.', behaviours: [['Eyes on the sphere with full foreshortening; the specular highlight stays fixed while the eyes travel.', 'turn'], ['Blinks on its own, sometimes twice.', 'blink'], ['Eyes pop and blink on a poke.', 'poke']] },
-    squircle: { blurb: 'A rounded square.', behaviours: [['Same eye motion as the circle; the inner sphere fills the square.', 'turn'], ['Eyes pop and blink on a poke.', 'poke']] },
-    egg:      { blurb: 'Narrow at the top, full at the bottom.', behaviours: [['Inner sphere is slightly smaller so the eyes stay clear of the narrow top.', 'pitch'], ['Eyes pop and blink on a poke.', 'poke']] },
-    pebble:   { blurb: 'A slightly irregular outline.', behaviours: [['A fixed organic silhouette; the eyes ride a sphere inside it.', 'turn'], ['Eyes pop and blink on a poke.', 'poke']] },
+    bear:   { blurb: 'Round head, two ears on top.', scen: [['Head turn', 'turn', 'Turning right swings the left ear inward and the right ear out and back.'], ['Snap', 'fast', 'Snappy, well-damped head spring.'], ['Poke', 'poke', 'Ears settle back a touch.'], ['Ear twitch', 'twitch', 'One ear wiggles once. Off by default in the library; enable with twitch: true.']] },
+    lemon:  { blurb: 'A nub at the top and one at the bottom.', scen: [['Nod', 'pitch', 'Looking up rolls the top nub back over the head and brings the chin forward; looking down does the opposite.'], ['Head turn', 'turn', 'Both nubs swing around the sphere together.'], ['Sway', 'idle', 'Slow idle sway of both nubs.'], ['Poke', 'poke', 'Stretches a hair taller.']] },
+    ghost:  { blurb: 'Rounded head, three tail bumps.', scen: [['Tail wave', 'idle', 'Bumps wave in a rolling sine, out of phase.'], ['Trail', 'turn', 'Lazy head spring, so the tail trails a turn.'], ['Whip', 'fast', 'The wave grows slightly on fast turns.'], ['Poke', 'poke', 'Bumps lift a touch.']] },
+    cloud:  { blurb: 'Two pills crossed into an X.', scen: [['Tilt', 'turn', 'No fixed core: the whole X tilts with the head, one way for yaw.'], ['Scissor', 'pitch', 'Pitch scissors the two pills against each other.'], ['Breathe', 'idle', 'The pills breathe against each other.'], ['Poke', 'poke', 'Puffs slightly.']] },
+    drop:   { blurb: 'Round body, sprout on top.', scen: [['Overshoot', 'fast', 'Under-damped spring: the sprout overshoots a turn and settles with one soft bounce.'], ['Head turn', 'turn', 'The sprout swings around the sphere and lags the eyes.'], ['Poke', 'poke', 'Sprout lifts and grows a little.']] },
+    stack:  { blurb: 'Two wide ellipses with a soft waist.', scen: [['Lead and lag', 'pitch', 'Looking up, the bottom half moves first and the top catches up; looking down, the roles swap.'], ['Head turn', 'turn', 'Both halves turn together around a hidden core.'], ['Breathe', 'idle', 'The halves breathe in opposite phase.']] },
+    seacow: { blurb: 'Round head, feet at the bottom corners.', scen: [['Head turn', 'turn', 'Feet turn with the head like the bear\'s ears.'], ['Poke', 'poke', 'Feet settle in slightly.'], ['Shuffle', 'idle', 'Faint idle shuffle.']] },
+    flower: { blurb: 'A core ringed by eight petals.', scen: [['Head turn', 'turn', 'Petals rotate with the head at a low fraction so the ring stays readable.'], ['Ripple', 'idle', 'Petals breathe in a ripple around the circle.'], ['Poke', 'poke', 'Petals swell a little.']] },
+    circle:   { blurb: 'The original orb.', scen: [['Head turn', 'turn', 'Eyes foreshorten and converge; the highlight stays put.'], ['Nod', 'pitch', 'Eyes ride up and down the sphere.'], ['Blink', 'blink', 'Double blink.'], ['Poke', 'poke', 'Eyes pop, then blink.']] },
+    squircle: { blurb: 'A rounded square.', scen: [['Head turn', 'turn', 'Same eye motion as the circle; the inner sphere fills the square.'], ['Nod', 'pitch', 'Eyes ride up and down.'], ['Poke', 'poke', 'Eyes pop, then blink.']] },
+    egg:      { blurb: 'Narrow top, full bottom.', scen: [['Nod', 'pitch', 'Inner sphere is slightly smaller so the eyes stay clear of the narrow top.'], ['Head turn', 'turn', 'Eyes sweep the wide part.'], ['Poke', 'poke', 'Eyes pop, then blink.']] },
+    pebble:   { blurb: 'A slightly irregular outline.', scen: [['Head turn', 'turn', 'Fixed organic silhouette; the eyes ride a sphere inside it.'], ['Poke', 'poke', 'Eyes pop, then blink.']] },
   };
-  const BLOB_DEMO = ['turn', 'turn', 'fast', 'turn', 'idle'];        // matches the order of Mascot.blob traits
+  const BLOB_SCEN = [['Head turn', 'turn'], ['Symmetry', 'turn'], ['Spring', 'fast'], ['Lag', 'turn'], ['Breathe', 'idle']];   // paired with Mascot.blob traits
   const STATES = [
     ['Idle', {y:0,p:0}], ['Glance left', {y:-15,p:0}], ['Glance right', {y:15,p:0}], ['Look left', {y:-35,p:0}], ['Look right', {y:35,p:0}],
     ['Look up', {y:0,p:24}], ['Look down', {y:0,p:-24}], ['Up-left', {y:-28,p:18}], ['Up-right', {y:28,p:18}], ['Down-left', {y:-28,p:-16}], ['Down-right', {y:28,p:-16}],
@@ -221,119 +199,59 @@
     ['Surprised', {y:0,p:6,scale:1.25}], ['Happy', {y:0,p:0,squash:0.45,scale:1.05}], ['Suspicious', {y:22,p:-4,squash:0.55}], ['Thinking', {y:26,p:20,squash:0.8}],
   ];
 
-  // ---------- shared settings ----------
-  const settings = { body: 'circle', color: Mascot.COLORS.black, round: 0.5, shaded: true, wireframe: false };
-  const blobs = new Map();                                            // name -> definition
-  const resolveBody = name => blobs.get(name) || name;
-
-  // ---------- sandbox ----------
-  const live = new Mascot($('live')); live.start();
-  const applySandbox = () => {
-    Object.assign(live.o, { body: resolveBody(settings.body), color: settings.color, round: settings.round, shaded: settings.shaded, wireframe: settings.wireframe });
-    const cfg = { body: blobs.has(settings.body) ? `Mascot.blob(${blobs.get(settings.body).seed})` : settings.body, color: settings.color, round: settings.round };
-    $('cfg').textContent = 'new Mascot(svg, ' + JSON.stringify(cfg, null, 2).replace(/"(\w+)":/g, '$1:').replace(/"Mascot\.blob\((\d+)\)"/, 'Mascot.blob($1)') + ')';
-    for (const r of document.querySelectorAll('input[name=body]')) r.checked = r.value === settings.body;
-  };
-  function chips(host, list, key, onPick) {
-    for (const name of list) {
-      const l = document.createElement('label'); const i = document.createElement('input');
-      i.type = 'radio'; i.name = key; i.value = name; i.id = key + '-' + name; i.autocomplete = 'off';
-      l.append(i, document.createTextNode(cap(name))); host.append(l);
-      i.addEventListener('change', () => onPick(name));
-    }
-  }
-  chips($('bodyPick'), Mascot.SHAPES, 'body', n => { settings.body = n; applySandbox(); });
-  chips($('compPick'), Object.keys(Mascot.COMPOSED), 'body', n => { settings.body = n; applySandbox(); });
-  for (const [name, hex] of Object.entries(Mascot.COLORS)) {
-    const l = document.createElement('label'); l.style.setProperty('--sw', hex);
-    const i = document.createElement('input'); i.type = 'radio'; i.name = 'color'; i.id = 'color-' + name; i.autocomplete = 'off'; i.checked = hex === settings.color;
-    l.append(i, document.createElement('i'), document.createTextNode(cap(name))); $('colorPick').append(l);
-    i.addEventListener('change', () => { settings.color = hex; applySandbox(); });
-  }
-  $('round').addEventListener('input', () => { settings.round = +$('round').value; $('roundV').textContent = settings.round.toFixed(2); applySandbox(); });
-  for (const k of ['follow', 'idle', 'autoBlink', 'lean', 'breathe']) $(k).addEventListener('change', e => { live.o[k] = e.target.checked; });
-  for (const k of ['shaded', 'wireframe']) $(k).addEventListener('change', e => { settings[k] = e.target.checked; applySandbox(); if (detailLive) detailLive.o[k] = e.target.checked; });
-
-  // gaze sliders: manual while dragging, auto resumes 1.5 s after release
-  let manualT = 0;
-  const manualGaze = () => { live.manual = true; live.look(+$('yaw').value, +$('pitch').value); clearTimeout(manualT); manualT = setTimeout(() => { live.manual = false; }, 1500); };
-  $('yaw').addEventListener('input', manualGaze); $('pitch').addEventListener('input', manualGaze);
+  // ---------- settings shared across bodies ----------
+  const settings = { color: Mascot.COLORS.black, round: 0.5, shaded: true, wireframe: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true };
+  const blobs = new Map();
+  let current = null, live = null, statics = [];
 
   // ---------- catalog ----------
-  let detailLive = null, current = null;
   const markCurrent = () => { for (const a of document.querySelectorAll('a.card')) { if (a.dataset.name === current) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current'); } };
-  const cards = { composed: [], simple: [], blob: [] };
+  const cardBots = [];
   function card(host, name, label, sub, def) {
-    const a = document.createElement('a'); a.className = 'card'; a.href = '#catalog/' + name; a.dataset.name = name;
+    const a = document.createElement('a'); a.className = 'card'; a.href = '#' + name; a.dataset.name = name;
     const svg = svgEl(label); const b = document.createElement('b'); b.textContent = label; const sm = document.createElement('small'); sm.textContent = sub;
     a.append(svg, b, sm); host.append(a);
-    const m = new Mascot(svg, { body: def, round: settings.round }); m.snap(-16, 6); m.render(); return m;
+    const m = new Mascot(svg, { body: def, round: settings.round, color: settings.color }); m.snap(-16, 6); m.render(); m.cardHost = host; return m;
   }
-  for (const n of Object.keys(Mascot.COMPOSED)) cards.composed.push(card($('gComposed'), n, cap(n), `body: '${n}'`, n));
-  for (const n of Mascot.SHAPES) cards.simple.push(card($('gSimple'), n, cap(n), `body: '${n}'`, n));
+  for (const n of Object.keys(Mascot.COMPOSED)) cardBots.push(card($('gComposed'), n, cap(n), `body: '${n}'`, n));
+  for (const n of Mascot.SHAPES) cardBots.push(card($('gSimple'), n, cap(n), `body: '${n}'`, n));
+  let blobBots = [];
   function buildBlobs(from) {
-    $('gBlob').innerHTML = ''; cards.blob = [];
-    for (let s = from; s < from + 8; s++) { const def = Mascot.blob(s); blobs.set(def.name, def); cards.blob.push(card($('gBlob'), def.name, 'Blob ' + s, `Mascot.blob(${s})`, def)); }
+    $('gBlob').innerHTML = ''; blobBots = [];
+    for (let s = from; s < from + 8; s++) { const def = Mascot.blob(s); blobs.set(def.name, def); blobBots.push(card($('gBlob'), def.name, 'Blob ' + s, `Mascot.blob(${s})`, def)); }
     markCurrent();
   }
   $('blobNew').addEventListener('click', () => { const s = Math.floor(Math.random() * 100000); $('blobSeed').value = s; buildBlobs(s); });
   $('blobSeed').addEventListener('change', () => buildBlobs(Math.max(0, +$('blobSeed').value | 0)));
   buildBlobs(1);
+  const refreshCards = () => { for (const m of [...cardBots, ...blobBots]) { m.o.color = settings.color; m.o.round = settings.round; m.o.shaded = settings.shaded; m.render(); } };
 
-  // ---------- detail ----------
-  const fmt = v => typeof v === 'number' ? +v.toFixed(3) : v;
-  function showDetail(name) {
-    if (!name || (!blobs.has(name) && !Mascot.COMPOSED[name] && !Mascot.SHAPES.includes(name))) {
-      if (name && /^blob-\d+$/.test(name)) { const def = Mascot.blob(+name.slice(5)); blobs.set(def.name, def); }
-      else { closeDetail(); return; }
-    }
-    current = name; markCurrent(); $('detail').hidden = false; $('backdrop').hidden = false; document.body.classList.add('modal-open'); $('detail').scrollTop = 0;
-    const def = blobs.get(name), comp = def || Mascot.COMPOSED[name];
-    const info = INFO[name] || { blurb: `Generated body, ${def.temperament} temperament.`, behaviours: def.traits };
-    const title = def ? 'Blob ' + def.seed : cap(name);
-    $('dName').textContent = title; $('dTitle').textContent = title; $('dBlurb').textContent = info.blurb;
-    $('dBehaviours').innerHTML = '';
-    const lines = def ? def.traits.map((t, i) => [t, BLOB_DEMO[i] || 'turn']) : info.behaviours;
-    for (const [text, demo] of lines) {
-      const li = document.createElement('li'); const btn = document.createElement('button'); btn.className = 'demo'; btn.type = 'button'; btn.textContent = text; btn.title = 'Play';
-      btn.addEventListener('click', () => runDemo(demo, btn)); li.append(btn); $('dBehaviours').append(li);
-    }
-    const params = comp
-      ? { type: 'composed', pieces: comp.c.length, core: comp.main === -1 ? 'none (all move)' : 'piece ' + (comp.main ?? 0), 'inner sphere': fmt(comp.sphereR) + ' R', 'head follow': fmt(comp.head ?? 0.35), 'spring k': fmt(comp.k ?? 50), 'damping d': fmt(comp.d ?? 13), 'lag rule': comp.lag ? 'yes' : 'no', 'idle motion': comp.anim ? 'yes' : 'no' }
-      : { type: 'outline', 'inner sphere': 'set by shape' };
-    $('dParams').innerHTML = ''; for (const [k, v] of Object.entries(params)) { const a = document.createElement('span'); a.textContent = k; const b = document.createElement('span'); b.textContent = v; $('dParams').append(a, b); }
-    $('dDef').textContent = comp ? JSON.stringify({ pieces: comp.c.map(p => p.map(fmt)), sphereR: fmt(comp.sphereR), main: comp.main ?? 0, head: fmt(comp.head ?? 0.35), k: fmt(comp.k ?? 50), d: fmt(comp.d ?? 13) }, null, 2) : `body: '${name}'`;
-    // live preview
-    if (detailLive) detailLive.stop();
-    detailLive = new Mascot($('dLive'), { body: def || name, color: settings.color, round: settings.round, shaded: settings.shaded, wireframe: settings.wireframe }); detailLive.start();
-    // states
-    $('dStates').innerHTML = '';
-    for (const [label, s] of STATES) {
-      const c = document.createElement('div'); c.className = 'card'; const svg = svgEl(label + ' state');
-      const b = document.createElement('b'); b.textContent = label; const sm = document.createElement('small');
-      const extra = []; if (s.blink) extra.push('blink ' + s.blink); if (s.scale) extra.push('×' + s.scale); if (s.squash) extra.push('squash ' + s.squash);
-      sm.textContent = `${s.y} / ${s.p}` + (extra.length ? '  ' + extra.join(' ') : '');
-      c.append(svg, b, sm); $('dStates').append(c);
-      const m = new Mascot(svg, { body: def || name, color: settings.color, round: settings.round, shaded: settings.shaded, wireframe: settings.wireframe });
-      m.snap(s.y, s.p); m.setNow({ blink: s.blink || 0, eyeScale: s.scale || 1, squash: s.squash || 1 }); m.render();
-    }
-    // sizes
-    $('dSizes').innerHTML = '';
-    for (const px of [16, 24, 32, 48, 64, 96, 128]) {
-      const d = document.createElement('div'); const svg = svgEl(px + ' pixel'); svg.setAttribute('width', px); svg.setAttribute('height', px);
-      const l = document.createElement('small'); l.textContent = px + 'px'; d.append(svg, l); $('dSizes').append(d);
-      const m = new Mascot(svg, { body: def || name, color: settings.color, round: settings.round, lean: false }); m.snap(14, 4); m.render();
-    }
-    $('dUse').onclick = () => { settings.body = name; applySandbox(); location.hash = '#sandbox'; };
-    $('dClose').focus();
+  // ---------- settings controls (inside the modal) ----------
+  const applySettings = () => {
+    const opts = { color: settings.color, round: settings.round, shaded: settings.shaded, wireframe: settings.wireframe };
+    if (live) Object.assign(live.o, opts, { follow: settings.follow, idle: settings.idle, autoBlink: settings.autoBlink, lean: settings.lean, breathe: settings.breathe });
+    for (const m of statics) { Object.assign(m.o, opts); m.render(); }
+    refreshCards(); writeConfig();
+  };
+  for (const [name, hex] of Object.entries(Mascot.COLORS)) {
+    const l = document.createElement('label'); l.style.setProperty('--sw', hex);
+    const i = document.createElement('input'); i.type = 'radio'; i.name = 'color'; i.id = 'color-' + name; i.autocomplete = 'off'; i.checked = hex === settings.color;
+    l.append(i, document.createElement('i'), document.createTextNode(cap(name))); $('colorPick').append(l);
+    i.addEventListener('change', () => { settings.color = hex; applySettings(); });
   }
-  // ---------- behaviour demos on the preview ----------
+  $('round').addEventListener('input', () => { settings.round = +$('round').value; $('roundV').textContent = settings.round.toFixed(2); applySettings(); });
+  for (const k of ['follow', 'idle', 'autoBlink', 'lean', 'breathe', 'shaded', 'wireframe']) $(k).addEventListener('change', e => { settings[k] = e.target.checked; applySettings(); });
+  let manualT = 0;
+  const manualGaze = () => { if (!live) return; live.manual = true; live.look(+$('yaw').value, +$('pitch').value); clearTimeout(manualT); manualT = setTimeout(() => { live.manual = false; }, 1500); };
+  $('yaw').addEventListener('input', manualGaze); $('pitch').addEventListener('input', manualGaze);
+
+  // ---------- scenarios ----------
   let demoTimers = [];
-  function runDemo(kind, btn) {
-    const m = detailLive; if (!m) return;
+  function runScenario(kind, btn, hint) {
+    const m = live; if (!m) return;
     for (const t of demoTimers) clearTimeout(t); demoTimers = [];
-    for (const b of document.querySelectorAll('.demo[aria-pressed]')) b.removeAttribute('aria-pressed');
-    btn.setAttribute('aria-pressed', 'true');
+    for (const b of document.querySelectorAll('.scen [aria-pressed]')) b.removeAttribute('aria-pressed');
+    btn.setAttribute('aria-pressed', 'true'); $('dHint').textContent = hint;
     const at = (ms, fn) => demoTimers.push(setTimeout(fn, ms));
     const seq = (steps, hold) => { m.manual = true; steps.forEach(([y, p], i) => at(i * hold, () => m.look(y, p))); at(steps.length * hold, () => { m.look(0, 0); m.manual = false; }); return steps.length * hold + 400; };
     let dur = 1200;
@@ -348,33 +266,77 @@
     }
     at(dur, () => btn.removeAttribute('aria-pressed'));
   }
-  function closeDetail() {
+
+  // ---------- modal ----------
+  const fmt = v => typeof v === 'number' ? +v.toFixed(3) : v;
+  const bodyArg = name => blobs.has(name) ? `Mascot.blob(${blobs.get(name).seed})` : `'${name}'`;
+  function writeConfig() {
+    if (!current) return;
+    $('dCfg').textContent = `new Mascot(svg, {\n  body: ${bodyArg(current)},\n  color: '${settings.color}',\n  round: ${settings.round}\n})`;
+  }
+  function openBody(name) {
+    if (/^blob-\d+$/.test(name) && !blobs.has(name)) { const def = Mascot.blob(+name.slice(5)); blobs.set(def.name, def); }
+    if (!blobs.has(name) && !Mascot.COMPOSED[name] && !Mascot.SHAPES.includes(name)) { closeBody(); return; }
+    if (live) live.stop();
+    for (const t of demoTimers) clearTimeout(t); demoTimers = []; $('dHint').textContent = '';
+    current = name; markCurrent();
+    $('detail').hidden = false; $('backdrop').hidden = false; document.body.classList.add('modal-open'); $('detail').scrollTop = 0;
+    const def = blobs.get(name), comp = def || Mascot.COMPOSED[name], body = def || name;
+    const title = def ? 'Blob ' + def.seed : cap(name);
+    const scen = def ? def.traits.map((t, i) => [BLOB_SCEN[i][0], BLOB_SCEN[i][1], t]) : INFO[name].scen;
+    $('dName').textContent = title; $('dTitle').textContent = title; $('dBlurb').textContent = def ? `Generated, ${def.temperament} temperament` : INFO[name].blurb;
+    $('dScen').innerHTML = '';
+    for (const [label, demo, hint] of scen) { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.title = hint; b.addEventListener('click', () => runScenario(demo, b, hint)); $('dScen').append(b); }
+    $('roundRow').hidden = !comp;
+    const params = comp
+      ? { type: 'composed', pieces: comp.c.length, core: comp.main === -1 ? 'none (all move)' : 'piece ' + (comp.main ?? 0), 'inner sphere': fmt(comp.sphereR) + ' R', 'head follow': fmt(comp.head ?? 0.35), 'spring k': fmt(comp.k ?? 50), 'damping d': fmt(comp.d ?? 13), 'lag rule': comp.lag ? 'yes' : 'no', 'idle motion': comp.anim ? 'yes' : 'no' }
+      : { type: 'outline', 'inner sphere': 'set by shape' };
+    $('dParams').innerHTML = ''; for (const [k, v] of Object.entries(params)) { const a = document.createElement('span'); a.textContent = k; const b = document.createElement('span'); b.textContent = v; $('dParams').append(a, b); }
+    $('dDef').textContent = comp ? JSON.stringify({ pieces: comp.c.map(p => p.map(fmt)), sphereR: fmt(comp.sphereR), main: comp.main ?? 0, head: fmt(comp.head ?? 0.35), k: fmt(comp.k ?? 50), d: fmt(comp.d ?? 13) }, null, 2) : `body: '${name}'`;
+    // live preview
+    live = new Mascot($('dLive'), { body }); live.start();
+    // states + sizes
+    statics = [];
+    $('dStates').innerHTML = '';
+    for (const [label, s] of STATES) {
+      const c = document.createElement('div'); c.className = 'card'; const svg = svgEl(label + ' state');
+      const b = document.createElement('b'); b.textContent = label; const sm = document.createElement('small');
+      const extra = []; if (s.blink) extra.push('blink ' + s.blink); if (s.scale) extra.push('×' + s.scale); if (s.squash) extra.push('squash ' + s.squash);
+      sm.textContent = `${s.y} / ${s.p}` + (extra.length ? '  ' + extra.join(' ') : '');
+      c.append(svg, b, sm); $('dStates').append(c);
+      const m = new Mascot(svg, { body }); m.snap(s.y, s.p); m.setNow({ blink: s.blink || 0, eyeScale: s.scale || 1, squash: s.squash || 1 }); statics.push(m);
+    }
+    $('dSizes').innerHTML = '';
+    for (const px of [16, 24, 32, 48, 64, 96, 128]) {
+      const d = document.createElement('div'); const svg = svgEl(px + ' pixel'); svg.setAttribute('width', px); svg.setAttribute('height', px);
+      const l = document.createElement('small'); l.textContent = px + 'px'; d.append(svg, l); $('dSizes').append(d);
+      const m = new Mascot(svg, { body, lean: false }); m.snap(14, 4); statics.push(m);
+    }
+    applySettings();
+    $('dClose').focus();
+  }
+  function closeBody() {
     for (const t of demoTimers) clearTimeout(t); demoTimers = [];
     $('detail').hidden = true; $('backdrop').hidden = true; document.body.classList.remove('modal-open');
-    current = null; markCurrent(); if (detailLive) { detailLive.stop(); detailLive = null; }
+    current = null; markCurrent(); if (live) { live.stop(); live = null; } statics = [];
   }
-  $('dClose').addEventListener('click', () => { location.hash = '#catalog'; });
-  $('backdrop').addEventListener('click', () => { location.hash = '#catalog'; });
-  window.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('detail').hidden) location.hash = '#catalog'; });
+  const goHome = () => { if (location.hash) location.hash = ''; else closeBody(); };
+  $('dClose').addEventListener('click', goHome);
+  $('backdrop').addEventListener('click', goHome);
+  window.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('detail').hidden) goHome(); });
 
-  // ---------- routing ----------
-  function route() {
-    const h = location.hash || '#sandbox';
-    const [, tab, item] = h.match(/^#(\w+)(?:\/(.+))?$/) || [null, 'sandbox'];
-    const inCatalog = tab === 'catalog';
-    $('sandbox').hidden = inCatalog; $('catalog').hidden = !inCatalog;
-    $('tabSandbox').toggleAttribute('aria-current', !inCatalog); $('tabCatalog').toggleAttribute('aria-current', inCatalog);
-    if (inCatalog) showDetail(item ? decodeURIComponent(item) : null); else closeDetail();
-  }
+  // ---------- routing: #bear, #blob-3 ----------
+  function route() { const name = decodeURIComponent(location.hash.slice(1)); if (name) openBody(name); else closeBody(); }
   window.addEventListener('hashchange', route);
-  applySandbox(); route();
+  route();
 
-  // readouts
+  // readout + slider sync
   (function tick() {
-    $('readout').textContent = `yaw ${live.yaw.toFixed(1).padStart(5)}°  pitch ${live.pitch.toFixed(1).padStart(5)}°`;
-    if (!live.manual) { $('yaw').value = Math.round(live.yaw); $('pitch').value = Math.round(live.pitch); }
-    $('yawV').textContent = $('yaw').value + '°'; $('pitchV').textContent = $('pitch').value + '°';
-    if (detailLive) $('dReadout').textContent = `yaw ${detailLive.yaw.toFixed(1).padStart(5)}°  pitch ${detailLive.pitch.toFixed(1).padStart(5)}°`;
+    if (live) {
+      $('dReadout').textContent = `yaw ${live.yaw.toFixed(1).padStart(5)}°  pitch ${live.pitch.toFixed(1).padStart(5)}°`;
+      if (!live.manual) { $('yaw').value = Math.round(live.yaw); $('pitch').value = Math.round(live.pitch); }
+      $('yawV').textContent = $('yaw').value + '°'; $('pitchV').textContent = $('pitch').value + '°';
+    }
     requestAnimationFrame(tick);
   })();
 })();
