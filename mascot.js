@@ -33,7 +33,7 @@
       anim: (c, k) => c.map(([x, y, r], i) => {
         if (i === 0) return [x, y, r];
         let dx = 0, dr = 0;
-        if (k.twitch && k.twitch.i === i) { const p = k.twitch.p, env = S(p * Math.PI); dx = S(p * PI2) * 0.025 * env * (i === 1 ? -1 : 1); dr = S(p * PI2) * 0.03 * env; }
+        if (k.twitch && k.twitch.i === i) { const p = k.twitch.p, env = Math.pow(S(p * Math.PI), 0.6); dx = S(p * PI2) * 0.07 * env * (i === 1 ? -1 : 1); dr = 0.08 * env * S(p * Math.PI * 2); return [x + dx, y - 0.05 * env, r * (1 + dr)]; }
         return [x + dx, y + k.poke * 0.02, r * (1 + dr - k.poke * 0.03)];        // ears settle back a touch on a poke          // twitch; ears flatten on a poke
       }) },
     lemon: { c: [[0,0,0.84],[0,-0.72,0.3],[0,0.72,0.3]], sphereR: 0.84, surf: { rx: 0.84, ry: 0.98 }, main: 0, head: 0.4, k: 50, d: 13,
@@ -73,8 +73,22 @@
     spring: t => 1 - Math.exp(-6 * t) * Math.cos(11 * t),
   };
   const rotP = (p, deg) => { const a = deg * D2R, c = Math.cos(a), sn = Math.sin(a), q = p.slice(); q[0] = p[0] * c - p[1] * sn; q[1] = p[0] * sn + p[1] * c; if (q.length > 3) q[4] = (p[4] || 0) + deg; return q; };
-  const hop = (t, A, n, period, h) => { if (t >= n * period) return; const u = (t % period) / period; A.dy = -S(Math.PI * u) * h; const sq = clamp01(1 - Math.min(u, 1 - u) / 0.14); A.sy = 1 - 0.16 * sq; A.sx = 1 + 0.10 * sq; };
   const pulse = (t, a, b) => S(Math.PI * seg(t, a, b));                                  // 0 -> 1 -> 0 across [a, b]
+  // press the body against a floor: pieces whose bottom passes the floor line flatten and spread (normalised units)
+  const restBottom = cs => Math.max(...cs.map(p => p[1] + (p.length > 3 ? p[3] : p[2])));
+  const squashFloor = (cs, depth) => {
+    if (depth <= 0) return cs; const floor = restBottom(cs) - depth;
+    return cs.map(p => { const ry = p.length > 3 ? p[3] : p[2], rx = p[2], over = p[1] + ry - floor; if (over <= 0) return p;
+      return [p[0], p[1] - over * 0.55, rx + over * 0.6, ry - over * 0.55, p.length > 3 ? p[4] : 0]; });
+  };
+  // jelly hop: crouch, stretch on the way up, flatten on the floor, wobble back
+  const hop = (t, A, n, P, h) => {
+    if (t >= n * P) return; const u = (t % P) / P;
+    if (u < 0.16) { const c = S(Math.PI * u / 0.16); A.sy = 1 - 0.10 * c; A.sx = 1 + 0.06 * c; A.floor = 0.06 * c; return; }
+    if (u < 0.62) { const f = (u - 0.16) / 0.46, air = S(Math.PI * f); A.dy = -h * air; const st = S(Math.PI * Math.min(1, f * 1.4)); A.sy = 1 + 0.10 * st; A.sx = 1 - 0.06 * st; return; }
+    if (u < 0.78) { const c = S(Math.PI * (u - 0.62) / 0.16); A.floor = 0.2 * c; A.sx = 1 + 0.08 * c; return; }
+    const w = (u - 0.78) / 0.22; A.sy = 1 + 0.05 * S(w * Math.PI * 2.5) * Math.exp(-w * 3); A.sx = 1 - 0.03 * S(w * Math.PI * 2.5) * Math.exp(-w * 3);
+  };
 
   const ACTS = {
     bear: {
@@ -89,68 +103,76 @@
       bell: { label: 'Bell', hint: 'Swings from its top nub like an old alarm-clock bell, ringing down to rest.', dur: 3.0,
         run: (t, A) => { const e = Math.exp(-t / 1.1); A.rot = 18 * S(PI2 * t / 0.85) * e; A.pivotY = -0.98;
           const lag = 0.05 * S(PI2 * t / 0.85 - 1.2) * e; A.pieces = cs => cs.map((p, i) => i === 2 ? [p[0] + lag, p[1], p[2]] : p); } },
-      propeller: { label: 'Propeller', hint: 'Eyes bump, then the nubs orbit the core two full turns and settle.', dur: 3.3,
+      propeller: { label: 'Propeller', hint: 'Eyes bump, then the nubs orbit the core two full turns; the body shrinks with the speed of the spin.', dur: 3.3,
         run: (t, A) => { const b = pulse(t, 0, 0.45); A.eyeScale = 1 + 0.3 * b; A.eyeSquash = 1 - 0.15 * b;
-          const u = seg(t, 0.45, 2.75), th = 720 * E.io(u), spin = S(Math.PI * u);
+          const u = seg(t, 0.45, 2.75), th = 720 * E.io(u);
+          const speed = (u < 0.5 ? 12 * u * u : 12 * (1 - u) * (1 - u)) / 3;                       // normalised angular speed of the ease
           A.pieces = cs => cs.map((p, i) => i ? rotP(p, th) : p);
-          A.sx = A.sy = 1 - 0.14 * spin; A.pivotY = 0;                 // the whole lemon shrinks a little at full spin, about its centre
-          A.eyeSquash *= 1 - 0.4 * spin; } },
+          A.sx = A.sy = 1 - 0.14 * speed; A.pivotY = 0; A.eyeSquash *= 1 - 0.4 * speed; } },
     },
     ghost: {
-      tuck: { label: 'Tuck in', hint: 'Pulls its tail up into the body, holds, then pops it back out.', dur: 2.6,
-        run: (t, A) => { const sv = t < 1.0 ? E.io(seg(t, 0, 1.0)) : t < 1.4 ? 1 : 1 - E.back(seg(t, 1.4, 2.4)); const sp = Math.max(0, sv);
-          A.pieces = cs => cs.map((p, i) => i ? [p[0] * (1 - 0.3 * sp), p[1] - 0.55 * sv, p[2] * (1 - 0.45 * sp)] : p);
-          A.eyeSquash = 1 - 0.35 * sp; } },
-      piano: { label: 'Piano', hint: 'Presses its tail bumps one after another like piano keys.', dur: 3.4,
+      tuck: { label: 'Tuck in', hint: 'Draws its tail up into the body, the skirt flattens while it holds, then the bumps snap back out.', dur: 2.8,
+        run: (t, A) => {
+          const sOf = d => { const tt = t - d; return tt < 0.9 ? E.io(seg(tt, 0, 0.9)) : tt < 1.5 ? 1 : 1 - E.back(seg(tt, 1.5, 2.3)); };
+          const sMid = sOf(0), delay = [0, 0.08, 0, 0.08];
+          A.pieces = cs => cs.map((p, i) => { if (!i) return p; const sv = sOf(delay[i]), sp = Math.max(0, sv); return [p[0] * (1 - 0.3 * sp), p[1] - 0.55 * sv, p[2] * (1 - 0.45 * sp)]; });
+          const held = Math.max(0, sMid); A.sy = 1 - 0.07 * held; A.sx = 1 + 0.05 * held; A.eyeSquash = 1 - 0.35 * held; } },
+      piano: { label: 'Piano', hint: 'Presses its tail bumps one after another like piano keys; the idle keys shrink and lean away.', dur: 3.4,
         run: (t, A) => { const order = [1, 2, 3, 2, 1, 2, 3, 3, 2], step = 0.36, k = Math.min(order.length - 1, Math.floor(t / step)), u = (t % step) / step, pr = t < order.length * step ? S(Math.PI * u) : 0, key = order[k];
-          A.pieces = cs => cs.map((p, i) => i === key ? [p[0], p[1] + 0.09 * pr, p[2] * (1 - 0.12 * pr)] : p);
+          A.pieces = cs => { const kx = cs[key][0]; return cs.map((p, i) => { if (!i) return p; if (i === key) return [p[0], p[1] + 0.09 * pr, p[2] * (1 - 0.12 * pr)]; const away = Math.sign(p[0] - kx) || (i < key ? -1 : 1); return [p[0] + away * 0.06 * pr, p[1] - 0.03 * pr, p[2] * (1 - 0.15 * pr)]; }); };
           A.look = [0, -14]; A.dy = 1.5 * pr; } },
     },
     cloud: {
-      quarter: { label: 'Quarter turns', hint: 'Turns a full circle in four springy 90 degree steps.', dur: 3.7,
+      quarter: { label: 'Quarter turns', hint: 'Turns a full circle in four springy 90 degree steps; the eyes start to follow each turn and swing back.', dur: 3.7,
         run: (t, A) => { const step = 0.85, k = Math.min(3, Math.floor(t / step)), u = seg(t, k * step, k * step + 0.62), th = t >= 4 * step ? 360 : 90 * k + 90 * E.back(u);
-          A.pieces = cs => cs.map(p => p.length > 3 ? [p[0], p[1], p[2], p[3], (p[4] || 0) + th] : p); A.dy = -3 * S(Math.PI * u); } },
-      hop: { label: 'Hop', hint: 'Three small hops, squashing on takeoff and landing.', dur: 2.2, run: (t, A) => hop(t, A, 3, 0.62, 18) },
+          A.pieces = cs => cs.map(p => p.length > 3 ? [p[0], p[1], p[2], p[3], (p[4] || 0) + th] : p); A.dy = -3 * S(Math.PI * u);
+          A.eyeOrbit = 14 * S(Math.PI * Math.min(1, u * 1.3)); } },
+      hop: { label: 'Hop', hint: 'Three jelly hops: it stretches on the way up and flattens against the floor on landing.', dur: 2.6, run: (t, A) => hop(t, A, 3, 0.8, 22) },
     },
     drop: {
-      hop: { label: 'Hop', hint: 'Three small hops, flattening its bottom on each landing.', dur: 2.2, run: (t, A) => hop(t, A, 3, 0.62, 20) },
-      sprout: { label: 'New sprout', hint: 'Eyes bump, the sprout lifts off and fades, then a new one grows out of the body.', dur: 3.5,
+      hop: { label: 'Hop', hint: 'Three jelly hops, the bottom flattening and spreading on each landing.', dur: 2.6, run: (t, A) => hop(t, A, 3, 0.8, 24) },
+      sprout: { label: 'New sprout', hint: 'Eyes bump, the body tightens as the sprout pulls free and fades, then a new one grows out of it.', dur: 3.5,
         run: (t, A) => { const b = pulse(t, 0, 0.4); A.eyeScale = 1 + 0.25 * b;
-          const up = E.i(seg(t, 0.4, 1.3)), grow = t < 1.8 ? 0 : E.back(seg(t, 1.8, 2.9));
-          A.eyeSquash = 1 - 0.3 * pulse(t, 0.4, 1.3);
+          const up = E.i(seg(t, 0.4, 1.3)), grow = t < 1.8 ? 0 : E.back(seg(t, 1.8, 2.9)), pull = pulse(t, 0.4, 1.3);
+          A.eyeSquash = 1 - 0.3 * pull; A.sx = A.sy = 1 - 0.08 * pull; A.pivotY = 0;
           A.pieces = cs => cs.map((p, i) => { if (!i) return p; if (t < 1.8) return [p[0], p[1] - 0.6 * up, p[2] * (1 - up)]; return [p[0], -0.35 + (p[1] + 0.35) * grow, p[2] * Math.max(0, grow)]; });
-          if (t >= 1.8) A.sy = 1 - 0.04 * pulse(t, 1.8, 2.4); } },
+          if (t >= 1.8) A.sy *= 1 - 0.04 * pulse(t, 1.8, 2.4); } },
     },
     stack: {
-      deflate: { label: 'Deflate', hint: 'Sags like a balloon losing air, then re-inflates with a bounce.', dur: 3.0,
+      deflate: { label: 'Deflate', hint: 'Collapses toward its centre like a balloon losing air, eyes shrinking with it, then re-inflates with a bounce.', dur: 3.0,
         run: (t, A) => { const sv = t < 1.1 ? E.i(seg(t, 0, 1.1)) : t < 1.6 ? 1 : 1 - E.back(seg(t, 1.6, 2.8)); const sp = Math.max(0, sv);
-          A.sy = 1 - 0.45 * sv; A.sx = 1 + 0.18 * sv; A.rot = 3 * S(t * 20) * sp * (1 - sp); A.eyeSquash = 1 - 0.3 * sp; } },
-      stretch: { label: 'Stretch', hint: 'A slow blink, then the two halves pull apart, hold, and snap back together.', dur: 3.2,
+          A.sy = 1 - 0.45 * sv; A.sx = 1 + 0.12 * sv; A.pivotY = 0; A.rot = 3 * S(t * 20) * sp * (1 - sp); A.eyeScale = 1 - 0.35 * sp; A.eyeSquash = 1 - 0.2 * sp; } },
+      stretch: { label: 'Stretch', hint: 'A slow blink, then the halves pull apart with the eyes stretching too, hold, and snap back together.', dur: 3.2,
         run: (t, A) => { A.eyeSquash = 1 - 0.35 * pulse(t, 0, 0.7);
           const u = t < 0.7 ? 0 : t < 1.7 ? E.io(seg(t, 0.7, 1.7)) : t < 2.3 ? 1 : 1 - E.spring(seg(t, 2.3, 3.2));
-          A.pieces = cs => cs.map((p, i) => i === 1 ? [p[0], p[1] - 0.24 * u, p[2], p[3]] : i === 2 ? [p[0], p[1] + 0.24 * u, p[2], p[3]] : p);
-          A.eyeScale = 1 + 0.1 * u; } },
+          A.pieces = cs => cs.map((p, i) => i === 0 ? [p[0], p[1], p[2] * (1 + 0.1 * u), p[2] * (1 + 0.1 * u) + 0.26 * u, 0] : i === 1 ? [p[0], p[1] - 0.24 * u, p[2], p[3]] : [p[0], p[1] + 0.24 * u, p[2], p[3]]);   // the core grows into a waist
+          A.eyeSquash *= 1 + 0.4 * u; A.eyeScale = 1 + 0.05 * u; } },
     },
     seacow: {
       wave: { label: 'Wave', hint: 'Lifts and waves the left flipper, then the right, glancing at each.', dur: 3.2,
         run: (t, A) => { const side = t < 1.55 ? 1 : 2, u = side === 1 ? seg(t, 0.1, 1.5) : seg(t, 1.6, 3.0), lift = S(Math.PI * u), wig = S(PI2 * u * 3) * 0.06 * lift;
           A.pieces = cs => cs.map((p, i) => i === side ? [p[0] + (side === 1 ? -0.12 : 0.12) * lift + wig, p[1] - 0.55 * lift, p[2]] : p);
           A.look = [side === 1 ? -18 : 18, 8]; A.rot = (side === 1 ? -4 : 4) * lift; } },
-      pushhop: { label: 'Push-off hop', hint: 'Crouches, pushes off with its flippers, hops, and lands with a squash.', dur: 2.7,
-        run: (t, A) => { const cr = E.io(seg(t, 0, 0.5)), air = pulse(t, 0.5, 1.4), land = pulse(t, 1.4, 1.75), air2 = pulse(t, 1.8, 2.5);
-          A.sy = 1 - 0.12 * cr * (1 - air) - 0.14 * land; A.dy = -26 * air - 12 * air2;
-          A.pieces = cs => cs.map((p, i) => i ? [p[0] + (i === 1 ? -0.05 : 0.05) * cr * (1 - air), p[1] + 0.08 * cr * (1 - air) - 0.18 * air - 0.1 * air2, p[2]] : p); } },
+      pushhop: { label: 'Push-off hop', hint: 'Deep crouch with the flippers pressed down and spread, an explosive push-off, a high hop, a flat landing and a wobble.', dur: 2.9,
+        run: (t, A) => {
+          const crouch = E.io(seg(t, 0, 0.55)), launch = seg(t, 0.55, 0.7), f = seg(t, 0.7, 1.55), air = S(Math.PI * f), land = pulse(t, 1.55, 1.8), w = seg(t, 1.8, 2.7);
+          const down = crouch * (1 - launch);
+          A.sy = 1 - 0.2 * down + 0.12 * S(Math.PI * Math.min(1, f * 1.3)) * (t >= 0.7 ? 1 : 0) + 0.03 * S(w * Math.PI * 2.5) * Math.exp(-w * 3) - 0.06 * land;
+          A.sx = 1 + 0.12 * down - 0.06 * S(Math.PI * Math.min(1, f * 1.3)) * (t >= 0.7 ? 1 : 0);
+          A.dy = -44 * air; A.floor = 0.06 * down + 0.22 * land;
+          A.pieces = cs => cs.map((p, i) => { if (!i) return p; const side = i === 1 ? -1 : 1;
+            return [p[0] + side * (0.16 * down + 0.14 * land), p[1] + 0.1 * down + 0.16 * S(Math.PI * Math.min(1, f * 0.6)) * (1 - f) - 0.14 * S(Math.PI * Math.max(0, f - 0.3) / 0.7), p[2] * (1 + 0.05 * land)]; }); } },
     },
     flower: {
-      spin: { label: 'Spin', hint: 'Two fast turns easing out; the petals land scattered, then settle back into the ring.', dur: 3.9,
-        run: (t, A) => { const th = 720 * E.o(seg(t, 0, 2.6)), sc = t < 2.4 ? 0 : t < 2.9 ? E.io(seg(t, 2.4, 2.9)) : 1 - E.back(seg(t, 2.9, 3.7));
+      spin: { label: 'Spin', hint: 'One turn easing out with sharper petals; the eyes merge into one big centre like a sunflower, then everything settles back.', dur: 3.6,
+        run: (t, A) => { const u = seg(t, 0, 2.4), th = 360 * E.o(u), mid = S(Math.PI * u), sc = t < 2.2 ? 0 : t < 2.7 ? E.io(seg(t, 2.2, 2.7)) : 1 - E.back(seg(t, 2.7, 3.5));
           const off = [17, -22, 12, -15, 20, -11, 14, -19];
           A.pieces = cs => cs.map((p, i) => { if (!i) return p; const q = rotP(p, th + off[i - 1] * sc); q[0] *= 1 + 0.1 * sc; q[1] *= 1 + 0.1 * sc; return q; });
-          A.eyeSquash = 1 - 0.3 * pulse(t, 0, 2.6); } },
-      deflate: { label: 'Deflate', hint: 'Petals fold into the core and the eyes shrink; then it blooms back out.', dur: 3.0,
+          A.roundMul = 1 - 0.7 * mid; A.eyeMerge = E.io(Math.min(1, u * 1.2)) * (1 - E.io(seg(t, 2.3, 3.0))); A.eyeScale = 1 + 0.6 * A.eyeMerge; } },
+      inflate: { label: 'Inflate', hint: 'Petals push outward and swell, the eyes grow with them, then it settles back with a bounce.', dur: 3.0,
         run: (t, A) => { const sv = t < 1.0 ? E.io(seg(t, 0, 1.0)) : t < 1.6 ? 1 : 1 - E.back(seg(t, 1.6, 2.8)); const sp = Math.max(0, sv);
-          A.pieces = cs => cs.map((p, i) => i ? [p[0] * (1 - 0.9 * sv), p[1] * (1 - 0.9 * sv), p[2] * (1 - 0.6 * sp)] : p);
-          A.eyeScale = 1 - 0.4 * sp; } },
+          A.pieces = cs => cs.map((p, i) => i ? [p[0] * (1 + 0.22 * sv), p[1] * (1 + 0.22 * sv), p[2] * (1 + 0.2 * sv)] : [p[0], p[1], p[2] * (1 + 0.08 * sv)]);
+          A.eyeScale = 1 + 0.3 * sp; } },
     },
   };
   for (const k in ACTS) if (COMPOSED[k]) COMPOSED[k].acts = ACTS[k];
@@ -301,8 +323,13 @@
 
     _eye(rect, side) {
       const o = this.o, A = this._A; let lon = side * o.eyeLon, lat = o.eyeLat;
-      if (A && A.eyeOrbit) { const th = A.eyeOrbit * D2R; lon = side * o.eyeLon * Math.cos(th); lat = o.eyeLat + side * o.eyeLon * Math.sin(th); }   // eyes orbit their midpoint
-      const f = this._frame(lon, lat);
+      let f = this._frame(lon, lat);
+      if (A && (A.eyeOrbit || A.eyeMerge)) {                                                   // spinner / merge: a perfect screen-space circle around the midpoint, eyes stay round
+        const fl = this._frame(-o.eyeLon, o.eyeLat), fr = this._frame(o.eyeLon, o.eyeLat);
+        const cx = (fl.m[4] + fr.m[4]) / 2, cy = (fl.m[5] + fr.m[5]) / 2, d = Math.hypot(fr.m[4] - fl.m[4], fr.m[5] - fl.m[5]) / 2 * (1 - (A.eyeMerge || 0));
+        const th = (A.eyeOrbit || 0) * D2R + (side < 0 ? Math.PI : 0);
+        f = { m: [1, 0, 0, 1, cx + d * Math.cos(th), cy + d * Math.sin(th)], z: 1 };
+      }
       const w = o.eyeW, h = o.eyeH, rx = Math.min(w, h) / 2 * o.corner;
       const open = 1 - this.blinkAmt * 0.94;
       const sx = this.eyeScale * (A ? A.eyeScale : 1), sy = this.eyeScale * this.squash * open * (A ? A.eyeSquash : 1);
@@ -353,6 +380,7 @@
         if (!this._running) { this._hy = this._sy = this.yaw * head; this._hp = this._sp = this.pitch * head; }       // static render: head already turned
         let cs = comp.anim ? comp.anim(comp.c, { t: this._t, dt: this._dt, vel: this._vel, poke: this._pokeS, twitch: this._twitch, mem: this._mem, hy: this._hy, hp: this._hp }) : comp.c;
         if (this._A && this._A.pieces) cs = this._A.pieces(cs);
+        if (this._A && this._A.floor) cs = squashFloor(cs, this._A.floor);
         const main = comp.main == null ? 0 : comp.main;
         const lagCtx = { pitch: this.pitch, yaw: this.yaw, pitchT: this.tPitch, yawT: this.tYaw };
         if (!this._lagS || this._lagS.length !== cs.length) this._lagS = cs.map(() => 0);
@@ -376,7 +404,7 @@
             else c.setAttribute('r', rr);
           }
         });
-        this.blur.setAttribute('stdDeviation', (1 + o.round * 13).toFixed(1));
+        this.blur.setAttribute('stdDeviation', (1 + o.round * 13 * (this._A && this._A.roundMul != null ? this._A.roundMul : 1)).toFixed(1));
         for (const c of this.goo.children) c.setAttribute('fill', flat ? o.color : `url(#${this.gradId})`);
       } else {
         const shape = (SHAPES[o.body] || SHAPES.circle)(o.radius);
@@ -469,7 +497,7 @@
         if (this._act) {
           const t = (now - this._act.t0) / 1000;
           if (t >= this._act.def.dur) { this._act = null; this._A = null; }
-          else { const A = { rot: 0, dx: 0, dy: 0, sx: 1, sy: 1, pivotY: 1, pieces: null, eyeScale: 1, eyeSquash: 1, eyeShake: 0, eyeOrbit: 0, look: null }; this._act.def.run(t, A, { R: o.radius, comp: this._comp }); if (A.look) this.look(A.look[0], A.look[1]); this._A = A; }
+          else { const A = { rot: 0, dx: 0, dy: 0, sx: 1, sy: 1, pivotY: 1, pieces: null, floor: 0, roundMul: 1, eyeScale: 1, eyeSquash: 1, eyeShake: 0, eyeOrbit: 0, eyeMerge: 0, look: null }; this._act.def.run(t, A, { R: o.radius, comp: this._comp }); if (A.look) this.look(A.look[0], A.look[1]); this._A = A; }
         }
         // signals for the extra pieces
         this._t = now / 1000; this._dt = dt / 1000;
@@ -483,7 +511,7 @@
           this._svp += ((tp - this._sp) * ks - this._svp * ds) * h; this._sp += this._svp * h; }
         this._poke *= Math.exp(-dt / 420); if (this._poke < 0.002) this._poke = 0;
         this._pokeS += (this._poke - this._pokeS) * (1 - Math.exp(-dt / 90));   // eased-in poke signal for the body
-        if (this._twitch) { this._twitch.p = (now - this._twitch.t0) / 700; if (this._twitch.p >= 1) this._twitch = null; }
+        if (this._twitch) { this._twitch.p = (now - this._twitch.t0) / 520; if (this._twitch.p >= 1) this._twitch = null; }
         else if (o.twitch && !reduce && (!this._nextTwitch || now > this._nextTwitch)) { if (this._nextTwitch) this._twitch = { i: 1 + Math.floor(Math.random() * 2), t0: now, p: 0 }; this._nextTwitch = now + 2500 + Math.random() * 4000; }
         this.eyeScale += (this.tEyeScale - this.eyeScale) * k2; this.squash += (this.tSquash - this.squash) * k2;
         if (o.breathe && !reduce) { const s = 1 + 0.012 * Math.sin(now / 3200 * Math.PI * 2); this.root.setAttribute('transform', `translate(100 100) scale(${s.toFixed(4)}) translate(-100 -100)`); }
