@@ -224,8 +224,8 @@
   // Every body gets the same baseline in the same order; each body supplies its own hint per baseline
   // scenario (what to watch for) and may append extras that only it has.
   const BASE = [
-    ['Head turn', 'turn',  'Looks 45\u00b0 left, then right, then back to centre.'],
-    ['Nod',       'pitch', 'Looks 30\u00b0 up, then down, then back to centre.'],
+    ['Head turn', 'turn',  'Looks 36\u00b0 left, then right, then back to centre.'],
+    ['Nod',       'pitch', 'Looks 26\u00b0 up, then down, then back to centre.'],
     ['Quick turns', 'fast', 'Four fast alternating looks; shows how the springs settle.'],
     ['Blink',     'blink', 'Double blink.'],
     ['Poke',      'poke',  'Eyes pop, then blink.'],
@@ -261,9 +261,9 @@
     return { base: BASE.map(([label, demo, hint]) => [label, demo, (info.hints && info.hints[demo]) || hint]), unique };
   };
   const STATES = [
-    ['Idle', {y:0,p:0}], ['Glance left', {y:-15,p:0}], ['Glance right', {y:15,p:0}], ['Look left', {y:-35,p:0}], ['Look right', {y:35,p:0}],
-    ['Look up', {y:0,p:24}], ['Look down', {y:0,p:-24}], ['Up-left', {y:-28,p:18}], ['Up-right', {y:28,p:18}], ['Down-left', {y:-28,p:-16}], ['Down-right', {y:28,p:-16}],
-    ['Far left', {y:-60,p:0}], ['Far right', {y:60,p:0}], ['Blink', {y:0,p:0,blink:1}], ['Half closed', {y:0,p:0,blink:0.55}], ['Sleepy', {y:0,p:-10,blink:0.7}],
+    ['Idle', {y:0,p:0}], ['Glance left', {y:-15,p:0}], ['Glance right', {y:15,p:0}], ['Look left', {y:-30,p:0}], ['Look right', {y:30,p:0}],
+    ['Look up', {y:0,p:22}], ['Look down', {y:0,p:-22}], ['Up-left', {y:-24,p:16}], ['Up-right', {y:24,p:16}], ['Down-left', {y:-24,p:-14}], ['Down-right', {y:24,p:-14}],
+    ['Far left', {y:-40,p:0}], ['Far right', {y:40,p:0}], ['Blink', {y:0,p:0,blink:1}], ['Half closed', {y:0,p:0,blink:0.55}], ['Sleepy', {y:0,p:-10,blink:0.7}],
     ['Surprised', {y:0,p:6,scale:1.25}], ['Happy', {y:0,p:0,squash:0.45,scale:1.05}], ['Suspicious', {y:22,p:-4,squash:0.55}], ['Thinking', {y:26,p:20,squash:0.8}],
   ];
 
@@ -322,7 +322,7 @@
   for (const r of document.querySelectorAll('input[name=mode]')) r.addEventListener('change', e => { settings.mode = e.target.value; applySettings(); });
   for (const k of ['follow', 'idle', 'autoBlink', 'lean', 'breathe', 'wireframe']) $(k).addEventListener('change', e => { settings[k] = e.target.checked; applySettings(); });
   // gaze pad: x -> yaw (-60..60), y -> pitch (40..-40)
-  const pad = $('pad'), knob = $('knob'), MAXY = 60, MAXP = 40;
+  const pad = $('pad'), knob = $('knob'), MAXY = 40, MAXP = 28;
   let manualT = 0, padGaze = { y: 0, p: 0 };
   const setKnob = (y, p) => { knob.style.left = (50 + y / MAXY * 46) + '%'; knob.style.top = (50 - p / MAXP * 46) + '%'; $('yawV').textContent = Math.round(y) + '\u00b0'; $('pitchV').textContent = Math.round(p) + '\u00b0'; pad.setAttribute('aria-valuetext', `yaw ${Math.round(y)}, pitch ${Math.round(p)}`); };
   const holdThenAuto = () => { clearTimeout(manualT); manualT = setTimeout(() => { if (live) live.manual = false; }, 1500); };
@@ -358,9 +358,9 @@
     const seq = (steps, hold) => { steps.forEach(([y, p], i) => at(i * hold, () => m.look(y, p))); at(steps.length * hold, () => m.look(0, 0)); return steps.length * hold + 500; };
     let dur = 1200;
     switch (kind) {
-      case 'turn':  dur = seq([[-45, 0], [45, 0]], 1300); break;
-      case 'pitch': dur = seq([[0, 30], [0, -30]], 1300); break;
-      case 'fast':  dur = seq([[45, 0], [-45, 0], [45, 0], [-45, 0]], 420); break;
+      case 'turn':  dur = seq([[-36, 0], [36, 0]], 1300); break;
+      case 'pitch': dur = seq([[0, 26], [0, -26]], 1300); break;
+      case 'fast':  dur = seq([[36, 0], [-36, 0], [36, 0], [-36, 0]], 420); break;
       case 'poke':  m.look(0, 0); m.poke(); dur = 1100; break;
       case 'blink': m.look(0, 0); m.blink(2); dur = 1000; break;
       case 'twitch': m.look(0, 0); m.twitch(1 + Math.floor(Math.random() * 2)); dur = 900; break;
