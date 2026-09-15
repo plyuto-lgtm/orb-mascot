@@ -19,7 +19,7 @@
     circle:  R => ({ d: `M${100-R} 100a${R} ${R} 0 1 0 ${2*R} 0a${R} ${R} 0 1 0 ${-2*R} 0Z`, sphereR: R }),
     squircle:R => ({ d: polar(t => { const c=Math.cos(t), s=Math.sin(t); const k=Math.pow(Math.pow(Math.abs(c),4)+Math.pow(Math.abs(s),4),-0.25); return [R*0.98*k*c, R*0.98*k*s]; }), sphereR: R }),
     egg:     R => ({ d: polar(t => { const c=Math.cos(t), s=Math.sin(t); const up = s<0 ? -s : 0; return [R*0.94*c*(1-0.22*Math.pow(up,1.5)), R*(s<0 ? 1.03*s : 0.97*s)]; }), sphereR: R*0.9 }),
-    blob:    R => ({ d: polar(t => { const r=R*(0.98+0.05*Math.sin(3*t+0.6)+0.03*Math.cos(5*t)); return [r*Math.cos(t), r*Math.sin(t)]; }), sphereR: R*0.93 }),
+    pebble:  R => ({ d: polar(t => { const r=R*(0.98+0.05*Math.sin(3*t+0.6)+0.03*Math.cos(5*t)); return [r*Math.cos(t), r*Math.sin(t)]; }), sphereR: R*0.93 }),
   };
   // composed bodies: union of circles, joins filleted by `round`
   // composed bodies: union of circles, joins filleted by `round`.
@@ -60,6 +60,41 @@
     flower: { c: [[0,0,0.8], ...Array.from({ length: 8 }, (_, i) => { const a = i * Math.PI / 4 + Math.PI / 8; return [0.62 * Math.cos(a), 0.62 * Math.sin(a), 0.33]; })], sphereR: 0.86, main: 0, head: 0.25, k: 40, d: 12,
       anim: (c, k) => c.map(([x, y, r], i) => i === 0 ? [x, y, r] : [x, y, r * (1 + S(k.t * PI2 / 3 + i * 0.8) * 0.02 + k.poke * 0.03)]) },   // petals breathe in a ripple
   };
+  // Generative blob bodies: a seed produces a whole body definition (pieces, spring, idle motion, lag rule)
+  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function blobBody(seed) {
+    const R = mulberry32((seed | 0) * 9973 + 17), rnd = (a, b) => a + (b - a) * R(), pick = arr => arr[Math.floor(R() * arr.length)];
+    const mainR = rnd(0.74, 0.9), c = [[0, rnd(-0.08, 0.08), mainR]];
+    const n = 1 + Math.floor(R() * 4), mirror = R() < 0.55; let ellipses = 0;
+    for (let i = 0; i < n; i++) {
+      const ang = rnd(-Math.PI, Math.PI), r = rnd(0.22, 0.4), ell = R() < 0.35;
+      const dist = Math.max(rnd(0.55, 0.8), mainR - r + 0.16);                        // always pokes clearly out of the core
+      const x = Math.cos(ang) * dist, y = Math.sin(ang) * dist;
+      const piece = ell ? [x, y, r * rnd(1.1, 1.6), r * rnd(0.5, 0.85), rnd(-60, 60)] : [x, y, r];
+      if (ell) ellipses++;
+      c.push(piece);
+      if (mirror && Math.abs(x) > 0.12) { const m = piece.slice(); m[0] = -x; if (m.length > 3) m[4] = -m[4]; c.push(m); }
+    }
+    const head = rnd(0.22, 0.45), k = rnd(30, 75), bouncy = R() < 0.25, d = bouncy ? rnd(5, 8) : rnd(10, 15);
+    const phase = c.map(() => R() * PI2), speed = rnd(2.2, 3.8), amp = rnd(0.01, 0.03), lagMode = R() < 0.35;
+    const temperament = pick(['calm', 'curious', 'sleepy', 'jumpy']);
+    const traits = [
+      `${c.length - 1} piece${c.length > 2 ? 's' : ''} on a ${mainR.toFixed(2)}R core` + (ellipses ? `, ${ellipses} of them elliptical` : ''),
+      mirror ? 'mirrored left and right' : 'asymmetric',
+      bouncy ? 'under-damped spring, pieces overshoot and settle' : 'well-damped spring, pieces glide',
+      lagMode ? 'the side it looks away from trails the turn' : 'all pieces turn together',
+      `breathes every ${speed.toFixed(1)} s at ${(amp * 100).toFixed(0)}% of piece size`,
+    ];
+    return {
+      name: 'blob-' + seed, seed, c, sphereR: mainR, main: 0, head, k, d, temperament, traits,
+      anim: (cs, kk) => cs.map((p, i) => {
+        if (i === 0) return p;
+        const b = 1 + S(kk.t * PI2 / speed + phase[i]) * amp;
+        return p.length > 3 ? [p[0], p[1], p[2] * b, p[3] * (1 + kk.poke * 0.03), p[4]] : [p[0], p[1], p[2] * (b + kk.poke * 0.03)];
+      }),
+      lag: lagMode ? (i, kk) => { const w = Math.max(-1, Math.min(1, kk.yaw / 15)); return c[i][0] > 0 ? Math.max(0, -w) : Math.max(0, w); } : null,
+    };
+  }
   // project a rest-position piece onto the head sphere and rotate it by the head angles (degrees)
   function headProject(c, hy, hp) {
     const [x, y, r] = c, d2 = x * x + y * y, z0 = Math.sqrt(Math.max(0.02, 1 - d2));
@@ -86,7 +121,7 @@
         eyeW: 22,        // eye width  (viewBox units)
         eyeH: 22,        // eye height (viewBox units)
         corner: 1,       // 0 = square, 1 = fully rounded
-        body: 'circle',  // circle | squircle | egg | blob | bear | lemon | ghost | cloud | drop | stack | seacow | flower | array of [x,y,r] or [x,y,rx,ry,angle]
+        body: 'circle',  // circle | squircle | egg | pebble | bear | lemon | ghost | cloud | drop | stack | seacow | flower | array of [x,y,r] or [x,y,rx,ry,angle]
         round: 0.5,      // fillet amount for composed bodies, 0..1
         eye: null,       // preset name: round | pill | square | wide | tall (overrides eyeW/eyeH/corner)
         maxYaw: 50, maxPitch: 32,
@@ -186,7 +221,7 @@
         this.stops[0].setAttribute('stop-color', mix(c, W, 0.24)); this.stops[1].setAttribute('stop-color', mix(c, K, 0.08)); this.stops[2].setAttribute('stop-color', mix(c, K, 0.45));
       }
       const eyeFill = o.eyeColor || (lum(hex2(o.color)) > 0.55 ? '#141416' : '#ffffff');
-      const comp = Array.isArray(o.body) ? { c: o.body, sphereR: 0.85, main: 0, head: 0.35, k: 50, d: 13 } : COMPOSED[o.body];
+      const comp = Array.isArray(o.body) ? { c: o.body, sphereR: 0.85, main: 0, head: 0.35, k: 50, d: 13 } : (o.body && o.body.c) ? o.body : COMPOSED[o.body];
       this._comp = comp;
       if (comp) {
         this.sR = o.radius * comp.sphereR;
@@ -316,5 +351,5 @@
     }
     stop() { this._running = false; global.removeEventListener('pointermove', this._onMove); document.removeEventListener('pointerleave', this._onLeave); }
   }
-  global.Mascot = Mascot; Mascot.SHAPES = Object.keys(SHAPES); Mascot.COMPOSED = COMPOSED; Mascot.BODIES = [...Object.keys(SHAPES), ...Object.keys(COMPOSED)]; Mascot.COLORS = { black: '#0a0a0a', blue: '#1E6DF6', olive: '#969640', cyan: '#00CCFF', orchid: '#CF72D9', lime: '#EEF679' }; Mascot.EYES = Object.keys(EYES);
+  global.Mascot = Mascot; Mascot.SHAPES = Object.keys(SHAPES); Mascot.COMPOSED = COMPOSED; Mascot.blob = blobBody; Mascot.BODIES = [...Object.keys(SHAPES), ...Object.keys(COMPOSED)]; Mascot.COLORS = { black: '#0a0a0a', blue: '#1E6DF6', olive: '#969640', cyan: '#00CCFF', orchid: '#CF72D9', lime: '#EEF679' }; Mascot.EYES = Object.keys(EYES);
 })(window);
