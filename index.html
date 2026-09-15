@@ -69,6 +69,11 @@
   .crumb{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);margin-bottom:16px;position:sticky;top:0;background:var(--bg);padding:6px 0 10px;z-index:1}
   .crumb a{color:var(--muted)}
   .crumb .close{margin-left:auto;width:32px;height:32px;padding:0;border-radius:50%;font-size:18px;line-height:1;display:grid;place-items:center}
+  .crumb .nav{width:28px;height:28px;padding:0;border-radius:50%;font-size:18px;line-height:1;display:grid;place-items:center}
+  .pick{position:relative;display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 10px;border:1px solid var(--line);border-radius:999px;color:var(--ink);font-weight:500;background:var(--surface-2)}
+  .pick i{width:7px;height:7px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:translateY(-2px) rotate(45deg)}
+  .pick select{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;font:inherit}
+  .pick:hover{border-color:var(--muted)}
   body.modal-open{overflow:hidden}
   .top{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:20px;align-items:start}
   @media (max-width:880px){.top{grid-template-columns:1fr}}
@@ -128,7 +133,12 @@
 
 <div class="backdrop" id="backdrop" hidden></div>
 <div class="detail" id="detail" role="dialog" aria-modal="true" aria-labelledby="dTitle" hidden>
-  <div class="crumb"><a href="#">All bodies</a> / <span id="dName"></span><button class="close" id="dClose" aria-label="Close">&times;</button></div>
+  <div class="crumb">
+    <a href="#">All bodies</a> /
+    <span class="pick"><select id="dPick" aria-label="Switch body"></select><span id="dName"></span><i></i></span>
+    <button class="nav" id="dPrev" aria-label="Previous body">&lsaquo;</button><button class="nav" id="dNext" aria-label="Next body">&rsaquo;</button>
+    <button class="close" id="dClose" aria-label="Close">&times;</button>
+  </div>
   <div class="top">
     <div class="stage">
       <div class="title"><b id="dTitle"></b><span id="dBlurb"></span></div>
@@ -316,7 +326,7 @@
     const def = blobs.get(name), comp = def || Mascot.COMPOSED[name], body = def || name;
     const title = def ? 'Blob ' + def.seed : cap(name);
     const scen = def ? def.traits.map((t, i) => [BLOB_SCEN[i][0], BLOB_SCEN[i][1], t]) : INFO[name].scen;
-    $('dName').textContent = title; $('dTitle').textContent = title; $('dBlurb').textContent = def ? `Generated, ${def.temperament} temperament` : INFO[name].blurb;
+    $('dName').textContent = title; $('dTitle').textContent = title; fillPick(); $('dBlurb').textContent = def ? `Generated, ${def.temperament} temperament` : INFO[name].blurb;
     $('dScen').innerHTML = '';
     for (const [label, demo, hint] of scen) { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.title = hint; b.addEventListener('click', () => runScenario(demo, b, hint)); $('dScen').append(b); }
     $('roundRow').hidden = !comp;
@@ -352,6 +362,20 @@
     $('detail').hidden = true; $('backdrop').hidden = true; document.body.classList.remove('modal-open');
     current = null; markCurrent(); if (live) { live.stop(); live = null; } statics = [];
   }
+  // switch bodies from inside the modal
+  const allNames = () => [...Object.keys(Mascot.COMPOSED), ...Mascot.SHAPES, ...blobs.keys()];
+  function fillPick() {
+    const sel = $('dPick'); sel.innerHTML = '';
+    const group = (label, names, labelFn) => { const g = document.createElement('optgroup'); g.label = label; for (const n of names) { const o = document.createElement('option'); o.value = n; o.textContent = labelFn(n); g.append(o); } sel.append(g); };
+    group('Composed', Object.keys(Mascot.COMPOSED), cap);
+    group('Simple', Mascot.SHAPES, cap);
+    group('Blob', [...blobs.keys()].sort((a, b) => +a.slice(5) - +b.slice(5)), n => 'Blob ' + n.slice(5));
+    sel.value = current;
+  }
+  $('dPick').addEventListener('change', e => { location.hash = '#' + e.target.value; });
+  const step = dir => { const list = allNames(), i = list.indexOf(current); if (i < 0) return; location.hash = '#' + list[(i + dir + list.length) % list.length]; };
+  $('dPrev').addEventListener('click', () => step(-1)); $('dNext').addEventListener('click', () => step(1));
+  window.addEventListener('keydown', e => { if ($('detail').hidden || e.target.closest('input,select,textarea,.pad')) return; if (e.key === 'ArrowLeft') step(-1); if (e.key === 'ArrowRight') step(1); });
   const goHome = () => { if (location.hash) location.hash = ''; else closeBody(); };
   $('dClose').addEventListener('click', goHome);
   $('backdrop').addEventListener('click', goHome);
