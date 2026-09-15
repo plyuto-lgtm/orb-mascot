@@ -130,7 +130,7 @@
       hop: { label: 'Hop', hint: 'Two soft hops with a small squash on landing.', dur: 2.2, run: (t, A) => hop(t, A, 2, 1.0, 20, false) },
     },
     drop: {
-      hop: { label: 'Hop', hint: 'Two soft hops, the bottom flattening a little on each landing.', dur: 2.2, run: (t, A) => hop(t, A, 2, 1.0, 22, true) },
+      hop: { label: 'Hop', hint: 'Two soft hops with a small squash on landing.', dur: 2.2, run: (t, A) => hop(t, A, 2, 1.0, 22, false) },
       sprout: { label: 'New sprout', hint: 'Eyes bump, the body tightens as the sprout pulls free and fades, then a new one grows out of it.', dur: 3.5,
         run: (t, A) => { const b = pulse(t, 0, 0.4); A.eyeScale = 1 + 0.25 * b;
           const up = E.i(seg(t, 0.4, 1.3)), grow = t < 1.8 ? 0 : E.back(seg(t, 1.8, 2.9)), pull = pulse(t, 0.4, 1.3);
@@ -168,14 +168,15 @@
           A.look = [0, 0]; } },
     },
     flower: {
-      spin: { label: 'Spin', hint: 'A springy half turn; the eyes join into one at the middle of the turn and part again as it settles.', dur: 2.8,
-        run: (t, A) => { const u = seg(t, 0, 2.4), th = 180 * E.spring(u), mid = S(Math.PI * clamp01(u * 1.1));
+      spin: { label: 'Spin', hint: 'The eyes merge into one circle, the flower makes a springy half turn with sharper petals, then the eyes part again.', dur: 2.8,
+        run: (t, A) => { const u = seg(t, 0.3, 2.5), th = 180 * E.spring(u), m = t < 0.35 ? E.io(seg(t, 0, 0.35)) : t < 2.2 ? 1 : 1 - E.io(seg(t, 2.2, 2.7));   // eyes become one circle first, stay one through the turn, part at the end
           A.pieces = cs => cs.map((p, i) => i ? rotP(p, th) : p);
-          A.roundMul = 1 - 0.6 * mid; A.eyeMerge = mid; A.eyeScale = 1 + 0.6 * mid; } },
-      inflate: { label: 'Inflate', hint: 'The core swells into one big circle that fills the gaps between the petals, easing in with a soft spring, then settles back.', dur: 3.0,
-        run: (t, A) => { const sv = t < 1.1 ? E.back(E.io(seg(t, 0, 1.1))) : t < 1.7 ? 1 : 1 - E.spring(seg(t, 1.7, 2.9)); const sp = Math.max(0, sv);
-          A.pieces = cs => cs.map((p, i) => i ? p : [p[0], p[1], p[2] * (1 + 0.22 * sv)]);
-          A.eyeScale = 1 + 0.3 * sp; } },
+          A.roundMul = 1 - 0.6 * m; A.eyeMerge = m; A.eyeScale = 1 + 0.6 * m; } },
+      inflate: { label: 'Inflate', hint: 'The core swells into one big circle that fills the gaps between the petals, then shrinks past its size and springs back up.', dur: 3.2,
+        run: (t, A) => { const back = seg(t, 1.7, 3.0), sv = t < 1.1 ? E.back(E.io(seg(t, 0, 1.1))) : t < 1.7 ? 1 : 1 - (1 - Math.exp(-4.5 * back) * Math.cos(8 * back)) * (1 + 0.0);
+          const under = sv < 0 ? sv * 1.6 : 0;                                                       // past rest it goes noticeably smaller, then springs up
+          A.pieces = cs => cs.map((p, i) => i ? [p[0], p[1], p[2] * (1 + 0.5 * under)] : [p[0], p[1], p[2] * (1 + 0.22 * sv + 0.6 * under)]);
+          A.eyeScale = 1 + 0.3 * Math.max(0, sv) + 0.8 * under; } },
     },
   };
   for (const k in ACTS) if (COMPOSED[k]) COMPOSED[k].acts = ACTS[k];
@@ -326,21 +327,21 @@
     }
 
     _eye(rect, side) {
-      const o = this.o, A = this._A; let lon = side * o.eyeLon, lat = o.eyeLat;
+      const o = this.o, A = this._A; let lon = side * o.eyeLon, lat = o.eyeLat, round = false;
       let f = this._frame(lon, lat);
       if (A && (A.eyeOrbit || A.eyeMerge)) {                                                   // spinner / merge: a perfect screen-space circle around the midpoint, eyes stay round
         const fl = this._frame(-o.eyeLon, o.eyeLat), fr = this._frame(o.eyeLon, o.eyeLat);
         const cx = (fl.m[4] + fr.m[4]) / 2, cy = (fl.m[5] + fr.m[5]) / 2, d = Math.hypot(fr.m[4] - fl.m[4], fr.m[5] - fl.m[5]) / 2 * (1 - (A.eyeMerge || 0));
         const th = (A.eyeOrbit || 0) * D2R + (side < 0 ? Math.PI : 0);
-        f = { m: [1, 0, 0, 1, cx + d * Math.cos(th), cy + d * Math.sin(th)], z: 1 };
+        f = { m: [1, 0, 0, 1, cx + d * Math.cos(th), cy + d * Math.sin(th)], z: 1 }; round = true;
       }
       const w = o.eyeW, h = o.eyeH, rx = Math.min(w, h) / 2 * o.corner;
       const open = 1 - this.blinkAmt * 0.94;
-      const sx = this.eyeScale * (A ? A.eyeScale : 1), sy = this.eyeScale * this.squash * open * (A ? A.eyeSquash : 1);
+      const sx = this.eyeScale * (A ? A.eyeScale : 1), sy = round ? sx : this.eyeScale * this.squash * open * (A ? A.eyeSquash : 1);
       const jx = A && A.eyeShake ? (Math.random() * 2 - 1) * A.eyeShake : 0, jy = A && A.eyeShake ? (Math.random() * 2 - 1) * A.eyeShake : 0;
       rect.setAttribute('x', -w / 2); rect.setAttribute('y', -h / 2);
       rect.setAttribute('width', w); rect.setAttribute('height', h); rect.setAttribute('rx', rx);
-      rect.setAttribute('transform', `translate(${jx.toFixed(2)} ${jy.toFixed(2)}) matrix(${f.m.map(n => n.toFixed(4)).join(' ')}) translate(0 ${(this.blinkAmt * h * 0.08).toFixed(2)}) scale(${sx.toFixed(3)} ${sy.toFixed(3)})`);
+      rect.setAttribute('transform', `translate(${jx.toFixed(2)} ${jy.toFixed(2)}) matrix(${f.m.map(n => n.toFixed(4)).join(' ')}) translate(0 ${(round ? 0 : this.blinkAmt * h * 0.08).toFixed(2)}) scale(${sx.toFixed(3)} ${sy.toFixed(3)})`);
       rect.style.visibility = f.z > -0.05 ? 'visible' : 'hidden';
       return f.z;
     }
