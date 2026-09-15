@@ -121,7 +121,6 @@
   .scen button[aria-pressed]::after{animation:scenProgress var(--dur,1s) linear forwards}
   @keyframes scenProgress{from{transform:scaleX(0)}to{transform:scaleX(1)}}
   @media (prefers-reduced-motion:reduce){.scen button[aria-pressed]::after{animation:none;transform:scaleX(1)}}
-  .hint{font-size:13px;line-height:1.45;color:var(--muted);height:calc(2 * 1.45em);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
   .params{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
   .params div{background:var(--surface);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
   .params span{font-size:12px;color:var(--muted)}
@@ -189,7 +188,6 @@
       <h3>Scenarios</h3>
       <div class="scen" id="dScen"></div>
       <div id="uniqueBox"><h3>Unique to this body</h3><div class="scen" id="dScenUnique"></div></div>
-      <div class="hint" id="dHint"></div>
     </div>
   </div>
   <section>
@@ -344,7 +342,6 @@
     const m = live; if (!m) return;
     for (const t of demoTimers) clearTimeout(t); demoTimers = [];
     for (const b of document.querySelectorAll('.scen [aria-pressed]')) b.removeAttribute('aria-pressed');
-    $('dHint').textContent = hint;
     const at = (ms, fn) => demoTimers.push(setTimeout(fn, ms));
     m.manual = true;                                                   // cursor follow and idle are ignored for the whole run
     const seq = (steps, hold) => { steps.forEach(([y, p], i) => at(i * hold, () => m.look(y, p))); at(steps.length * hold, () => m.look(0, 0)); return steps.length * hold + 500; };
@@ -372,7 +369,7 @@
   function openBody(name) {
     if (!Mascot.COMPOSED[name] && !Mascot.SHAPES.includes(name)) { closeBody(); return; }
     if (live) live.stop();
-    for (const t of demoTimers) clearTimeout(t); demoTimers = []; $('dHint').textContent = '';
+    for (const t of demoTimers) clearTimeout(t); demoTimers = [];
     current = name; markCurrent();
     $('detail').hidden = false; $('backdrop').hidden = false; document.body.classList.add('modal-open'); $('detail').scrollTop = 0;
     const comp = Mascot.COMPOSED[name], body = name;
