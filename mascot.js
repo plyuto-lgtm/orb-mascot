@@ -253,7 +253,8 @@
         maxYaw: 40, maxPitch: 28,
         shaded: true, wireframe: false, lean: true, breathe: true,
         follow: true, idle: true, autoBlink: true,
-        color: '#0a0a0a',   // body colour; shading is derived from it
+        color: '#0a0a0a',   // body colour, or an array of two hex colours for a custom gradient mapped on the head sphere
+        gradientAngle: 45,  // degrees for a custom gradient: 0 = left to right, 90 = top to bottom
         shade: 'flat',      // flat | gradient | soft | glossy | rim   (gradient: a lighter tint on the front of the sphere that moves with the gaze)
         light: -135,        // direction the light comes from, degrees: 0 right, -90 top, -135 top-left
         contrast: 1,        // shading strength multiplier
@@ -282,7 +283,9 @@
       this.specGrad.append(el('stop', { offset: '0', 'stop-color': '#fff', 'stop-opacity': '0.5' }), el('stop', { offset: '1', 'stop-color': '#fff', 'stop-opacity': '0' }));
       this.rimGrad = el('radialGradient', { id: id + 'r', gradientUnits: 'userSpaceOnUse' });
       this.rimGrad.append(el('stop', { offset: '0', 'stop-color': '#fff', 'stop-opacity': '0' }), el('stop', { offset: '0.62', 'stop-color': '#fff', 'stop-opacity': '0' }), el('stop', { offset: '1', 'stop-color': '#fff', 'stop-opacity': '0.3' }));
-      defs.append(this.specGrad, this.rimGrad); this.specId = id + 's'; this.rimId = id + 'r';
+      this.lin = el('linearGradient', { id: id + 'l', gradientUnits: 'userSpaceOnUse' });
+      this.linStops = [el('stop', { offset: '0' }), el('stop', { offset: '1' })]; this.lin.append(...this.linStops);
+      defs.append(this.specGrad, this.rimGrad, this.lin); this.specId = id + 's'; this.rimId = id + 'r'; this.linId = id + 'l';
       this.blur = el('feGaussianBlur', { stdDeviation: 7, result: 'b' });
       const goo = el('filter', { id: id + 'f', x: '-20%', y: '-20%', width: '140%', height: '140%' });
       goo.append(this.blur, el('feColorMatrix', { in: 'b', type: 'matrix', values: '1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -11' }));
@@ -361,10 +364,18 @@
     render() {
       const o = this.o;
       if (o.eye && EYES[o.eye]) Object.assign(o, EYES[o.eye]);
-      const style = o.shaded === false ? 'flat' : (o.shade || 'soft');
-      const shadeKey = o.color + '|' + style + '|' + o.light + '|' + o.contrast + '|' + o.radius;
+      const custom = Array.isArray(o.color);
+      const baseHex = custom ? mix(hex2(o.color[0]), hex2(o.color[1]), 0.5) : o.color;      // average colour drives eye contrast
+      const style = custom ? 'custom' : o.shaded === false ? 'flat' : (o.shade || 'soft');
+      if (custom) {
+        this.linStops[0].setAttribute('stop-color', o.color[0]); this.linStops[1].setAttribute('stop-color', o.color[1]);
+        const a = (o.gradientAngle == null ? 45 : o.gradientAngle) * D2R, lon = 62 * Math.cos(a), lat = -62 * Math.sin(a);   // axis anchored on the head sphere: it shifts with the gaze
+        const f1 = this._frame(-lon, -lat), f2 = this._frame(lon, lat);
+        this.lin.setAttribute('x1', f1.m[4].toFixed(1)); this.lin.setAttribute('y1', f1.m[5].toFixed(1)); this.lin.setAttribute('x2', f2.m[4].toFixed(1)); this.lin.setAttribute('y2', f2.m[5].toFixed(1));
+      }
+      const shadeKey = baseHex + '|' + style + '|' + o.light + '|' + o.contrast + '|' + o.radius;
       if (this._shadeKey !== shadeKey) {
-        this._shadeKey = shadeKey; const c = hex2(o.color), W = [255, 255, 255], K = [0, 0, 0], k = o.contrast == null ? 1 : o.contrast, lum0 = lum(c);
+        this._shadeKey = shadeKey; const c = hex2(baseHex), W = [255, 255, 255], K = [0, 0, 0], k = o.contrast == null ? 1 : o.contrast, lum0 = lum(c);
         const a = (o.light == null ? -135 : o.light) * D2R, dx = Math.cos(a), dy = Math.sin(a), R = o.radius;
         const glossy = style === 'glossy', grad = style === 'gradient';
         if (grad) { this.stops[0].setAttribute('stop-color', mix(c, W, 0.34 * k)); this.stops[1].setAttribute('stop-color', mix(c, W, 0.06 * k)); this.stops[1].setAttribute('offset', '0.5'); this.stops[2].setAttribute('stop-color', mix(c, K, 0.2 * k)); this.grad.setAttribute('r', (1.35 * R).toFixed(1)); }
@@ -379,9 +390,9 @@
         if (style === 'rim') { this.rimGrad.setAttribute('cx', (100 - dx * 0.35 * R).toFixed(1)); this.rimGrad.setAttribute('cy', (100 - dy * 0.35 * R).toFixed(1)); this.rimGrad.setAttribute('r', (1.25 * R).toFixed(1)); this.rimEl.setAttribute('opacity', (lum0 > 0.5 ? 0.5 : 1) * k); }
       }
       if (style === 'gradient') { const f = this._frame(0, 28); this.grad.setAttribute('cx', (f.m[4] - 0.12 * o.radius).toFixed(1)); this.grad.setAttribute('cy', (f.m[5] - 0.1 * o.radius).toFixed(1)); }
-      const flat = style === 'flat';
-      this.sphere.setAttribute('fill', flat ? o.color : `url(#${this.gradId})`);
-      const eyeFill = o.eyeColor || (lum(hex2(o.color)) > 0.55 ? '#141416' : '#ffffff');
+      const flat = style === 'flat', fill = custom ? `url(#${this.linId})` : flat ? o.color : `url(#${this.gradId})`;
+      this.sphere.setAttribute('fill', fill);
+      const eyeFill = o.eyeColor || (lum(hex2(baseHex)) > 0.55 ? '#141416' : '#ffffff');
       const comp = Array.isArray(o.body) ? { c: o.body, sphereR: 0.85, main: 0, head: 0.35, k: 50, d: 13 } : (o.body && o.body.c) ? o.body : COMPOSED[o.body];
       this._comp = comp;
       if (comp) {
@@ -416,7 +427,7 @@
           }
         });
         this.blur.setAttribute('stdDeviation', (1 + o.round * 13 * (this._A && this._A.roundMul != null ? this._A.roundMul : 1)).toFixed(1));
-        for (const c of this.goo.children) c.setAttribute('fill', flat ? o.color : `url(#${this.gradId})`);
+        for (const c of this.goo.children) c.setAttribute('fill', fill);
       } else {
         const shape = (SHAPES[o.body] || SHAPES.circle)(o.radius);
         this.sR = shape.sphereR; const sr = shape.sphereR / o.radius; this._surf = Object.assign({ cx: 0, cy: 0, rx: sr, ry: sr }, shape.surf || {}); this._sig = ''; this.goo.innerHTML = ''; this.maskGoo.innerHTML = '';
@@ -425,7 +436,7 @@
       this.eyeL.setAttribute('fill', eyeFill); this.eyeR.setAttribute('fill', eyeFill);
       this._wireframe();
       { const ov = this._A && this._A.overlay; this.over.innerHTML = '';
-        if (ov) for (const [x, y, r] of ov) this.over.append(el('circle', { cx: (100 + x * o.radius).toFixed(2), cy: (100 + y * o.radius).toFixed(2), r: (r * o.radius).toFixed(2), fill: flat ? o.color : `url(#${this.gradId})` })); }
+        if (ov) for (const [x, y, r] of ov) this.over.append(el('circle', { cx: (100 + x * o.radius).toFixed(2), cy: (100 + y * o.radius).toFixed(2), r: (r * o.radius).toFixed(2), fill })); }
       this.zL = this._eye(this.eyeL, -1);
       this.zR = this._eye(this.eyeR, 1);
       const lx = o.lean ? (this.yaw / o.maxYaw) * 3 : 0, ly = o.lean ? (-this.pitch / o.maxPitch) * 2 : 0, A = this._A;
