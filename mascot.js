@@ -292,6 +292,7 @@
       requestAnimationFrame(step);
     }
 
+    twitch(i = 1) { this._twitch = { i, t0: performance.now(), p: 0 }; }   // one ear wiggle on a body whose anim uses it (bear)
     poke() { this._poke = 1; this.set({ eyeScale: 1.22, squash: 1.1 }); clearTimeout(this._pokeT); this._pokeT = setTimeout(() => { this.set({ eyeScale: 1, squash: 1 }); this.blink(1); }, 420); }
 
     start() {

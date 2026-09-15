@@ -72,7 +72,12 @@
   .info{background:var(--surface);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px}
   .info h1{font-size:22px}
   .info p{margin:0}
-  .info ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px}
+  .info ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+  .demo{width:100%;text-align:left;font:14px/1.45 var(--sans);padding:8px 12px 8px 30px;border-radius:8px;border:1px solid var(--line);background:transparent;position:relative;color:var(--ink)}
+  .demo::before{content:'';position:absolute;left:12px;top:50%;transform:translateY(-50%);border-style:solid;border-width:5px 0 5px 8px;border-color:transparent transparent transparent var(--muted)}
+  .demo:hover{background:var(--surface-2)}
+  .demo[aria-pressed]{border-color:var(--accent);background:var(--surface-2)}
+  .demo[aria-pressed]::before{border-color:transparent transparent transparent var(--accent)}
   .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13px}
   .kv span:nth-child(odd){color:var(--muted)}
   .kv span:nth-child(even){font:12.5px var(--mono);font-variant-numeric:tabular-nums}
@@ -138,7 +143,7 @@
         <div class="info">
           <h1 id="dTitle"></h1>
           <p id="dBlurb"></p>
-          <h3>Behaviour</h3>
+          <h3>Behaviour <span style="font-weight:400;letter-spacing:0;text-transform:none">&middot; click to play</span></h3>
           <ul id="dBehaviours"></ul>
           <h3>Parameters</h3>
           <div class="kv" id="dParams"></div>
@@ -193,20 +198,22 @@
   const svgEl = label => { const e = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); e.setAttribute('aria-label', label); return e; };
 
   // ---------- catalog copy ----------
+  // behaviour lines: [text, demo]  demo: turn | pitch | fast | poke | twitch | idle
   const INFO = {
-    bear:   { blurb: 'A round head with two ears on top.', behaviours: ['Ears sit on the head sphere: turning right swings the left ear inward and the right ear out and back.', 'Snappy, well-damped head spring.', 'Ears settle back a touch on a poke.', 'Optional single ear twitch with twitch: true.'] },
-    lemon:  { blurb: 'A body with a nub at the top and one at the bottom.', behaviours: ['Looking up rolls the top nub back over the head and brings the chin forward; looking down does the opposite.', 'Slow idle sway of both nubs.', 'Stretches a hair taller on a poke.'] },
-    ghost:  { blurb: 'A rounded head with three tail bumps underneath.', behaviours: ['Tail bumps wave in a rolling sine, out of phase.', 'Lazy head spring, so the tail trails a turn.', 'The wave grows slightly on fast turns.', 'Bumps lift a touch on a poke.'] },
-    cloud:  { blurb: 'Two pills crossed into an X, read as a four-lobed clover.', behaviours: ['No fixed core: the whole X tilts with the head, one way for yaw and a scissor for pitch.', 'The pills breathe against each other.', 'Puffs slightly on a poke.'] },
-    drop:   { blurb: 'A round body with a sprout on top.', behaviours: ['The sprout rides an under-damped spring: it overshoots a turn and settles with one soft bounce.', 'Lifts and grows a little on a poke.'] },
-    stack:  { blurb: 'Two wide ellipses stacked with a soft waist.', behaviours: ['Both halves turn with the head around a hidden core.', 'Lead and lag: looking up, the bottom half moves first and the top catches up; looking down, the roles swap.', 'The halves breathe in opposite phase.'] },
-    seacow: { blurb: 'The bear flipped: a round head with feet at the bottom corners.', behaviours: ['Feet turn with the head like the bear\'s ears.', 'Feet settle in slightly on a poke.', 'Faint idle shuffle.'] },
-    flower: { blurb: 'A core ringed by eight petals.', behaviours: ['Petals rotate with the head at a low fraction so the ring stays readable.', 'Petals breathe in a ripple around the circle.', 'Petals swell a little on a poke.'] },
-    circle:   { blurb: 'The original orb.', behaviours: ['Eyes on the sphere with full foreshortening; specular highlight stays fixed while the eyes travel.'] },
-    squircle: { blurb: 'A rounded square.', behaviours: ['Same eye motion as the circle; the inner sphere fills the square.'] },
-    egg:      { blurb: 'Narrow at the top, full at the bottom.', behaviours: ['Inner sphere is slightly smaller so the eyes stay clear of the narrow top.'] },
-    pebble:   { blurb: 'A slightly irregular outline.', behaviours: ['A fixed organic silhouette; the eyes ride a sphere inside it.'] },
+    bear:   { blurb: 'A round head with two ears on top.', behaviours: [['Ears sit on the head sphere: turning right swings the left ear inward and the right ear out and back.', 'turn'], ['Snappy, well-damped head spring.', 'fast'], ['Ears settle back a touch on a poke.', 'poke'], ['Single ear twitch (optional in the library with twitch: true).', 'twitch']] },
+    lemon:  { blurb: 'A body with a nub at the top and one at the bottom.', behaviours: [['Looking up rolls the top nub back over the head and brings the chin forward; looking down does the opposite.', 'pitch'], ['Slow idle sway of both nubs.', 'idle'], ['Stretches a hair taller on a poke.', 'poke']] },
+    ghost:  { blurb: 'A rounded head with three tail bumps underneath.', behaviours: [['Tail bumps wave in a rolling sine, out of phase.', 'idle'], ['Lazy head spring, so the tail trails a turn.', 'turn'], ['The wave grows slightly on fast turns.', 'fast'], ['Bumps lift a touch on a poke.', 'poke']] },
+    cloud:  { blurb: 'Two pills crossed into an X, read as a four-lobed clover.', behaviours: [['No fixed core: the whole X tilts with the head, one way for yaw and a scissor for pitch.', 'turn'], ['The pills breathe against each other.', 'idle'], ['Puffs slightly on a poke.', 'poke']] },
+    drop:   { blurb: 'A round body with a sprout on top.', behaviours: [['The sprout rides an under-damped spring: it overshoots a turn and settles with one soft bounce.', 'fast'], ['Lifts and grows a little on a poke.', 'poke']] },
+    stack:  { blurb: 'Two wide ellipses stacked with a soft waist.', behaviours: [['Both halves turn with the head around a hidden core.', 'turn'], ['Lead and lag: looking up, the bottom half moves first and the top catches up; looking down, the roles swap.', 'pitch'], ['The halves breathe in opposite phase.', 'idle']] },
+    seacow: { blurb: 'The bear flipped: a round head with feet at the bottom corners.', behaviours: [['Feet turn with the head like the bear\'s ears.', 'turn'], ['Feet settle in slightly on a poke.', 'poke'], ['Faint idle shuffle.', 'idle']] },
+    flower: { blurb: 'A core ringed by eight petals.', behaviours: [['Petals rotate with the head at a low fraction so the ring stays readable.', 'turn'], ['Petals breathe in a ripple around the circle.', 'idle'], ['Petals swell a little on a poke.', 'poke']] },
+    circle:   { blurb: 'The original orb.', behaviours: [['Eyes on the sphere with full foreshortening; the specular highlight stays fixed while the eyes travel.', 'turn'], ['Blinks on its own, sometimes twice.', 'blink'], ['Eyes pop and blink on a poke.', 'poke']] },
+    squircle: { blurb: 'A rounded square.', behaviours: [['Same eye motion as the circle; the inner sphere fills the square.', 'turn'], ['Eyes pop and blink on a poke.', 'poke']] },
+    egg:      { blurb: 'Narrow at the top, full at the bottom.', behaviours: [['Inner sphere is slightly smaller so the eyes stay clear of the narrow top.', 'pitch'], ['Eyes pop and blink on a poke.', 'poke']] },
+    pebble:   { blurb: 'A slightly irregular outline.', behaviours: [['A fixed organic silhouette; the eyes ride a sphere inside it.', 'turn'], ['Eyes pop and blink on a poke.', 'poke']] },
   };
+  const BLOB_DEMO = ['turn', 'turn', 'fast', 'turn', 'idle'];        // matches the order of Mascot.blob traits
   const STATES = [
     ['Idle', {y:0,p:0}], ['Glance left', {y:-15,p:0}], ['Glance right', {y:15,p:0}], ['Look left', {y:-35,p:0}], ['Look right', {y:35,p:0}],
     ['Look up', {y:0,p:24}], ['Look down', {y:0,p:-24}], ['Up-left', {y:-28,p:18}], ['Up-right', {y:28,p:18}], ['Down-left', {y:-28,p:-16}], ['Down-right', {y:28,p:-16}],
@@ -285,7 +292,12 @@
     const info = INFO[name] || { blurb: `Generated body, ${def.temperament} temperament.`, behaviours: def.traits };
     const title = def ? 'Blob ' + def.seed : cap(name);
     $('dName').textContent = title; $('dTitle').textContent = title; $('dBlurb').textContent = info.blurb;
-    $('dBehaviours').innerHTML = ''; for (const b of info.behaviours) { const li = document.createElement('li'); li.textContent = b; $('dBehaviours').append(li); }
+    $('dBehaviours').innerHTML = '';
+    const lines = def ? def.traits.map((t, i) => [t, BLOB_DEMO[i] || 'turn']) : info.behaviours;
+    for (const [text, demo] of lines) {
+      const li = document.createElement('li'); const btn = document.createElement('button'); btn.className = 'demo'; btn.type = 'button'; btn.textContent = text; btn.title = 'Play';
+      btn.addEventListener('click', () => runDemo(demo, btn)); li.append(btn); $('dBehaviours').append(li);
+    }
     const params = comp
       ? { type: 'composed', pieces: comp.c.length, core: comp.main === -1 ? 'none (all move)' : 'piece ' + (comp.main ?? 0), 'inner sphere': fmt(comp.sphereR) + ' R', 'head follow': fmt(comp.head ?? 0.35), 'spring k': fmt(comp.k ?? 50), 'damping d': fmt(comp.d ?? 13), 'lag rule': comp.lag ? 'yes' : 'no', 'idle motion': comp.anim ? 'yes' : 'no' }
       : { type: 'outline', 'inner sphere': 'set by shape' };
@@ -315,7 +327,29 @@
     $('dUse').onclick = () => { settings.body = name; applySandbox(); location.hash = '#sandbox'; };
     $('dClose').focus();
   }
+  // ---------- behaviour demos on the preview ----------
+  let demoTimers = [];
+  function runDemo(kind, btn) {
+    const m = detailLive; if (!m) return;
+    for (const t of demoTimers) clearTimeout(t); demoTimers = [];
+    for (const b of document.querySelectorAll('.demo[aria-pressed]')) b.removeAttribute('aria-pressed');
+    btn.setAttribute('aria-pressed', 'true');
+    const at = (ms, fn) => demoTimers.push(setTimeout(fn, ms));
+    const seq = (steps, hold) => { m.manual = true; steps.forEach(([y, p], i) => at(i * hold, () => m.look(y, p))); at(steps.length * hold, () => { m.look(0, 0); m.manual = false; }); return steps.length * hold + 400; };
+    let dur = 1200;
+    switch (kind) {
+      case 'turn':  dur = seq([[-45, 0], [45, 0]], 1300); break;
+      case 'pitch': dur = seq([[0, 30], [0, -30]], 1300); break;
+      case 'fast':  dur = seq([[45, 0], [-45, 0], [45, 0], [-45, 0]], 420); break;
+      case 'poke':  m.poke(); dur = 900; break;
+      case 'blink': m.blink(2); dur = 900; break;
+      case 'twitch': m.twitch(1 + Math.floor(Math.random() * 2)); dur = 900; break;
+      case 'idle':  m.manual = true; m.look(0, 0); at(2500, () => { m.manual = false; }); dur = 2600; break;
+    }
+    at(dur, () => btn.removeAttribute('aria-pressed'));
+  }
   function closeDetail() {
+    for (const t of demoTimers) clearTimeout(t); demoTimers = [];
     $('detail').hidden = true; $('backdrop').hidden = true; document.body.classList.remove('modal-open');
     current = null; markCurrent(); if (detailLive) { detailLive.stop(); detailLive = null; }
   }
