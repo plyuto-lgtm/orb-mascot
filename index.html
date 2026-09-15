@@ -356,18 +356,18 @@
     for (const b of document.querySelectorAll('.scen [aria-pressed]')) b.removeAttribute('aria-pressed');
     const at = (ms, fn) => demoTimers.push(setTimeout(fn, ms));
     m.manual = true;                                                   // cursor follow and idle are ignored for the whole run
-    const seq = (steps, hold) => { steps.forEach(([y, p], i) => at(i * hold, () => m.look(y, p))); at(steps.length * hold, () => m.look(0, 0)); return steps.length * hold + 500; };
+    const seq = (steps, hold) => { steps.forEach(([y, p], i) => at(i * hold, () => m.look(y, p))); at(steps.length * hold, () => m.look(0, 0)); return steps.length * hold + 350; };
     let dur = 1200;
     switch (kind) {
       case 'turn':  dur = seq([[-36, 0], [36, 0]], 1300); break;
       case 'pitch': dur = seq([[0, 26], [0, -26]], 1300); break;
       case 'fast':  dur = seq([[36, 0], [-36, 0], [36, 0], [-36, 0]], 420); break;
-      case 'poke':  m.look(0, 0); m.poke(); dur = 1100; break;
-      case 'blink': m.look(0, 0); m.blink(2); dur = 1000; break;
-      case 'twitch': m.look(0, 0); m.twitch(1 + Math.floor(Math.random() * 2)); dur = 900; break;
-      case 'idle':  m.look(0, 0); dur = 2600; break;
-      case 'think': dur = m.think() + 300; at(dur - 250, () => m.blink(1)); break;
-      default: if (kind.startsWith('act:')) dur = m.play(kind.slice(4)) + 300;
+      case 'poke':  m.look(0, 0); m.poke(); dur = 900; break;
+      case 'blink': m.look(0, 0); m.blink(2); dur = 800; break;
+      case 'twitch': m.look(0, 0); m.twitch(1 + Math.floor(Math.random() * 2)); dur = 650; break;
+      case 'idle':  m.look(0, 0); dur = 2200; break;
+      case 'think': dur = m.think(); at(dur - 200, () => m.blink(1)); break;
+      default: if (kind.startsWith('act:')) dur = m.play(kind.slice(4));
     }
     btn.style.setProperty('--dur', dur + 'ms'); btn.setAttribute('aria-pressed', 'true');
     at(dur, () => { btn.removeAttribute('aria-pressed'); m.manual = false; });
