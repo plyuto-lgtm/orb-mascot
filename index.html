@@ -160,7 +160,7 @@
         <div class="pad" id="pad" role="slider" aria-label="Gaze: drag horizontally for yaw, vertically for pitch" tabindex="0" aria-valuetext="yaw 0, pitch 0">
           <i class="ax h"></i><i class="ax v"></i><i class="ring"></i><b class="knob" id="knob"></b>
         </div>
-        <div class="gazeVals"><span>yaw <output id="yawV">0&deg;</output></span><span>pitch <output id="pitchV">0&deg;</output></span><span class="note" style="margin:0">Drag the dot. Auto resumes when you let go.</span></div>
+        <div class="gazeVals"><span>yaw <output id="yawV">0&deg;</output></span><span>pitch <output id="pitchV">0&deg;</output></span><span class="note" style="margin:10px 0 0">Drag the dot. Auto resumes when you let go.</span></div>
       </div>
       <h3>Behaviour</h3>
       <div class="toggles">
@@ -307,12 +307,14 @@
     const nx = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width - 0.5) / 0.46)), ny = Math.max(-1, Math.min(1, (0.5 - (e.clientY - r.top) / r.height) / 0.46));
     aim(nx * MAXY, ny * MAXP);
   };
-  pad.addEventListener('pointerdown', e => { pad.setPointerCapture(e.pointerId); pad.classList.add('active'); clearTimeout(manualT); aimFromPointer(e); });
+  const stopFollow = () => { if (!settings.follow) return; settings.follow = false; $('follow').checked = false; if (live) live.o.follow = false; };
+  pad.addEventListener('pointerdown', e => { pad.setPointerCapture(e.pointerId); pad.classList.add('active'); clearTimeout(manualT); stopFollow(); aimFromPointer(e); });
   pad.addEventListener('pointermove', e => { if (pad.classList.contains('active')) aimFromPointer(e); });
   const release = () => { if (!pad.classList.contains('active')) return; pad.classList.remove('active'); holdThenAuto(); };
   pad.addEventListener('pointerup', release); pad.addEventListener('pointercancel', release);
   pad.addEventListener('keydown', e => {
     const step = e.shiftKey ? 10 : 3, k = e.key; if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(k)) return; e.preventDefault();
+    stopFollow();
     aim(Math.max(-MAXY, Math.min(MAXY, padGaze.y + (k === 'ArrowRight' ? step : k === 'ArrowLeft' ? -step : 0))),
         Math.max(-MAXP, Math.min(MAXP, padGaze.p + (k === 'ArrowUp' ? step : k === 'ArrowDown' ? -step : 0))));
     holdThenAuto();
