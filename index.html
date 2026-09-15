@@ -110,6 +110,7 @@
   .stage svg{width:min(78cqw,78cqh);height:auto;cursor:pointer;touch-action:none}
   .stage.dark{background:#111113}
   .mode{position:absolute;left:14px;top:14px;display:flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface);z-index:1}
+  .mode.sphereToggle{left:auto;right:14px}
   .mode label{font-size:12px;font-weight:500;padding:4px 10px;border-radius:999px;color:var(--muted);cursor:pointer;user-select:none}
   .mode label:has(:checked){background:var(--ink);color:var(--bg)}
   .mode input{position:absolute;opacity:0;width:0;height:0}
@@ -174,6 +175,7 @@
         <label><input type="radio" name="mode" value="light" checked>Light</label>
         <label><input type="radio" name="mode" value="dark">Dark</label>
       </div>
+      <div class="mode sphereToggle"><label><input type="checkbox" id="wireframe">Show sphere</label></div>
       <svg id="dLive" aria-label="Selected body, live"></svg>
     </div>
     <div class="panel">
@@ -191,7 +193,6 @@
         <label><input type="checkbox" id="autoBlink" checked>Auto blink</label>
         <label><input type="checkbox" id="lean" checked>Lean</label>
         <label><input type="checkbox" id="breathe" checked>Breathe</label>
-        <label><input type="checkbox" id="wireframe">Show sphere</label>
         <label><input type="checkbox" id="gradient">Tint</label>
       </div>
       <h3>Colour</h3>
