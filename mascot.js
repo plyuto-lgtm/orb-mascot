@@ -495,9 +495,13 @@
       this._onLeave = () => { this._ptr = null; };
       global.addEventListener('pointermove', this._onMove);
       document.addEventListener('pointerleave', this._onLeave);
+      // skip work while scrolled out of view or in a hidden tab
+      this._offscreen = false;
+      if (global.IntersectionObserver) { this._io = new IntersectionObserver(es => { this._offscreen = !es[0].isIntersecting; }); this._io.observe(this.svg); }
       this.svg.addEventListener('pointerdown', () => this.poke());
       const loop = now => {
         if (!this._running) return;
+        if (this._offscreen || document.hidden) { this._last = now; requestAnimationFrame(loop); return; }
         const dt = Math.min(64, now - this._last); this._last = now; const o = this.o;
         // targets
         if (!this.manual) {
@@ -547,7 +551,7 @@
       };
       requestAnimationFrame(loop);
     }
-    stop() { this._running = false; global.removeEventListener('pointermove', this._onMove); document.removeEventListener('pointerleave', this._onLeave); }
+    stop() { this._running = false; global.removeEventListener('pointermove', this._onMove); document.removeEventListener('pointerleave', this._onLeave); if (this._io) { this._io.disconnect(); this._io = null; } }
   }
   global.Mascot = Mascot; Mascot.SHAPES = Object.keys(SHAPES); Mascot.ACTS = ACTS; Mascot.SHADES = ['flat', 'gradient', 'soft', 'glossy', 'rim']; Mascot.COMPOSED = COMPOSED; Mascot.blob = blobBody; Mascot.BODIES = [...Object.keys(SHAPES), ...Object.keys(COMPOSED)]; Mascot.COLORS = { black: '#0a0a0a', blue: '#1E6DF6', olive: '#969640', cyan: '#00CCFF', orchid: '#CF72D9', lime: '#EEF679' };
   // the same six, adapted for a dark ground: black becomes an off-white body, the others are lifted a step

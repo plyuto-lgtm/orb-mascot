@@ -107,7 +107,14 @@
   @media (max-width:880px){.top{grid-template-columns:1fr}}
   .stage{background:transparent;border-radius:12px;display:grid;place-items:center;min-height:420px;max-width:100%;position:relative;overflow:hidden;container-type:size}
   @media (max-width:880px){.stage{min-height:360px;height:360px}}
-  .stage svg{width:min(78cqw,78cqh);height:auto;cursor:pointer;touch-action:none}
+  .stage{--frame:min(78cqw,78cqh,480px)}                                   /* the orb frame never exceeds 480 x 480 */
+  .stage svg{width:var(--frame);height:auto;cursor:pointer;touch-action:none}
+  .stage .guide{position:absolute;left:50%;top:50%;width:var(--frame);aspect-ratio:1;transform:translate(-50%,-50%);border:1px dashed var(--line);border-radius:6px;pointer-events:none;display:none}
+  .stage .guide::after{content:'';position:absolute;inset:10%;border:1px dashed var(--muted);opacity:.7;border-radius:4px}
+  .stage .guide b{position:absolute;left:8px;top:6px;font:500 11px var(--mono);color:var(--muted)}
+  .stage .guide i{position:absolute;left:calc(10% + 8px);top:calc(10% + 6px);font:11px var(--mono);color:var(--muted);font-style:normal}
+  .stage.guides .guide{display:block}
+  .stage.dark .guide{border-color:#3a3a40}.stage.dark .guide::after{border-color:#8f8f96}
   .stage.dark{background:#111113}
   .mode{position:absolute;left:14px;top:14px;display:flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface);z-index:1}
   .mode.sphereToggle{left:auto;right:14px}
@@ -176,6 +183,7 @@
         <label><input type="radio" name="mode" value="dark">Dark</label>
       </div>
       <div class="mode sphereToggle"><label><input type="checkbox" id="wireframe">Show sphere</label></div>
+      <div class="guide"><b>480 max</b><i>safe area</i></div>
       <svg id="dLive" aria-label="Selected body, live"></svg>
     </div>
     <div class="panel">
@@ -336,6 +344,7 @@
     $('g1dot').style.background = settings.g1; $('g2dot').style.background = settings.g2; $('g1hex').textContent = settings.g1.toUpperCase(); $('g2hex').textContent = settings.g2.toUpperCase();
     $('color-custom').checked = settings.colorName === 'custom';
     $('stage').classList.toggle('dark', settings.mode === 'dark');
+    $('stage').classList.toggle('guides', settings.wireframe);
     for (const l of document.querySelectorAll('#colorPick label[data-name]')) l.style.setProperty('--sw', palette()[l.dataset.name]);
     refreshCards(); writeConfig();
   };
