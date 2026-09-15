@@ -15,7 +15,7 @@
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans);-webkit-font-smoothing:antialiased;padding-inline:clamp(16px,4vw,48px);padding-block:28px 72px}
   .wrap{max-width:1120px;margin:0 auto}
-  header{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 24px;margin-bottom:28px}
+  header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 24px;margin-bottom:28px}
   h1{font-size:20px;font-weight:600;letter-spacing:-.01em;margin:0}
   header p{margin:0;color:var(--muted);max-width:62ch}
   h2{font-size:13px;font-weight:600;color:var(--muted);margin:0 0 14px}
@@ -114,16 +114,13 @@
   .stage .guide b{position:absolute;left:8px;top:6px;font:500 11px var(--mono);color:var(--muted)}
   .stage .guide i{position:absolute;left:calc(10% + 8px);top:calc(10% + 6px);font:11px var(--mono);color:var(--muted);font-style:normal}
   .stage.guides .guide{display:block}
-  .stage.dark .guide{border-color:#3a3a40}.stage.dark .guide::after{border-color:#8f8f96}
-  .stage.dark{background:#111113}
+
   .mode{position:absolute;left:14px;top:14px;display:flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface);z-index:1}
   .mode.sphereToggle{left:auto;right:14px}
   .mode label{font-size:12px;font-weight:500;padding:4px 10px;border-radius:999px;color:var(--muted);cursor:pointer;user-select:none}
   .mode label:has(:checked){background:var(--ink);color:var(--bg)}
   .mode input{position:absolute;opacity:0;width:0;height:0}
-  .stage.dark .mode{background:#232327}
-  .stage.dark .mode label{color:#8f8f96}
-  .stage.dark .mode label:has(:checked){background:#ececea;color:#111113}
+
   .panel .head{display:flex;flex-direction:column;gap:2px;margin-bottom:4px}
   .panel .head b{font-size:18px;font-weight:600}
   .panel .head span{font-size:13px;color:var(--muted)}
@@ -153,6 +150,10 @@
 <div class="wrap">
   <header>
     <h1>Orb Mascot Catalog</h1>
+    <div class="mode" role="group" aria-label="Site mode" style="position:static">
+      <label><input type="radio" name="modeTop" value="light">Light</label>
+      <label><input type="radio" name="modeTop" value="dark">Dark</label>
+    </div>
   </header>
 
   <section style="margin-top:0">
@@ -299,11 +300,11 @@
   }
 
   // ---------- settings shared across bodies ----------
-  const settings = { colorName: 'black', mode: 'light', round: 0.5, wireframe: false, gradient: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true };
+  const settings = { colorName: 'black', mode: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light', round: 0.5, wireframe: false, gradient: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true };
   settings.g1 = '#1E6DF6'; settings.g2 = '#DBDBDB'; settings.gAngle = 90;
   const palette = () => settings.mode === 'dark' ? Mascot.COLORS_DARK : Mascot.COLORS;
   const colorHex = () => settings.colorName === 'custom' ? [settings.g1, settings.g2] : palette()[settings.colorName];
-  const cardColor = () => settings.colorName === 'custom' ? [settings.g1, settings.g2] : Mascot.COLORS[settings.colorName];
+  const cardColor = () => settings.colorName === 'custom' ? [settings.g1, settings.g2] : palette()[settings.colorName];
   let current = null, live = null, statics = [];
 
   // ---------- catalog ----------
@@ -335,7 +336,8 @@
     $('customDot').style.setProperty('--g1', settings.g1); $('customDot').style.setProperty('--g2', settings.g2);
     $('g1dot').style.background = settings.g1; $('g2dot').style.background = settings.g2; $('g1hex').textContent = settings.g1.toUpperCase(); $('g2hex').textContent = settings.g2.toUpperCase();
     $('color-custom').checked = settings.colorName === 'custom';
-    $('stage').classList.toggle('dark', settings.mode === 'dark');
+    document.documentElement.dataset.theme = settings.mode;
+    for (const r of document.querySelectorAll('input[name=mode], input[name=modeTop]')) r.checked = r.value === settings.mode;
     $('stage').classList.toggle('guides', settings.wireframe);
     for (const l of document.querySelectorAll('#colorPick label[data-name]')) l.style.setProperty('--sw', palette()[l.dataset.name]);
     refreshCards(); writeConfig();
@@ -357,7 +359,7 @@
   $('gAngle').addEventListener('input', () => { settings.gAngle = +$('gAngle').value; applySettings(); });
   $('g1').addEventListener('input', () => { settings.g1 = $('g1').value; applySettings(); });
   $('g2').addEventListener('input', () => { settings.g2 = $('g2').value; applySettings(); });
-  for (const r of document.querySelectorAll('input[name=mode]')) r.addEventListener('change', e => { settings.mode = e.target.value; applySettings(); });
+  for (const r of document.querySelectorAll('input[name=mode], input[name=modeTop]')) r.addEventListener('change', e => { settings.mode = e.target.value; applySettings(); });
   for (const k of ['follow', 'idle', 'autoBlink', 'lean', 'breathe', 'wireframe', 'gradient']) $(k).addEventListener('change', e => { settings[k] = e.target.checked; applySettings(); });
   // gaze pad: x -> yaw (-60..60), y -> pitch (40..-40)
   const pad = $('pad'), knob = $('knob'), MAXY = 40, MAXP = 28;
@@ -483,6 +485,8 @@
   $('backdrop').addEventListener('click', goHome);
   window.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('detail').hidden) goHome(); });
 
+  document.documentElement.dataset.theme = settings.mode;
+  for (const r of document.querySelectorAll('input[name=modeTop]')) r.checked = r.value === settings.mode;
   // ---------- routing: #bear ----------
   function route() { const name = decodeURIComponent(location.hash.slice(1)); if (name) openBody(name); else closeBody(); }
   window.addEventListener('hashchange', route);
