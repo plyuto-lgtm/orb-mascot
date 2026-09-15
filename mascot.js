@@ -93,6 +93,7 @@
         run: (t, A) => { const b = pulse(t, 0, 0.45); A.eyeScale = 1 + 0.3 * b; A.eyeSquash = 1 - 0.15 * b;
           const u = seg(t, 0.45, 2.75), th = 720 * E.io(u), spin = S(Math.PI * u);
           A.pieces = cs => cs.map((p, i) => i ? rotP(p, th) : p);
+          A.sx = A.sy = 1 - 0.14 * spin; A.pivotY = 0;                 // the whole lemon shrinks a little at full spin, about its centre
           A.eyeSquash *= 1 - 0.4 * spin; } },
     },
     ghost: {
