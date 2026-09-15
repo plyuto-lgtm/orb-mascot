@@ -256,8 +256,9 @@
     pebble:   { blurb: 'A slightly irregular outline.', hints: { turn: 'Fixed organic silhouette; the eyes ride a sphere inside it.', idle: 'Breathing only.' } },
   };
   const scenariosFor = name => {
-    const info = INFO[name];
-    return { base: BASE.map(([label, demo, hint]) => [label, demo, (info.hints && info.hints[demo]) || hint]), unique: info.extras || [] };
+    const info = INFO[name], acts = (Mascot.COMPOSED[name] || {}).acts || {};
+    const unique = [...(info.extras || []), ...Object.entries(acts).map(([key, act]) => [act.label, 'act:' + key, act.hint])];
+    return { base: BASE.map(([label, demo, hint]) => [label, demo, (info.hints && info.hints[demo]) || hint]), unique };
   };
   const STATES = [
     ['Idle', {y:0,p:0}], ['Glance left', {y:-15,p:0}], ['Glance right', {y:15,p:0}], ['Look left', {y:-35,p:0}], ['Look right', {y:35,p:0}],
@@ -342,7 +343,7 @@
   let demoTimers = [];
   function runScenario(kind, btn, hint) {
     const m = live; if (!m) return;
-    for (const t of demoTimers) clearTimeout(t); demoTimers = [];
+    for (const t of demoTimers) clearTimeout(t); demoTimers = []; m.stopAct();
     for (const b of document.querySelectorAll('.scen [aria-pressed]')) b.removeAttribute('aria-pressed');
     const at = (ms, fn) => demoTimers.push(setTimeout(fn, ms));
     m.manual = true;                                                   // cursor follow and idle are ignored for the whole run
@@ -356,6 +357,7 @@
       case 'blink': m.look(0, 0); m.blink(2); dur = 1000; break;
       case 'twitch': m.look(0, 0); m.twitch(1 + Math.floor(Math.random() * 2)); dur = 900; break;
       case 'idle':  m.look(0, 0); dur = 2600; break;
+      default: if (kind.startsWith('act:')) dur = m.play(kind.slice(4)) + 300;
     }
     btn.style.setProperty('--dur', dur + 'ms'); btn.setAttribute('aria-pressed', 'true');
     at(dur, () => { btn.removeAttribute('aria-pressed'); m.manual = false; });
