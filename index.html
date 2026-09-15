@@ -230,22 +230,46 @@
   const cap = t => t[0].toUpperCase() + t.slice(1);
   const svgEl = label => { const e = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); e.setAttribute('aria-label', label); return e; };
 
-  // ---------- scenarios: [name, demo, hint]   demo: turn | pitch | fast | poke | twitch | blink | idle ----------
+  // ---------- scenarios ----------
+  // Every body gets the same baseline in the same order; each body supplies its own hint per baseline
+  // scenario (what to watch for) and may append extras that only it has.
+  const BASE = [
+    ['Head turn', 'turn',  'Looks 45\u00b0 left, then right, then back to centre.'],
+    ['Nod',       'pitch', 'Looks 30\u00b0 up, then down, then back to centre.'],
+    ['Quick turns', 'fast', 'Four fast alternating looks; shows how the springs settle.'],
+    ['Blink',     'blink', 'Double blink.'],
+    ['Poke',      'poke',  'Eyes pop, then blink.'],
+    ['Idle',      'idle',  'Holds centre for a moment so idle motion is visible.'],
+  ];
   const INFO = {
-    bear:   { blurb: 'Round head, two ears on top.', scen: [['Head turn', 'turn', 'Turning right swings the left ear inward and the right ear out and back.'], ['Snap', 'fast', 'Snappy, well-damped head spring.'], ['Poke', 'poke', 'Ears settle back a touch.'], ['Ear twitch', 'twitch', 'One ear wiggles once. Off by default in the library; enable with twitch: true.']] },
-    lemon:  { blurb: 'A nub at the top and one at the bottom.', scen: [['Nod', 'pitch', 'Looking up rolls the top nub back over the head and brings the chin forward; looking down does the opposite.'], ['Head turn', 'turn', 'Both nubs swing around the sphere together.'], ['Sway', 'idle', 'Slow idle sway of both nubs.'], ['Poke', 'poke', 'Stretches a hair taller.']] },
-    ghost:  { blurb: 'Rounded head, three tail bumps.', scen: [['Tail wave', 'idle', 'Bumps wave in a rolling sine, out of phase.'], ['Trail', 'turn', 'Lazy head spring, so the tail trails a turn.'], ['Whip', 'fast', 'The wave grows slightly on fast turns.'], ['Poke', 'poke', 'Bumps lift a touch.']] },
-    cloud:  { blurb: 'Two pills crossed into an X.', scen: [['Tilt', 'turn', 'No fixed core: the whole X tilts with the head, one way for yaw.'], ['Scissor', 'pitch', 'Pitch scissors the two pills against each other.'], ['Breathe', 'idle', 'The pills breathe against each other.'], ['Poke', 'poke', 'Puffs slightly.']] },
-    drop:   { blurb: 'Round body, sprout on top.', scen: [['Overshoot', 'fast', 'Under-damped spring: the sprout overshoots a turn and settles with one soft bounce.'], ['Head turn', 'turn', 'The sprout swings around the sphere and lags the eyes.'], ['Poke', 'poke', 'Sprout lifts and grows a little.']] },
-    stack:  { blurb: 'Two wide ellipses with a soft waist.', scen: [['Lead and lag', 'pitch', 'Looking up, the bottom half moves first and the top catches up; looking down, the roles swap.'], ['Head turn', 'turn', 'Both halves turn together around a hidden core.'], ['Breathe', 'idle', 'The halves breathe in opposite phase.']] },
-    seacow: { blurb: 'Round head, feet at the bottom corners.', scen: [['Head turn', 'turn', 'Feet turn with the head like the bear\'s ears.'], ['Poke', 'poke', 'Feet settle in slightly.'], ['Shuffle', 'idle', 'Faint idle shuffle.']] },
-    flower: { blurb: 'A core ringed by eight petals.', scen: [['Head turn', 'turn', 'Petals rotate with the head at a low fraction so the ring stays readable.'], ['Ripple', 'idle', 'Petals breathe in a ripple around the circle.'], ['Poke', 'poke', 'Petals swell a little.']] },
-    circle:   { blurb: 'The original orb.', scen: [['Head turn', 'turn', 'Eyes foreshorten and converge; the highlight stays put.'], ['Nod', 'pitch', 'Eyes ride up and down the sphere.'], ['Blink', 'blink', 'Double blink.'], ['Poke', 'poke', 'Eyes pop, then blink.']] },
-    squircle: { blurb: 'A rounded square.', scen: [['Head turn', 'turn', 'Same eye motion as the circle; the inner sphere fills the square.'], ['Nod', 'pitch', 'Eyes ride up and down.'], ['Poke', 'poke', 'Eyes pop, then blink.']] },
-    egg:      { blurb: 'Narrow top, full bottom.', scen: [['Nod', 'pitch', 'Inner sphere is slightly smaller so the eyes stay clear of the narrow top.'], ['Head turn', 'turn', 'Eyes sweep the wide part.'], ['Poke', 'poke', 'Eyes pop, then blink.']] },
-    pebble:   { blurb: 'A slightly irregular outline.', scen: [['Head turn', 'turn', 'Fixed organic silhouette; the eyes ride a sphere inside it.'], ['Poke', 'poke', 'Eyes pop, then blink.']] },
+    bear:   { blurb: 'Round head, two ears on top.',
+      hints: { turn: 'The left ear swings inward, the right ear out and back.', pitch: 'Ears roll back when looking up, forward when looking down.', fast: 'Snappy, well-damped head spring.', poke: 'Ears settle back a touch.', idle: 'Ears rest still; no idle motion.' },
+      extras: [['Ear twitch', 'twitch', 'One ear wiggles once. Off by default in the library; enable with twitch: true.']] },
+    lemon:  { blurb: 'A nub at the top and one at the bottom.',
+      hints: { turn: 'Both nubs swing around the sphere together.', pitch: 'The top nub rolls back over the head and the chin comes forward; looking down does the opposite.', fast: 'Medium spring; the nubs settle without wobble.', poke: 'Stretches a hair taller.', idle: 'Slow sway of both nubs.' } },
+    ghost:  { blurb: 'Rounded head, three tail bumps.',
+      hints: { turn: 'Lazy head spring, so the tail trails the turn.', pitch: 'The tail swings under the chin when looking up.', fast: 'The wave grows on fast turns.', poke: 'Bumps lift a touch.', idle: 'Tail bumps wave in a rolling sine, out of phase.' } },
+    cloud:  { blurb: 'Two pills crossed into an X.',
+      hints: { turn: 'No fixed core: the whole X tilts with the head.', pitch: 'Pitch scissors the two pills against each other.', fast: 'The X rocks and settles.', poke: 'Puffs slightly.', idle: 'The pills breathe against each other.' } },
+    drop:   { blurb: 'Round body, sprout on top.',
+      hints: { turn: 'The sprout swings around the sphere and lags the eyes.', pitch: 'The sprout leans back when looking up.', fast: 'Under-damped spring: the sprout overshoots and settles with one soft bounce.', poke: 'Sprout lifts and grows a little.', idle: 'Sprout rests; no idle motion.' } },
+    stack:  { blurb: 'Two wide ellipses with a soft waist.',
+      hints: { turn: 'Both halves turn together around a hidden core.', pitch: 'Lead and lag: looking up, the bottom half moves first; looking down, the top leads.', fast: 'Halves settle at slightly different rates.', poke: 'Halves thicken a touch.', idle: 'The halves breathe in opposite phase.' } },
+    seacow: { blurb: 'Round head, feet at the bottom corners.',
+      hints: { turn: 'Feet turn with the head like the bear\'s ears.', pitch: 'Feet come forward when looking down.', fast: 'Snappy spring, like the bear.', poke: 'Feet settle in slightly.', idle: 'Faint shuffle of the feet.' } },
+    flower: { blurb: 'A core ringed by eight petals.',
+      hints: { turn: 'Petals rotate with the head at a low fraction so the ring stays readable.', pitch: 'The ring tilts gently.', fast: 'Soft spring; petals barely overshoot.', poke: 'Petals swell a little.', idle: 'Petals breathe in a ripple around the circle.' } },
+    circle:   { blurb: 'The original orb.', hints: { turn: 'Eyes foreshorten and converge; the highlight stays put.', pitch: 'Eyes ride up and down the sphere.', idle: 'Breathing only.' } },
+    squircle: { blurb: 'A rounded square.', hints: { turn: 'Same eye motion as the circle; the inner sphere fills the square.', idle: 'Breathing only.' } },
+    egg:      { blurb: 'Narrow top, full bottom.', hints: { pitch: 'Inner sphere is slightly smaller so the eyes stay clear of the narrow top.', turn: 'Eyes sweep the wide part.', idle: 'Breathing only.' } },
+    pebble:   { blurb: 'A slightly irregular outline.', hints: { turn: 'Fixed organic silhouette; the eyes ride a sphere inside it.', idle: 'Breathing only.' } },
   };
-  const BLOB_SCEN = [['Head turn', 'turn'], ['Symmetry', 'turn'], ['Spring', 'fast'], ['Lag', 'turn'], ['Breathe', 'idle']];   // paired with Mascot.blob traits
+  // blob traits -> baseline hints: [pieces, symmetry, spring, lag, breathing]
+  const blobHints = t => ({ turn: t[0] + '; ' + t[1] + '.', pitch: t[0] + '.', fast: t[2] + '.', idle: t[4] + '.', poke: 'Pieces swell a little.' });
+  const scenariosFor = (name, def) => {
+    const info = def ? { hints: blobHints(def.traits), extras: def.lag ? [['Lag', 'turn', def.traits[3] + '.']] : [] } : INFO[name];
+    return [...BASE.map(([label, demo, hint]) => [label, demo, (info.hints && info.hints[demo]) || hint]), ...(info.extras || [])];
+  };
   const STATES = [
     ['Idle', {y:0,p:0}], ['Glance left', {y:-15,p:0}], ['Glance right', {y:15,p:0}], ['Look left', {y:-35,p:0}], ['Look right', {y:35,p:0}],
     ['Look up', {y:0,p:24}], ['Look down', {y:0,p:-24}], ['Up-left', {y:-28,p:18}], ['Up-right', {y:28,p:18}], ['Down-left', {y:-28,p:-16}], ['Down-right', {y:28,p:-16}],
@@ -368,7 +392,7 @@
     $('detail').hidden = false; $('backdrop').hidden = false; document.body.classList.add('modal-open'); $('detail').scrollTop = 0;
     const def = blobs.get(name), comp = def || Mascot.COMPOSED[name], body = def || name;
     const title = def ? 'Blob ' + def.seed : cap(name);
-    const scen = def ? def.traits.map((t, i) => [BLOB_SCEN[i][0], BLOB_SCEN[i][1], t]) : INFO[name].scen;
+    const scen = scenariosFor(name, def);
     $('dName').textContent = title; $('dTitle').textContent = title; fillPick(); $('dBlurb').textContent = def ? `Generated, ${def.temperament} temperament` : INFO[name].blurb;
     $('dScen').innerHTML = '';
     for (const [label, demo, hint] of scen) { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.title = hint; b.addEventListener('click', () => runScenario(demo, b, hint)); $('dScen').append(b); }
