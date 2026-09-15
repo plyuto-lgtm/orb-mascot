@@ -85,9 +85,9 @@
   const hop = (t, A, n, P, h) => {
     if (t >= n * P) return; const u = (t % P) / P;
     if (u < 0.16) { const c = S(Math.PI * u / 0.16); A.sy = 1 - 0.10 * c; A.sx = 1 + 0.06 * c; A.floor = 0.06 * c; return; }
-    if (u < 0.62) { const f = (u - 0.16) / 0.46, air = S(Math.PI * f); A.dy = -h * air; const st = S(Math.PI * Math.min(1, f * 1.4)); A.sy = 1 + 0.10 * st; A.sx = 1 - 0.06 * st; return; }
+    if (u < 0.62) { const f = (u - 0.16) / 0.46; A.dy = -h * S(Math.PI * f); return; }
     if (u < 0.78) { const c = S(Math.PI * (u - 0.62) / 0.16); A.floor = 0.2 * c; A.sx = 1 + 0.08 * c; return; }
-    const w = (u - 0.78) / 0.22; A.sy = 1 + 0.05 * S(w * Math.PI * 2.5) * Math.exp(-w * 3); A.sx = 1 - 0.03 * S(w * Math.PI * 2.5) * Math.exp(-w * 3);
+    const w = (u - 0.78) / 0.22; A.sy = 1 + 0.03 * S(w * Math.PI * 2) * Math.exp(-w * 3);
   };
 
   const ACTS = {
@@ -139,9 +139,10 @@
           if (t >= 1.8) A.sy *= 1 - 0.04 * pulse(t, 1.8, 2.4); } },
     },
     stack: {
-      deflate: { label: 'Deflate', hint: 'Collapses toward its centre like a balloon losing air, eyes shrinking with it, then re-inflates with a bounce.', dur: 3.0,
-        run: (t, A) => { const sv = t < 1.1 ? E.i(seg(t, 0, 1.1)) : t < 1.6 ? 1 : 1 - E.back(seg(t, 1.6, 2.8)); const sp = Math.max(0, sv);
-          A.sy = 1 - 0.45 * sv; A.sx = 1 + 0.12 * sv; A.pivotY = 0; A.rot = 3 * S(t * 20) * sp * (1 - sp); A.eyeScale = 1 - 0.35 * sp; A.eyeSquash = 1 - 0.2 * sp; } },
+      deflate: { label: 'Deflate', hint: 'Squeezes toward its centre, slow at first then all at once, bulging at the waist, then springs back.', dur: 3.0,
+        run: (t, A) => { const sv = t < 1.0 ? E.back(E.i(seg(t, 0, 1.0))) : t < 1.55 ? 1 + 0.02 * S(t * 18) : 1 - E.spring(seg(t, 1.55, 2.9)); const sp = Math.max(0, sv);
+          A.pieces = cs => cs.map((p, i) => i === 0 ? [p[0], p[1], p[2] * (1 + 0.25 * sp)] : [p[0], p[1] * (1 - 0.72 * sv), p[2] * (1 + 0.18 * sp), p[3] * (1 - 0.45 * sp)]);
+          A.eyeScale = 1 - 0.3 * sp; A.eyeSquash = 1 - 0.35 * sp; } },
       stretch: { label: 'Stretch', hint: 'A slow blink, then the halves pull apart with the eyes stretching too, hold, and snap back together.', dur: 3.2,
         run: (t, A) => { A.eyeSquash = 1 - 0.35 * pulse(t, 0, 0.7);
           const u = t < 0.7 ? 0 : t < 1.7 ? E.io(seg(t, 0.7, 1.7)) : t < 2.3 ? 1 : 1 - E.spring(seg(t, 2.3, 3.2));
@@ -153,25 +154,24 @@
         run: (t, A) => { const side = t < 1.55 ? 1 : 2, u = side === 1 ? seg(t, 0.1, 1.5) : seg(t, 1.6, 3.0), lift = S(Math.PI * u), wig = S(PI2 * u * 3) * 0.06 * lift;
           A.pieces = cs => cs.map((p, i) => i === side ? [p[0] + (side === 1 ? -0.12 : 0.12) * lift + wig, p[1] - 0.55 * lift, p[2]] : p);
           A.look = [side === 1 ? -18 : 18, 8]; A.rot = (side === 1 ? -4 : 4) * lift; } },
-      pushhop: { label: 'Push-off hop', hint: 'Deep crouch with the flippers pressed down and spread, an explosive push-off, a high hop, a flat landing and a wobble.', dur: 2.9,
-        run: (t, A) => {
-          const crouch = E.io(seg(t, 0, 0.55)), launch = seg(t, 0.55, 0.7), f = seg(t, 0.7, 1.55), air = S(Math.PI * f), land = pulse(t, 1.55, 1.8), w = seg(t, 1.8, 2.7);
-          const down = crouch * (1 - launch);
-          A.sy = 1 - 0.2 * down + 0.12 * S(Math.PI * Math.min(1, f * 1.3)) * (t >= 0.7 ? 1 : 0) + 0.03 * S(w * Math.PI * 2.5) * Math.exp(-w * 3) - 0.06 * land;
-          A.sx = 1 + 0.12 * down - 0.06 * S(Math.PI * Math.min(1, f * 1.3)) * (t >= 0.7 ? 1 : 0);
-          A.dy = -44 * air; A.floor = 0.06 * down + 0.22 * land;
-          A.pieces = cs => cs.map((p, i) => { if (!i) return p; const side = i === 1 ? -1 : 1;
-            return [p[0] + side * (0.16 * down + 0.14 * land), p[1] + 0.1 * down + 0.16 * S(Math.PI * Math.min(1, f * 0.6)) * (1 - f) - 0.14 * S(Math.PI * Math.max(0, f - 0.3) / 0.7), p[2] * (1 + 0.05 * land)]; }); } },
+      cover: { label: 'Cover eyes', hint: 'The flippers slide up inside the body and vanish, then come out on top to cover the eyes, hold, and go back.', dur: 3.4,
+        run: (t, A, ctx) => {
+          const inA = E.io(seg(t, 0, 0.8)), outA = E.back(seg(t, 0.8, 1.3)), hold = seg(t, 1.3, 2.3), rel = E.io(seg(t, 2.3, 2.8)), back = E.io(seg(t, 2.8, 3.4));
+          const hide = Math.max(0, inA - back);                                             // 0 at rest, 1 while hidden or covering
+          A.pieces = cs => cs.map((p, i) => i ? [p[0] * (1 - 0.15 * hide), p[1] - 0.55 * hide, p[2] * (1 - 0.35 * hide)] : p);   // flippers travel up into the body
+          const c = Math.max(0, outA - rel), o = ctx.self.o;                              // overlay hands over the eyes
+          if (c > 0) { const ex = Math.sin(o.eyeLon * D2R) * ctx.self._surf.rx, ey = ctx.self._surf.cy - Math.sin(o.eyeLat * D2R) * ctx.self._surf.ry;
+            A.overlay = [[-ex, ey + 0.02, 0.24 * c], [ex, ey + 0.02, 0.24 * c]]; }
+          A.eyeSquash = 1 - 0.25 * pulse(t, 2.2, 2.9); A.look = hold > 0 && hold < 1 ? [0, 0] : null; } },
     },
     flower: {
-      spin: { label: 'Spin', hint: 'One turn easing out with sharper petals; the eyes merge into one big centre like a sunflower, then everything settles back.', dur: 3.6,
-        run: (t, A) => { const u = seg(t, 0, 2.4), th = 360 * E.o(u), mid = S(Math.PI * u), sc = t < 2.2 ? 0 : t < 2.7 ? E.io(seg(t, 2.2, 2.7)) : 1 - E.back(seg(t, 2.7, 3.5));
-          const off = [17, -22, 12, -15, 20, -11, 14, -19];
-          A.pieces = cs => cs.map((p, i) => { if (!i) return p; const q = rotP(p, th + off[i - 1] * sc); q[0] *= 1 + 0.1 * sc; q[1] *= 1 + 0.1 * sc; return q; });
-          A.roundMul = 1 - 0.7 * mid; A.eyeMerge = E.io(Math.min(1, u * 1.2)) * (1 - E.io(seg(t, 2.3, 3.0))); A.eyeScale = 1 + 0.6 * A.eyeMerge; } },
-      inflate: { label: 'Inflate', hint: 'Petals push outward and swell, the eyes grow with them, then it settles back with a bounce.', dur: 3.0,
+      spin: { label: 'Spin', hint: 'One springy turn that overshoots and settles; the petals sharpen and the eyes merge into one centre along the same curve.', dur: 3.0,
+        run: (t, A) => { const u = seg(t, 0, 2.6), k = E.spring(u), th = 360 * k, mid = S(Math.PI * Math.min(1, u * 1.15));
+          A.pieces = cs => cs.map((p, i) => i ? rotP(p, th) : p);
+          A.roundMul = 1 - 0.7 * mid; A.eyeMerge = mid; A.eyeScale = 1 + 0.6 * mid; } },
+      inflate: { label: 'Inflate', hint: 'The core swells into one big circle that fills the gaps between the petals, eyes growing with it, then settles back.', dur: 3.0,
         run: (t, A) => { const sv = t < 1.0 ? E.io(seg(t, 0, 1.0)) : t < 1.6 ? 1 : 1 - E.back(seg(t, 1.6, 2.8)); const sp = Math.max(0, sv);
-          A.pieces = cs => cs.map((p, i) => i ? [p[0] * (1 + 0.22 * sv), p[1] * (1 + 0.22 * sv), p[2] * (1 + 0.2 * sv)] : [p[0], p[1], p[2] * (1 + 0.08 * sv)]);
+          A.pieces = cs => cs.map((p, i) => i ? p : [p[0], p[1], p[2] * (1 + 0.22 * sv)]);
           A.eyeScale = 1 + 0.3 * sp; } },
     },
   };
@@ -243,7 +243,7 @@
         body: 'circle',  // circle | squircle | egg | pebble | bear | lemon | ghost | cloud | drop | stack | seacow | flower | array of [x,y,r] or [x,y,rx,ry,angle]
         round: 0.5,      // fillet amount for composed bodies, 0..1
         eye: null,       // preset name: round | pill | square | wide | tall (overrides eyeW/eyeH/corner)
-        maxYaw: 50, maxPitch: 32,
+        maxYaw: 40, maxPitch: 28,
         shaded: true, wireframe: false, lean: true, breathe: true,
         follow: true, idle: true, autoBlink: true,
         color: '#0a0a0a',   // body colour; shading is derived from it
@@ -297,7 +297,8 @@
       this.eyeR = el('rect', {});
       this.rimEl = el('rect', { x: -40, y: -40, width: 280, height: 280, fill: `url(#${id}r)` });
       this.spec = el('ellipse', { fill: `url(#${id}s)` });
-      this.face.append(this.rimEl, this.spec, this.wire, this.eyeL, this.eyeR);
+      this.over = el('g', {});
+      this.face.append(this.rimEl, this.spec, this.wire, this.eyeL, this.eyeR, this.over);
       this.body.append(this.sphere, this.goo, this.face);
       this.root.append(this.body); s.append(this.root);
     }
@@ -413,6 +414,8 @@
       }
       this.eyeL.setAttribute('fill', eyeFill); this.eyeR.setAttribute('fill', eyeFill);
       this._wireframe();
+      { const ov = this._A && this._A.overlay; this.over.innerHTML = '';
+        if (ov) for (const [x, y, r] of ov) this.over.append(el('circle', { cx: (100 + x * o.radius).toFixed(2), cy: (100 + y * o.radius).toFixed(2), r: (r * o.radius).toFixed(2), fill: flat ? o.color : `url(#${this.gradId})` })); }
       this.zL = this._eye(this.eyeL, -1);
       this.zR = this._eye(this.eyeR, 1);
       const lx = o.lean ? (this.yaw / o.maxYaw) * 3 : 0, ly = o.lean ? (-this.pitch / o.maxPitch) * 2 : 0, A = this._A;
@@ -483,12 +486,12 @@
             this._nextIdle = now + 1200;
           } else if (o.idle && now > this._nextIdle && !reduce) {
             const home = Math.random() < 0.35;
-            const ny = home ? 0 : (Math.random() * 2 - 1) * 30, np = home ? 0 : (Math.random() * 2 - 1) * 14;
+            const ny = home ? 0 : (Math.random() * 2 - 1) * 22, np = home ? 0 : (Math.random() * 2 - 1) * 11;
             if (Math.abs(ny - this.tYaw) > 28 && Math.random() < 0.5) this.blink();
             this.look(ny, np); this._nextIdle = now + 1200 + Math.random() * 2600;
           }
         }
-        if (o.autoBlink && now > this._nextBlink && !reduce) { this.blink(Math.random() < 0.2 ? 2 : 1); this._nextBlink = now + 2000 + Math.random() * 4000; }
+        if (o.autoBlink && now > this._nextBlink && !reduce && !this._act) {   // no blinking during a scripted act this.blink(Math.random() < 0.2 ? 2 : 1); this._nextBlink = now + 2000 + Math.random() * 4000; }
         // smoothing (fast saccade, exponential ease-out)
         const k = reduce ? 1 : 1 - Math.exp(-dt / 70), k2 = reduce ? 1 : 1 - Math.exp(-dt / 90);
         const prevYaw = this.yaw;
@@ -497,7 +500,7 @@
         if (this._act) {
           const t = (now - this._act.t0) / 1000;
           if (t >= this._act.def.dur) { this._act = null; this._A = null; }
-          else { const A = { rot: 0, dx: 0, dy: 0, sx: 1, sy: 1, pivotY: 1, pieces: null, floor: 0, roundMul: 1, eyeScale: 1, eyeSquash: 1, eyeShake: 0, eyeOrbit: 0, eyeMerge: 0, look: null }; this._act.def.run(t, A, { R: o.radius, comp: this._comp }); if (A.look) this.look(A.look[0], A.look[1]); this._A = A; }
+          else { const A = { rot: 0, dx: 0, dy: 0, sx: 1, sy: 1, pivotY: 1, pieces: null, floor: 0, roundMul: 1, eyeScale: 1, eyeSquash: 1, eyeShake: 0, eyeOrbit: 0, eyeMerge: 0, overlay: null, look: null }; this._act.def.run(t, A, { R: o.radius, comp: this._comp, self: this }); if (A.look) this.look(A.look[0], A.look[1]); this._A = A; }
         }
         // signals for the extra pieces
         this._t = now / 1000; this._dt = dt / 1000;
