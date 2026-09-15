@@ -97,6 +97,13 @@
   @media (max-width:880px){.stage{min-height:360px;height:360px}}
   .stage svg{width:min(78cqw,78cqh);height:auto;cursor:pointer;touch-action:none}
   .stage.dark{background:#111113}
+  .mode{position:absolute;left:14px;top:14px;display:flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface);z-index:1}
+  .mode label{font-size:12px;font-weight:500;padding:4px 10px;border-radius:999px;color:var(--muted);cursor:pointer;user-select:none}
+  .mode label:has(:checked){background:var(--ink);color:var(--bg)}
+  .mode input{position:absolute;opacity:0;width:0;height:0}
+  .stage.dark .mode{background:#232327}
+  .stage.dark .mode label{color:#8f8f96}
+  .stage.dark .mode label:has(:checked){background:#ececea;color:#111113}
   .panel .head{display:flex;flex-direction:column;gap:2px;margin-bottom:4px}
   .panel .head b{font-size:18px;font-weight:600}
   .panel .head span{font-size:13px;color:var(--muted)}
@@ -151,6 +158,10 @@
   </div>
   <div class="top">
     <div class="stage" id="stage">
+      <div class="mode" role="group" aria-label="Canvas mode">
+        <label><input type="radio" name="mode" value="light" checked>Light</label>
+        <label><input type="radio" name="mode" value="dark">Dark</label>
+      </div>
       <svg id="dLive" aria-label="Selected body, live"></svg>
     </div>
     <div class="panel">
@@ -170,7 +181,6 @@
         <label><input type="checkbox" id="breathe" checked>Breathe</label>
         <label><input type="checkbox" id="shaded" checked>Shaded</label>
         <label><input type="checkbox" id="wireframe">Show sphere</label>
-        <label><input type="checkbox" id="darkStage">Dark canvas</label>
       </div>
       <h3>Colour</h3>
       <div class="toggles swatches" id="colorPick"></div>
@@ -267,7 +277,9 @@
   }
 
   // ---------- settings shared across bodies ----------
-  const settings = { color: Mascot.COLORS.black, round: 0.5, shaded: true, wireframe: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true };
+  const settings = { colorName: 'black', mode: 'light', round: 0.5, shaded: true, wireframe: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true };
+  const palette = () => settings.mode === 'dark' ? Mascot.COLORS_DARK : Mascot.COLORS;
+  const colorHex = () => palette()[settings.colorName];
   let current = null, live = null, statics = [];
 
   // ---------- catalog ----------
@@ -277,27 +289,29 @@
     const a = document.createElement('a'); a.className = 'card'; a.href = '#' + name; a.dataset.name = name;
     const svg = svgEl(label); const b = document.createElement('b'); b.textContent = label; const sm = document.createElement('small'); sm.textContent = sub;
     a.append(svg, b, sm); host.append(a);
-    const m = new Mascot(svg, { body: def, round: settings.round, color: settings.color }); m.snap(-16, 6); m.render(); m.cardHost = host; return m;
+    const m = new Mascot(svg, { body: def, round: settings.round, color: Mascot.COLORS[settings.colorName] }); m.snap(-16, 6); m.render(); m.cardHost = host; return m;
   }
   for (const n of Object.keys(Mascot.COMPOSED)) cardBots.push(card($('gComposed'), n, cap(n), `body: '${n}'`, n));
   for (const n of Mascot.SHAPES) cardBots.push(card($('gSimple'), n, cap(n), `body: '${n}'`, n));
-  const refreshCards = () => { for (const m of cardBots) { m.o.color = settings.color; m.o.round = settings.round; m.o.shaded = settings.shaded; m.render(); } };
+  const refreshCards = () => { for (const m of cardBots) { m.o.color = Mascot.COLORS[settings.colorName]; m.o.round = settings.round; m.o.shaded = settings.shaded; m.render(); } };
 
   // ---------- settings controls (inside the modal) ----------
   const applySettings = () => {
-    const opts = { color: settings.color, round: settings.round, shaded: settings.shaded, wireframe: settings.wireframe };
-    if (live) Object.assign(live.o, opts, { follow: settings.follow, idle: settings.idle, autoBlink: settings.autoBlink, lean: settings.lean, breathe: settings.breathe });
-    for (const m of statics) { Object.assign(m.o, opts); m.render(); }
+    const opts = { round: settings.round, shaded: settings.shaded, wireframe: settings.wireframe };
+    if (live) Object.assign(live.o, opts, { color: colorHex(), follow: settings.follow, idle: settings.idle, autoBlink: settings.autoBlink, lean: settings.lean, breathe: settings.breathe });
+    for (const m of statics) { Object.assign(m.o, opts, { color: Mascot.COLORS[settings.colorName] }); m.render(); }
+    $('stage').classList.toggle('dark', settings.mode === 'dark');
+    for (const l of document.querySelectorAll('#colorPick label')) l.style.setProperty('--sw', palette()[l.dataset.name]);
     refreshCards(); writeConfig();
   };
   for (const [name, hex] of Object.entries(Mascot.COLORS)) {
-    const l = document.createElement('label'); l.style.setProperty('--sw', hex);
-    const i = document.createElement('input'); i.type = 'radio'; i.name = 'color'; i.id = 'color-' + name; i.autocomplete = 'off'; i.checked = hex === settings.color;
+    const l = document.createElement('label'); l.style.setProperty('--sw', hex); l.dataset.name = name;
+    const i = document.createElement('input'); i.type = 'radio'; i.name = 'color'; i.id = 'color-' + name; i.autocomplete = 'off'; i.checked = name === settings.colorName;
     l.append(i, document.createElement('i'), document.createTextNode(cap(name))); $('colorPick').append(l);
-    i.addEventListener('change', () => { settings.color = hex; applySettings(); });
+    i.addEventListener('change', () => { settings.colorName = name; applySettings(); });
   }
+  for (const r of document.querySelectorAll('input[name=mode]')) r.addEventListener('change', e => { settings.mode = e.target.value; applySettings(); });
   for (const k of ['follow', 'idle', 'autoBlink', 'lean', 'breathe', 'shaded', 'wireframe']) $(k).addEventListener('change', e => { settings[k] = e.target.checked; applySettings(); });
-  $('darkStage').addEventListener('change', e => { $('stage').classList.toggle('dark', e.target.checked); });
   // gaze pad: x -> yaw (-60..60), y -> pitch (40..-40)
   const pad = $('pad'), knob = $('knob'), MAXY = 60, MAXP = 40;
   let manualT = 0, padGaze = { y: 0, p: 0 };
@@ -351,7 +365,7 @@
   const bodyArg = name => `'${name}'`;
   function writeConfig() {
     if (!current) return;
-    $('dCfg').textContent = `new Mascot(svg, {\n  body: ${bodyArg(current)},\n  color: '${settings.color}'\n})`;
+    $('dCfg').textContent = `new Mascot(svg, {\n  body: ${bodyArg(current)},\n  color: '${colorHex()}'   // ${settings.colorName}, ${settings.mode} palette\n})`;
   }
   function openBody(name) {
     if (!Mascot.COMPOSED[name] && !Mascot.SHAPES.includes(name)) { closeBody(); return; }

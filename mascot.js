@@ -354,5 +354,7 @@
     }
     stop() { this._running = false; global.removeEventListener('pointermove', this._onMove); document.removeEventListener('pointerleave', this._onLeave); }
   }
-  global.Mascot = Mascot; Mascot.SHAPES = Object.keys(SHAPES); Mascot.COMPOSED = COMPOSED; Mascot.blob = blobBody; Mascot.BODIES = [...Object.keys(SHAPES), ...Object.keys(COMPOSED)]; Mascot.COLORS = { black: '#0a0a0a', blue: '#1E6DF6', olive: '#969640', cyan: '#00CCFF', orchid: '#CF72D9', lime: '#EEF679' }; Mascot.EYES = Object.keys(EYES);
+  global.Mascot = Mascot; Mascot.SHAPES = Object.keys(SHAPES); Mascot.COMPOSED = COMPOSED; Mascot.blob = blobBody; Mascot.BODIES = [...Object.keys(SHAPES), ...Object.keys(COMPOSED)]; Mascot.COLORS = { black: '#0a0a0a', blue: '#1E6DF6', olive: '#969640', cyan: '#00CCFF', orchid: '#CF72D9', lime: '#EEF679' };
+  // the same six, adapted for a dark ground: black becomes an off-white body, the others are lifted a step
+  Mascot.COLORS_DARK = { black: '#ECECEA', blue: '#5A92FF', olive: '#B4B45C', cyan: '#4DDCFF', orchid: '#DD93E4', lime: '#F1F78C' }; Mascot.EYES = Object.keys(EYES);
 })(window);
