@@ -17,9 +17,9 @@
   // body silhouettes, centred on (100,100); sphereR = radius of the inner sphere the eyes ride on
   const SHAPES = {
     circle:  R => ({ d: `M${100-R} 100a${R} ${R} 0 1 0 ${2*R} 0a${R} ${R} 0 1 0 ${-2*R} 0Z`, sphereR: R }),
-    squircle:R => ({ d: polar(t => { const c=Math.cos(t), s=Math.sin(t); const k=Math.pow(Math.pow(Math.abs(c),4)+Math.pow(Math.abs(s),4),-0.25); return [R*0.98*k*c, R*0.98*k*s]; }), sphereR: R }),
-    egg:     R => ({ d: polar(t => { const c=Math.cos(t), s=Math.sin(t); const up = s<0 ? -s : 0; return [R*0.94*c*(1-0.22*Math.pow(up,1.5)), R*(s<0 ? 1.03*s : 0.97*s)]; }), sphereR: R*0.9 }),
-    pebble:  R => ({ d: polar(t => { const r=R*(0.98+0.05*Math.sin(3*t+0.6)+0.03*Math.cos(5*t)); return [r*Math.cos(t), r*Math.sin(t)]; }), sphereR: R*0.93 }),
+    squircle:R => ({ surf: { rx: 1, ry: 1 }, d: polar(t => { const c=Math.cos(t), s=Math.sin(t); const k=Math.pow(Math.pow(Math.abs(c),4)+Math.pow(Math.abs(s),4),-0.25); return [R*0.98*k*c, R*0.98*k*s]; }), sphereR: R }),
+    egg:     R => ({ surf: { cy: 0.06, rx: 0.9, ry: 0.98 }, d: polar(t => { const c=Math.cos(t), s=Math.sin(t); const up = s<0 ? -s : 0; return [R*0.94*c*(1-0.22*Math.pow(up,1.5)), R*(s<0 ? 1.03*s : 0.97*s)]; }), sphereR: R*0.9 }),
+    pebble:  R => ({ surf: { rx: 0.95, ry: 0.92 }, d: polar(t => { const r=R*(0.98+0.05*Math.sin(3*t+0.6)+0.03*Math.cos(5*t)); return [r*Math.cos(t), r*Math.sin(t)]; }), sphereR: R*0.93 }),
   };
   // composed bodies: union of circles, joins filleted by `round`
   // composed bodies: union of circles, joins filleted by `round`.
@@ -29,16 +29,16 @@
   // at `head` of the angle through a spring (k = stiffness, d = damping). anim() adds idle motion on top:
   // k = { t, dt (s), vel (deg/s), poke (1..0), twitch {i, p} | null, mem }
   const COMPOSED = {
-    bear:  { c: [[0,0.05,0.9],[-0.6,-0.62,0.32],[0.6,-0.62,0.32]], sphereR: 0.88, main: 0, head: 0.35, k: 60, d: 14,
+    bear:  { c: [[0,0.05,0.9],[-0.6,-0.62,0.32],[0.6,-0.62,0.32]], sphereR: 0.88, surf: { cy: 0.05 }, main: 0, head: 0.35, k: 60, d: 14,
       anim: (c, k) => c.map(([x, y, r], i) => {
         if (i === 0) return [x, y, r];
         let dx = 0, dr = 0;
         if (k.twitch && k.twitch.i === i) { const p = k.twitch.p, env = S(p * Math.PI); dx = S(p * PI2) * 0.025 * env * (i === 1 ? -1 : 1); dr = S(p * PI2) * 0.03 * env; }
         return [x + dx, y + k.poke * 0.02, r * (1 + dr - k.poke * 0.03)];        // ears settle back a touch on a poke          // twitch; ears flatten on a poke
       }) },
-    lemon: { c: [[0,0,0.84],[0,-0.72,0.3],[0,0.72,0.3]], sphereR: 0.84, main: 0, head: 0.4, k: 50, d: 13,
+    lemon: { c: [[0,0,0.84],[0,-0.72,0.3],[0,0.72,0.3]], sphereR: 0.84, surf: { rx: 0.84, ry: 0.98 }, main: 0, head: 0.4, k: 50, d: 13,
       anim: (c, k) => c.map(([x, y, r], i) => i === 0 ? [x, y, r] : [x + S(k.t * PI2 / 3.1) * 0.012, y + (i === 1 ? -1 : 1) * k.poke * 0.018, r]) },
-    ghost: { c: [[0,-0.12,0.84],[-0.48,0.62,0.3],[0,0.7,0.3],[0.48,0.62,0.3]], sphereR: 0.84, main: 0, head: 0.32, k: 30, d: 10,
+    ghost: { c: [[0,-0.12,0.84],[-0.48,0.62,0.3],[0,0.7,0.3],[0.48,0.62,0.3]], sphereR: 0.84, surf: { cy: -0.12 }, main: 0, head: 0.32, k: 30, d: 10,
       anim: (c, k) => c.map(([x, y, r], i) => {
         if (i === 0) return [x, y, r];
         const amp = 0.025 + Math.min(0.03, Math.abs(k.vel) / 2500);                   // tail waves; harder when the head moves
@@ -49,13 +49,13 @@
         const b = S(k.t * PI2 / 2.8 + i * Math.PI) * 0.015, puff = k.poke * 0.03;
         return [x, y, rx * (1 + b + puff), ry * (1 + puff - b), a + k.hy * 0.35 + (i ? 1 : -1) * k.hp * 0.15];
       }) },
-    drop:  { c: [[0,0.12,0.84],[0,-0.7,0.26]], sphereR: 0.84, main: 0, head: 0.45, k: 45, d: 7,        // slightly under-damped: the sprout settles with one soft overshoot
+    drop:  { c: [[0,0.12,0.84],[0,-0.7,0.26]], sphereR: 0.84, surf: { cy: 0.12 }, main: 0, head: 0.45, k: 45, d: 7,        // slightly under-damped: the sprout settles with one soft overshoot
       anim: (c, k) => c.map(([x, y, r], i) => i === 0 ? [x, y, r] : [x, y - k.poke * 0.02, r * (1 + k.poke * 0.04)]) },
-    stack: { c: [[0,0,0.55],[0,-0.36,0.86,0.52],[0,0.36,0.86,0.52]], sphereR: 0.84, main: 0, head: 0.3, k: 40, d: 12,   // hidden core; both ellipses turn with the head
+    stack: { c: [[0,0,0.55],[0,-0.36,0.86,0.52],[0,0.36,0.86,0.52]], sphereR: 0.84, surf: { rx: 0.9, ry: 0.8 }, main: 0, head: 0.3, k: 40, d: 12,   // hidden core; both ellipses turn with the head
       // the half on the side it looks toward leads; the other half follows on the slow spring
       lag: (i, k) => { const w = Math.max(-1, Math.min(1, k.pitch / 12)); return i === 1 ? Math.max(0, w) : Math.max(0, -w); },
       anim: (c, k) => c.map((p, i) => i === 0 ? p : [p[0], p[1] + S(k.t * PI2 / 3.4 + i * Math.PI) * 0.006, p[2], p[3] * (1 + k.poke * 0.03)]) },
-    seacow: { c: [[0,-0.06,0.86],[-0.62,0.6,0.32],[0.62,0.6,0.32]], sphereR: 0.86, main: 0, head: 0.35, k: 60, d: 14,   // like the bear, flipped: feet at the bottom corners
+    seacow: { c: [[0,-0.06,0.86],[-0.62,0.6,0.32],[0.62,0.6,0.32]], sphereR: 0.86, surf: { cy: -0.06 }, main: 0, head: 0.35, k: 60, d: 14,   // like the bear, flipped: feet at the bottom corners
       anim: (c, k) => c.map(([x, y, r], i) => i === 0 ? [x, y, r] : [x + S(k.t * PI2 / 2.9 + i * 2) * 0.006, y - k.poke * 0.02, r * (1 - k.poke * 0.03)]) },
     flower: { c: [[0,0,0.8], ...Array.from({ length: 8 }, (_, i) => { const a = i * Math.PI / 4 + Math.PI / 8; return [0.62 * Math.cos(a), 0.62 * Math.sin(a), 0.33]; })], sphereR: 0.86, main: 0, head: 0.25, k: 40, d: 12,
       anim: (c, k) => c.map(([x, y, r], i) => i === 0 ? [x, y, r] : [x, y, r * (1 + S(k.t * PI2 / 3 + i * 0.8) * 0.02 + k.poke * 0.03)]) },   // petals breathe in a ripple
@@ -216,6 +216,9 @@
         shaded: true, wireframe: false, lean: true, breathe: true,
         follow: true, idle: true, autoBlink: true,
         color: '#0a0a0a',   // body colour; shading is derived from it
+        shade: 'soft',      // flat | soft | glossy | rim   (shaded:false forces flat)
+        light: -135,        // direction the light comes from, degrees: 0 right, -90 top, -135 top-left
+        contrast: 1,        // shading strength multiplier
         eyeColor: null,     // null = auto (white on dark bodies, ink on light ones)
         twitch: false,      // bear only: occasional single ear wiggle
       }, opts);
@@ -236,7 +239,12 @@
       const defs = el('defs', {});
       const g = el('radialGradient', { id: id + 'g', gradientUnits: 'userSpaceOnUse', cx: 72, cy: 62, r: 165 });
       this.stops = [el('stop', { offset: '0' }), el('stop', { offset: '0.45' }), el('stop', { offset: '1' })];
-      g.append(...this.stops);
+      g.append(...this.stops); this.grad = g;
+      this.specGrad = el('radialGradient', { id: id + 's', gradientUnits: 'userSpaceOnUse' });
+      this.specGrad.append(el('stop', { offset: '0', 'stop-color': '#fff', 'stop-opacity': '0.5' }), el('stop', { offset: '1', 'stop-color': '#fff', 'stop-opacity': '0' }));
+      this.rimGrad = el('radialGradient', { id: id + 'r', gradientUnits: 'userSpaceOnUse' });
+      this.rimGrad.append(el('stop', { offset: '0', 'stop-color': '#fff', 'stop-opacity': '0' }), el('stop', { offset: '0.62', 'stop-color': '#fff', 'stop-opacity': '0' }), el('stop', { offset: '1', 'stop-color': '#fff', 'stop-opacity': '0.3' }));
+      defs.append(this.specGrad, this.rimGrad); this.specId = id + 's'; this.rimId = id + 'r';
       this.blur = el('feGaussianBlur', { stdDeviation: 7, result: 'b' });
       const goo = el('filter', { id: id + 'f', x: '-20%', y: '-20%', width: '140%', height: '140%' });
       goo.append(this.blur, el('feColorMatrix', { in: 'b', type: 'matrix', values: '1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -11' }));
@@ -256,7 +264,9 @@
       this.wire = el('path', { fill: 'none', stroke: 'rgba(255,255,255,0.22)', 'stroke-width': 0.6 });
       this.eyeL = el('rect', {});
       this.eyeR = el('rect', {});
-      this.face.append(this.wire, this.eyeL, this.eyeR);
+      this.rimEl = el('rect', { x: -40, y: -40, width: 280, height: 280, fill: `url(#${id}r)` });
+      this.spec = el('ellipse', { fill: `url(#${id}s)` });
+      this.face.append(this.rimEl, this.spec, this.wire, this.eyeL, this.eyeR);
       this.body.append(this.sphere, this.goo, this.face);
       this.root.append(this.body); s.append(this.root);
     }
@@ -271,12 +281,13 @@
 
     // tangent-plane frame of a point on the sphere, projected orthographically
     _frame(lonDeg, latDeg) {
-      const R = this.sR, lon = lonDeg * D2R, lat = latDeg * D2R;
+      const R = this.o.radius, su = this._surf, lon = lonDeg * D2R, lat = latDeg * D2R;
       const P = this._rot([Math.sin(lon) * Math.cos(lat), Math.sin(lat), Math.cos(lon) * Math.cos(lat)]);
       const E = this._rot([Math.cos(lon), 0, -Math.sin(lon)]);                                  // east
       const N = this._rot([-Math.sin(lon) * Math.sin(lat), Math.cos(lat), -Math.cos(lon) * Math.sin(lat)]); // north
-      // SVG matrix: local x = east, local y = south (screen y is down)
-      return { m: [E[0], -E[1], -N[0], N[1], 100 + R * P[0], 100 - R * P[1]], z: P[2] };
+      // the eye surface is a spheroid: radii rx (x, z) and ry (y), centre offset (cx, cy); the eye disc keeps its size
+      const avg = (su.rx + su.ry) / 2, kx = su.rx / avg, ky = su.ry / avg;
+      return { m: [E[0] * kx, -E[1] * ky, -N[0] * kx, N[1] * ky, 100 + R * (su.cx + su.rx * P[0]), 100 + R * (su.cy - su.ry * P[1])], z: P[2] };
     }
 
     _eye(rect, lon) {
@@ -303,17 +314,29 @@
 
     render() {
       const o = this.o;
-      this.sphere.setAttribute('fill', o.shaded ? `url(#${this.gradId})` : o.color);
       if (o.eye && EYES[o.eye]) Object.assign(o, EYES[o.eye]);
-      if (this._color !== o.color) {
-        this._color = o.color; const c = hex2(o.color), W = [255, 255, 255], K = [0, 0, 0];
-        this.stops[0].setAttribute('stop-color', mix(c, W, 0.24)); this.stops[1].setAttribute('stop-color', mix(c, K, 0.08)); this.stops[2].setAttribute('stop-color', mix(c, K, 0.45));
+      const style = o.shaded === false ? 'flat' : (o.shade || 'soft');
+      const shadeKey = o.color + '|' + style + '|' + o.light + '|' + o.contrast + '|' + o.radius;
+      if (this._shadeKey !== shadeKey) {
+        this._shadeKey = shadeKey; const c = hex2(o.color), W = [255, 255, 255], K = [0, 0, 0], k = o.contrast == null ? 1 : o.contrast, lum0 = lum(c);
+        const a = (o.light == null ? -135 : o.light) * D2R, dx = Math.cos(a), dy = Math.sin(a), R = o.radius;
+        const glossy = style === 'glossy';
+        this.stops[0].setAttribute('stop-color', mix(c, W, (glossy ? 0.34 : 0.24) * k)); this.stops[1].setAttribute('stop-color', mix(c, K, 0.08 * k)); this.stops[2].setAttribute('stop-color', mix(c, K, (glossy ? 0.55 : 0.45) * k));
+        this.grad.setAttribute('cx', (100 + dx * 0.45 * R).toFixed(1)); this.grad.setAttribute('cy', (100 + dy * 0.45 * R).toFixed(1)); this.grad.setAttribute('r', (1.7 * R).toFixed(1));
+        // specular: a soft highlight toward the light (glossy only), fainter on light bodies
+        this.spec.style.display = glossy ? '' : 'none';
+        if (glossy) { const sx = 100 + dx * 0.5 * R, sy = 100 + dy * 0.5 * R; this.spec.setAttribute('cx', sx.toFixed(1)); this.spec.setAttribute('cy', sy.toFixed(1)); this.spec.setAttribute('rx', (0.34 * R).toFixed(1)); this.spec.setAttribute('ry', (0.22 * R).toFixed(1)); this.spec.setAttribute('transform', `rotate(${(a / D2R + 90).toFixed(1)} ${sx.toFixed(1)} ${sy.toFixed(1)})`); this.specGrad.setAttribute('cx', sx.toFixed(1)); this.specGrad.setAttribute('cy', sy.toFixed(1)); this.specGrad.setAttribute('r', (0.34 * R).toFixed(1)); this.spec.setAttribute('opacity', (lum0 > 0.5 ? 0.35 : 0.7) * k); }
+        // rim: a light edge on the side away from the light (rim only)
+        this.rimEl.style.display = style === 'rim' ? '' : 'none';
+        if (style === 'rim') { this.rimGrad.setAttribute('cx', (100 - dx * 0.35 * R).toFixed(1)); this.rimGrad.setAttribute('cy', (100 - dy * 0.35 * R).toFixed(1)); this.rimGrad.setAttribute('r', (1.25 * R).toFixed(1)); this.rimEl.setAttribute('opacity', (lum0 > 0.5 ? 0.5 : 1) * k); }
       }
+      const flat = style === 'flat';
+      this.sphere.setAttribute('fill', flat ? o.color : `url(#${this.gradId})`);
       const eyeFill = o.eyeColor || (lum(hex2(o.color)) > 0.55 ? '#141416' : '#ffffff');
       const comp = Array.isArray(o.body) ? { c: o.body, sphereR: 0.85, main: 0, head: 0.35, k: 50, d: 13 } : (o.body && o.body.c) ? o.body : COMPOSED[o.body];
       this._comp = comp;
       if (comp) {
-        this.sR = o.radius * comp.sphereR;
+        this.sR = o.radius * comp.sphereR; this._surf = Object.assign({ cx: 0, cy: 0, rx: comp.sphereR, ry: comp.sphereR }, comp.surf || {});
         this.sphere.setAttribute('d', ''); this.clipCircle.setAttribute('d', '');
         const head = comp.head == null ? 0.35 : comp.head;
         if (!this._running) { this._hy = this._sy = this.yaw * head; this._hp = this._sp = this.pitch * head; }       // static render: head already turned
@@ -343,10 +366,10 @@
           }
         });
         this.blur.setAttribute('stdDeviation', (1 + o.round * 13).toFixed(1));
-        for (const c of this.goo.children) c.setAttribute('fill', o.shaded ? `url(#${this.gradId})` : o.color);
+        for (const c of this.goo.children) c.setAttribute('fill', flat ? o.color : `url(#${this.gradId})`);
       } else {
         const shape = (SHAPES[o.body] || SHAPES.circle)(o.radius);
-        this.sR = shape.sphereR; this._sig = ''; this.goo.innerHTML = ''; this.maskGoo.innerHTML = '';
+        this.sR = shape.sphereR; const sr = shape.sphereR / o.radius; this._surf = Object.assign({ cx: 0, cy: 0, rx: sr, ry: sr }, shape.surf || {}); this._sig = ''; this.goo.innerHTML = ''; this.maskGoo.innerHTML = '';
         this.sphere.setAttribute('d', shape.d); this.clipCircle.setAttribute('d', shape.d);
       }
       this.eyeL.setAttribute('fill', eyeFill); this.eyeR.setAttribute('fill', eyeFill);
@@ -457,7 +480,7 @@
     }
     stop() { this._running = false; global.removeEventListener('pointermove', this._onMove); document.removeEventListener('pointerleave', this._onLeave); }
   }
-  global.Mascot = Mascot; Mascot.SHAPES = Object.keys(SHAPES); Mascot.ACTS = ACTS; Mascot.COMPOSED = COMPOSED; Mascot.blob = blobBody; Mascot.BODIES = [...Object.keys(SHAPES), ...Object.keys(COMPOSED)]; Mascot.COLORS = { black: '#0a0a0a', blue: '#1E6DF6', olive: '#969640', cyan: '#00CCFF', orchid: '#CF72D9', lime: '#EEF679' };
+  global.Mascot = Mascot; Mascot.SHAPES = Object.keys(SHAPES); Mascot.ACTS = ACTS; Mascot.SHADES = ['flat', 'soft', 'glossy', 'rim']; Mascot.COMPOSED = COMPOSED; Mascot.blob = blobBody; Mascot.BODIES = [...Object.keys(SHAPES), ...Object.keys(COMPOSED)]; Mascot.COLORS = { black: '#0a0a0a', blue: '#1E6DF6', olive: '#969640', cyan: '#00CCFF', orchid: '#CF72D9', lime: '#EEF679' };
   // the same six, adapted for a dark ground: black becomes an off-white body, the others are lifted a step
   Mascot.COLORS_DARK = { black: '#ECECEA', blue: '#5A92FF', olive: '#B4B45C', cyan: '#4DDCFF', orchid: '#DD93E4', lime: '#F1F78C' }; Mascot.EYES = Object.keys(EYES);
 })(window);

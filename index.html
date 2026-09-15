@@ -180,11 +180,13 @@
         <label><input type="checkbox" id="autoBlink" checked>Auto blink</label>
         <label><input type="checkbox" id="lean" checked>Lean</label>
         <label><input type="checkbox" id="breathe" checked>Breathe</label>
-        <label><input type="checkbox" id="shaded" checked>Shaded</label>
         <label><input type="checkbox" id="wireframe">Show sphere</label>
       </div>
       <h3>Colour</h3>
       <div class="toggles swatches" id="colorPick"></div>
+      <h3>Shading</h3>
+      <div class="toggles" id="shadePick"></div>
+      <div class="row"><span>Light</span><div class="fs"><input type="range" id="light" min="-180" max="180" value="-135" step="5" aria-label="Light direction"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
       <h3>Scenarios</h3>
       <div class="scen" id="dScen"></div>
       <div id="uniqueBox"><h3>Unique to this body</h3><div class="scen" id="dScenUnique"></div></div>
@@ -278,7 +280,7 @@
   }
 
   // ---------- settings shared across bodies ----------
-  const settings = { colorName: 'black', mode: 'light', round: 0.5, shaded: true, wireframe: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true };
+  const settings = { colorName: 'black', mode: 'light', round: 0.5, shade: 'soft', light: -135, wireframe: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true };
   const palette = () => settings.mode === 'dark' ? Mascot.COLORS_DARK : Mascot.COLORS;
   const colorHex = () => palette()[settings.colorName];
   let current = null, live = null, statics = [];
@@ -294,11 +296,19 @@
   }
   for (const n of Object.keys(Mascot.COMPOSED)) cardBots.push(card($('gComposed'), n, cap(n), `body: '${n}'`, n));
   for (const n of Mascot.SHAPES) cardBots.push(card($('gSimple'), n, cap(n), `body: '${n}'`, n));
-  const refreshCards = () => { for (const m of cardBots) { m.o.color = Mascot.COLORS[settings.colorName]; m.o.round = settings.round; m.o.shaded = settings.shaded; m.render(); } };
+  const refreshCards = () => { for (const m of cardBots) { Object.assign(m.o, { color: Mascot.COLORS[settings.colorName], round: settings.round, shade: settings.shade, light: settings.light }); m.render(); } };
 
+  function chips(host, list, key, onPick) {
+    for (const name of list) {
+      const l = document.createElement('label'); const i = document.createElement('input');
+      i.type = 'radio'; i.name = key; i.value = name; i.id = key + '-' + name; i.autocomplete = 'off';
+      l.append(i, document.createTextNode(cap(name))); host.append(l);
+      i.addEventListener('change', () => onPick(name));
+    }
+  }
   // ---------- settings controls (inside the modal) ----------
   const applySettings = () => {
-    const opts = { round: settings.round, shaded: settings.shaded, wireframe: settings.wireframe };
+    const opts = { round: settings.round, shade: settings.shade, light: settings.light, wireframe: settings.wireframe };
     if (live) Object.assign(live.o, opts, { color: colorHex(), follow: settings.follow, idle: settings.idle, autoBlink: settings.autoBlink, lean: settings.lean, breathe: settings.breathe });
     for (const m of statics) { Object.assign(m.o, opts, { color: Mascot.COLORS[settings.colorName] }); m.render(); }
     $('stage').classList.toggle('dark', settings.mode === 'dark');
@@ -312,7 +322,10 @@
     i.addEventListener('change', () => { settings.colorName = name; applySettings(); });
   }
   for (const r of document.querySelectorAll('input[name=mode]')) r.addEventListener('change', e => { settings.mode = e.target.value; applySettings(); });
-  for (const k of ['follow', 'idle', 'autoBlink', 'lean', 'breathe', 'shaded', 'wireframe']) $(k).addEventListener('change', e => { settings[k] = e.target.checked; applySettings(); });
+  for (const k of ['follow', 'idle', 'autoBlink', 'lean', 'breathe', 'wireframe']) $(k).addEventListener('change', e => { settings[k] = e.target.checked; applySettings(); });
+  chips($('shadePick'), Mascot.SHADES, 'shade', n => { settings.shade = n; applySettings(); }); $('shade-soft').checked = true;
+  const drawLight = filledSlider($('light'), v => (v > 0 ? '+' : '') + v + '\u00b0');
+  $('light').addEventListener('input', () => { settings.light = +$('light').value; applySettings(); });
   // gaze pad: x -> yaw (-60..60), y -> pitch (40..-40)
   const pad = $('pad'), knob = $('knob'), MAXY = 60, MAXP = 40;
   let manualT = 0, padGaze = { y: 0, p: 0 };
@@ -368,7 +381,7 @@
   const bodyArg = name => `'${name}'`;
   function writeConfig() {
     if (!current) return;
-    $('dCfg').textContent = `new Mascot(svg, {\n  body: ${bodyArg(current)},\n  color: '${colorHex()}'   // ${settings.colorName}, ${settings.mode} palette\n})`;
+    $('dCfg').textContent = `new Mascot(svg, {\n  body: ${bodyArg(current)},\n  color: '${colorHex()}',   // ${settings.colorName}, ${settings.mode} palette\n  shade: '${settings.shade}',\n  light: ${settings.light}\n})`;
   }
   function openBody(name) {
     if (!Mascot.COMPOSED[name] && !Mascot.SHAPES.includes(name)) { closeBody(); return; }
