@@ -323,7 +323,9 @@
     const nx = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width - 0.5) / 0.46)), ny = Math.max(-1, Math.min(1, (0.5 - (e.clientY - r.top) / r.height) / 0.46));
     aim(nx * MAXY, ny * MAXP);
   };
-  const stopFollow = () => { if (!settings.follow) return; settings.follow = false; $('follow').checked = false; if (live) live.o.follow = false; };
+  const stopFollow = () => {   // dragging the pad takes over: no cursor follow, no idle wander
+    for (const k of ['follow', 'idle']) { if (!settings[k]) continue; settings[k] = false; $(k).checked = false; if (live) live.o[k] = false; }
+  };
   pad.addEventListener('pointerdown', e => { pad.setPointerCapture(e.pointerId); pad.classList.add('active'); clearTimeout(manualT); stopFollow(); aimFromPointer(e); });
   pad.addEventListener('pointermove', e => { if (pad.classList.contains('active')) aimFromPointer(e); });
   const release = () => { if (!pad.classList.contains('active')) return; pad.classList.remove('active'); holdThenAuto(); };
