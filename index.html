@@ -20,6 +20,8 @@
   header p{margin:0;color:var(--muted);max-width:62ch}
   h2{font-size:13px;font-weight:600;color:var(--muted);margin:0 0 14px}
   h3{font-size:12px;color:var(--muted);font-weight:600;margin:10px 0 -4px}
+  .h3row{display:flex;align-items:center;justify-content:space-between;margin:10px 0 -4px}
+  .h3row h3,.h3row .switch{margin:0}
   #uniqueBox{display:contents}
   section{margin-top:40px}
   .note{color:var(--muted);font-size:13px;max-width:65ch;margin:10px 0 0}
@@ -60,10 +62,10 @@
   .gazeVals{display:flex;flex-direction:column;gap:4px;font-size:13px}
   .gazeVals output{font:12px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
   .toggles{display:flex;flex-wrap:wrap;gap:6px}
-  .toggles label{font-size:13px;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--line);border-radius:999px;cursor:pointer;user-select:none}
-  .toggles label:has(:checked){background:var(--ink);color:var(--bg);border-color:var(--ink)}
-  .toggles input{position:absolute;opacity:0;width:0;height:0}
-  .swatches label{padding:4px 10px 4px 6px}
+  .toggles > label{font-size:13px;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--line);border-radius:999px;cursor:pointer;user-select:none}
+  .toggles > label:has(:checked){background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .toggles > label > input{position:absolute;opacity:0;width:0;height:0}
+  .swatches > label{padding:4px 10px 4px 6px}
   .swatches > label > i{width:14px;height:14px;border-radius:50%;background:var(--sw);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
   #customDot{background:linear-gradient(90deg,var(--g1,#1E6DF6),var(--g2,#DBDBDB))}
   .gradRow{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}
@@ -71,12 +73,12 @@
   .pop{flex-basis:100%;width:100%;margin-top:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
   #customChip .chev{width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;border-radius:0;background:none;box-shadow:none;transform:translateY(-1px) rotate(45deg);margin-left:2px}
   #customChip .chev{width:6px;height:6px}
-  .cpick{position:relative;display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);height:32px;padding:0 10px 0 8px;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:var(--bg);min-width:0}
-  .cpick b{margin-left:auto}
-  .cpick i{width:16px;height:16px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
-  .cpick b{font:500 12px var(--mono);font-variant-numeric:tabular-nums;margin-left:auto}
-  .cpick input[type=color]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
-  .cpick:hover{border-color:var(--muted)}
+  .hexin{display:flex;align-items:center;gap:6px;height:32px;padding:0 10px 0 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);min-width:0;cursor:text}
+  .hexin i{flex:none;width:16px;height:16px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+  .hexin span{color:var(--muted);font:500 12px var(--mono)}
+  .hexin input{flex:1;min-width:0;width:100%;border:none;background:none;color:var(--ink);font:500 12px var(--mono);text-transform:uppercase;padding:0;margin-left:-4px}
+  .hexin:hover,.hexin:focus-within{border-color:var(--muted)}
+  .hexin.bad{border-color:#d9534f}
   /* switch: track + knob, label after it */
   .switch{display:inline-flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;user-select:none;margin-top:4px}
   .switch input{position:absolute;opacity:0;width:0;height:0}
@@ -132,7 +134,7 @@
   .stage.guides .guide{display:block}
 
   .mode{position:absolute;left:14px;top:14px;display:flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface);z-index:1}
-  .switch.gridToggle{position:absolute;right:14px;top:16px;margin:0;z-index:1}
+  .mode .sep{width:1px;margin:5px 3px;background:var(--line)}
   .mode label{font-size:12px;font-weight:500;padding:4px 10px;border-radius:999px;color:var(--muted);cursor:pointer;user-select:none}
   .mode label:has(:checked){background:var(--ink);color:var(--bg)}
   .mode input{position:absolute;opacity:0;width:0;height:0}
@@ -148,10 +150,11 @@
   .scen button::before{content:'';position:absolute;left:11px;top:50%;transform:translateY(-50%);border-style:solid;border-width:4px 0 4px 7px;border-color:transparent transparent transparent var(--muted)}
   .scen button:hover{background:var(--surface-2)}
   .scen button{overflow:visible}
-  .scen button .ring{position:absolute;inset:-3px;width:calc(100% + 6px);height:calc(100% + 6px);pointer-events:none;overflow:visible}
-  .scen button .ring rect{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linecap:butt;stroke-dasharray:1;stroke-dashoffset:1;opacity:0}
+  .scen button .ring{position:absolute;inset:-2px;width:calc(100% + 4px);height:calc(100% + 4px);pointer-events:none;overflow:visible}
+  .scen button .ring rect{fill:none;stroke:color-mix(in srgb, var(--accent) 60%, #fff);stroke-width:2;stroke-linecap:butt;stroke-dasharray:1;stroke-dashoffset:1;opacity:0}
   .scen button[aria-pressed]{background:var(--surface-2)}
-  .scen button[aria-pressed]::before{border-color:transparent transparent transparent var(--accent)}
+  .scen button[aria-pressed]::before{width:9px;height:9px;border:1.5px solid var(--line);border-top-color:var(--accent);border-radius:50%;left:10px;margin-top:-0.5px;animation:scenSpin .8s linear infinite}
+  @keyframes scenSpin{to{transform:translateY(-50%) rotate(360deg)}}
   .scen button[aria-pressed] .ring rect{opacity:1;animation:scenRing var(--dur,1s) linear forwards}
   @keyframes scenRing{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
   @media (prefers-reduced-motion:reduce){.scen button[aria-pressed] .ring rect{animation:none;stroke-dashoffset:0}}
@@ -192,8 +195,9 @@
       <div class="mode" role="group" aria-label="Canvas mode">
         <label><input type="radio" name="mode" value="light" checked>Light</label>
         <label><input type="radio" name="mode" value="dark">Dark</label>
+        <i class="sep"></i>
+        <label><input type="checkbox" id="wireframe">Grid</label>
       </div>
-      <label class="switch gridToggle"><input type="checkbox" id="wireframe"><span class="track"><span class="knob"></span></span><span>Show grid</span></label>
       <div class="guide"><b id="guideLabel">240</b><i>safe area</i></div>
       <svg id="dLive" aria-label="Selected body, live"></svg>
     </div>
@@ -218,19 +222,17 @@
         <label><input type="checkbox" id="lean" checked>Lean</label>
         <label><input type="checkbox" id="breathe" checked>Breathe</label>
       </div>
-      <h3>Colour</h3>
+      <div class="h3row"><h3>Colour</h3><label class="switch"><input type="checkbox" id="gradient"><span class="track"><span class="knob"></span></span><span>Shader</span></label></div>
       <div class="toggles swatches" id="colorPick" style="position:relative"><label id="customChip"><input type="radio" name="color" id="color-custom" autocomplete="off"><i id="customDot"></i>Gradient<i class="chev"></i></label>
       <div id="customBox" class="pop" hidden>
         <div class="row"><span>Colours</span><div class="gradRow">
-          <label class="cpick" title="From"><i id="g1dot"></i><b id="g1hex">#1E6DF6</b><input type="color" id="g1" value="#1E6DF6" aria-label="Gradient start colour"></label>
+          <label class="hexin" title="From"><i id="g1dot"></i><span>#</span><input type="text" id="g1" value="1E6DF6" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Gradient start colour"></label>
           <i class="arrow"></i>
-          <label class="cpick" title="To"><i id="g2dot"></i><b id="g2hex">#DBDBDB</b><input type="color" id="g2" value="#DBDBDB" aria-label="Gradient end colour"></label>
+          <label class="hexin" title="To"><i id="g2dot"></i><span>#</span><input type="text" id="g2" value="DBDBDB" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Gradient end colour"></label>
         </div></div>
         <div class="row" style="margin-top:10px"><span>Angle</span><div class="fs"><input type="range" id="gAngle" min="0" max="360" value="90" step="5" aria-label="Gradient angle"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
       </div></div>
-      <label class="switch"><input type="checkbox" id="gradient"><span class="track"><span class="knob"></span></span><span>Shader</span></label>
-      <h3>Face</h3>
-      <label class="switch"><input type="checkbox" id="mouthOn" checked><span class="track"><span class="knob"></span></span><span>Mouth</span></label>
+      <div class="h3row"><h3>Face</h3><label class="switch"><input type="checkbox" id="mouthOn" checked><span class="track"><span class="knob"></span></span><span>Mouth</span></label></div>
       <div class="row"><span>Smile</span><div class="fs"><input type="range" id="smile" min="-1" max="1" value="0.4" step="0.05" aria-label="Mouth curve"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
       <h3>Scenarios</h3>
       <div class="scen" id="dScen"></div>
@@ -362,7 +364,8 @@
     for (const m of statics) { Object.assign(m.o, opts, { color: cardColor(), gradientAngle: settings.gAngle }); m.render(); }
     if (settings.colorName !== 'custom') $('customBox').hidden = true;
     $('customDot').style.setProperty('--g1', settings.g1); $('customDot').style.setProperty('--g2', settings.g2);
-    $('g1dot').style.background = settings.g1; $('g2dot').style.background = settings.g2; $('g1hex').textContent = settings.g1.toUpperCase(); $('g2hex').textContent = settings.g2.toUpperCase();
+    $('g1dot').style.background = settings.g1; $('g2dot').style.background = settings.g2;
+    for (const k of ['g1', 'g2']) if (document.activeElement !== $(k)) $(k).value = settings[k].slice(1).toUpperCase();
     $('color-custom').checked = settings.colorName === 'custom';
     document.documentElement.dataset.theme = settings.mode;
     for (const r of document.querySelectorAll('input[name=mode], input[name=modeTop]')) r.checked = r.value === settings.mode;
@@ -393,8 +396,12 @@
   $('mouthOn').addEventListener('change', e => { settings.mouth = e.target.checked; applySettings(); });
   $('size').addEventListener('input', () => { $('stage').style.setProperty('--max', $('size').value + 'px'); $('guideLabel').textContent = $('size').value + (+$('size').value === 480 ? ' max' : ''); });
   $('gAngle').addEventListener('input', () => { settings.gAngle = +$('gAngle').value; applySettings(); });
-  $('g1').addEventListener('input', () => { settings.g1 = $('g1').value; applySettings(); });
-  $('g2').addEventListener('input', () => { settings.g2 = $('g2').value; applySettings(); });
+  for (const k of ['g1', 'g2']) {                                       // typed hex: applies as soon as it is a valid 3- or 6-digit code
+    const inp = $(k), parse = () => { const v = inp.value.replace('#', '').trim(); return /^[0-9a-f]{6}$/i.test(v) ? '#' + v : /^[0-9a-f]{3}$/i.test(v) ? '#' + v.split('').map(c => c + c).join('') : null; };
+    inp.addEventListener('input', () => { const hex = parse(); inp.parentElement.classList.toggle('bad', !hex); if (hex) { settings[k] = hex; applySettings(); } });
+    inp.addEventListener('blur', () => { inp.parentElement.classList.remove('bad'); inp.value = settings[k].slice(1).toUpperCase(); });
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+  }
   for (const r of document.querySelectorAll('input[name=mode], input[name=modeTop]')) r.addEventListener('change', e => { settings.mode = e.target.value; applySettings(); });
   for (const k of ['follow', 'idle', 'autoBlink', 'lean', 'breathe', 'wireframe', 'gradient']) $(k).addEventListener('change', e => { settings[k] = e.target.checked; applySettings(); });
   // gaze pad: x -> yaw (-60..60), y -> pitch (40..-40)
@@ -475,9 +482,9 @@
     const chip = (host, [label, demo, hint]) => {
       const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.title = hint; b.addEventListener('click', () => runScenario(demo, b, hint));
       const ring = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); ring.setAttribute('class', 'ring');
-      const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect'); r.setAttribute('x', 1.5); r.setAttribute('y', 1.5); r.setAttribute('width', 'calc(100% - 3px)'); r.setAttribute('height', 'calc(100% - 3px)'); r.setAttribute('pathLength', 1);
+      const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect'); r.setAttribute('x', 1); r.setAttribute('y', 1); r.setAttribute('width', 'calc(100% - 2px)'); r.setAttribute('height', 'calc(100% - 2px)'); r.setAttribute('pathLength', 1);
       ring.append(r); b.append(ring); host.append(b);
-      requestAnimationFrame(() => { const rad = (b.offsetHeight + 6 - 3) / 2; r.setAttribute('rx', rad); r.setAttribute('ry', rad); });   // true pill: corner radius = half the height
+      requestAnimationFrame(() => { const rad = (b.offsetHeight + 4 - 2) / 2; r.setAttribute('rx', rad); r.setAttribute('ry', rad); });   // true pill: corner radius = half the height
     };
     $('dScen').innerHTML = ''; $('dScenUnique').innerHTML = '';
     for (const sc of scen.base) chip($('dScen'), sc);
