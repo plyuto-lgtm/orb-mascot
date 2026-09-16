@@ -305,10 +305,14 @@
       this.rimGrad.append(el('stop', { offset: '0', 'stop-color': '#fff', 'stop-opacity': '0' }), el('stop', { offset: '0.62', 'stop-color': '#fff', 'stop-opacity': '0' }), el('stop', { offset: '1', 'stop-color': '#fff', 'stop-opacity': '0.3' }));
       this.lin = el('linearGradient', { id: id + 'l', gradientUnits: 'userSpaceOnUse' });
       this.linStops = [el('stop', { offset: '0' }), el('stop', { offset: '1' })]; this.lin.append(...this.linStops);
-      this.tintGrad = el('radialGradient', { id: id + 't', gradientUnits: 'userSpaceOnUse' });
-      this.tintGrad.append(el('stop', { offset: '0', 'stop-color': '#fff', 'stop-opacity': '0.34' }), el('stop', { offset: '0.65', 'stop-color': '#fff', 'stop-opacity': '0' }), el('stop', { offset: '1', 'stop-color': '#000', 'stop-opacity': '0.12' }));
-      defs.append(this.specGrad, this.rimGrad, this.lin, this.tintGrad); this.specId = id + 's'; this.rimId = id + 'r'; this.linId = id + 'l';
-      this.tintEl = el('rect', { x: -40, y: -40, width: 280, height: 280, fill: `url(#${id}t)`, mask: `url(#${id}c)` });
+      // shader = two separate layers over the flat colour: a white light (centre to 0.65) and a black shadow (0.65 to the rim); each fades to its own colour, so no mid tint is needed
+      this.lightGrad = el('radialGradient', { id: id + 't', gradientUnits: 'userSpaceOnUse' });
+      this.lightGrad.append(el('stop', { offset: '0', 'stop-color': '#fff', 'stop-opacity': '0.34' }), el('stop', { offset: '0.65', 'stop-color': '#fff', 'stop-opacity': '0' }));
+      this.shadowGrad = el('radialGradient', { id: id + 'd', gradientUnits: 'userSpaceOnUse' });
+      this.shadowGrad.append(el('stop', { offset: '0.65', 'stop-color': '#000', 'stop-opacity': '0' }), el('stop', { offset: '1', 'stop-color': '#000', 'stop-opacity': '0.12' }));
+      defs.append(this.specGrad, this.rimGrad, this.lin, this.lightGrad, this.shadowGrad); this.specId = id + 's'; this.rimId = id + 'r'; this.linId = id + 'l';
+      this.lightEl = el('rect', { x: -40, y: -40, width: 280, height: 280, fill: `url(#${id}t)`, mask: `url(#${id}c)` });
+      this.shadowEl = el('rect', { x: -40, y: -40, width: 280, height: 280, fill: `url(#${id}d)`, mask: `url(#${id}c)` });
       this.blur = el('feGaussianBlur', { stdDeviation: 7, result: 'b' });
       const goo = el('filter', { id: id + 'f', x: '-20%', y: '-20%', width: '140%', height: '140%' });
       goo.append(this.blur, el('feColorMatrix', { in: 'b', type: 'matrix', values: '1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -11' }));
@@ -334,7 +338,7 @@
       this.over = el('g', {});
       this.mouthEl = el('path', { fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
       this.face.append(this.rimEl, this.spec, this.wire, this.eyeL, this.eyeR, this.starL, this.starR, this.mouthEl, this.over);
-      this.body.append(this.sphere, this.goo, this.tintEl, this.face);
+      this.body.append(this.sphere, this.goo, this.lightEl, this.shadowEl, this.face);
       this.root.append(this.body); s.append(this.root);
     }
 
@@ -446,18 +450,18 @@
       }
       if (style === 'gradient') { const f = this._frame(0, 28); this.grad.setAttribute('cx', (f.m[4] - 0.12 * o.radius).toFixed(1)); this.grad.setAttribute('cy', (f.m[5] - 0.1 * o.radius).toFixed(1)); }
       const tintOver = o.shade === 'gradient' && o.shaded !== false;                                 // shader: a light zone that follows the gaze, blended over the flat colour
-      this.tintEl.style.display = tintOver ? '' : 'none';
+      this.lightEl.style.display = this.shadowEl.style.display = tintOver ? '' : 'none';
       if (tintOver) {
-        const f = this._frame(0, 28); this.tintGrad.setAttribute('cx', (f.m[4] - 0.12 * o.radius).toFixed(1)); this.tintGrad.setAttribute('cy', (f.m[5] - 0.1 * o.radius).toFixed(1)); this.tintGrad.setAttribute('r', (1.35 * o.radius).toFixed(1));
+        const f = this._frame(0, 28), cx = (f.m[4] - 0.12 * o.radius).toFixed(1), cy = (f.m[5] - 0.1 * o.radius).toFixed(1), r = (1.35 * o.radius).toFixed(1);
+        for (const g of [this.lightGrad, this.shadowGrad]) { g.setAttribute('cx', cx); g.setAttribute('cy', cy); g.setAttribute('r', r); }
         const c = hex2(baseHex), chroma = (Math.max(...c) - Math.min(...c)) / 255, tk = 'tint|' + (chroma > 0.12) + '|' + baseHex;
         if (this._tintKey !== tk) {                                                                 // chromatic colours: soft-light keeps the hue clean; greys: plain white/black overlay
-          this._tintKey = tk; const st = this.tintGrad.children, soft = chroma > 0.12;
-          this.tintEl.style.mixBlendMode = soft ? 'soft-light' : 'normal';
-          st[1].setAttribute('stop-color', baseHex);                                                // mid stop carries the body colour (gradient body: its centre mix) so there is no grey band
+          this._tintKey = tk; const soft = chroma > 0.12;
+          this.lightEl.style.mixBlendMode = this.shadowEl.style.mixBlendMode = soft ? 'soft-light' : 'normal';
           // intensity follows the body's lightness: light colours get a strong highlight and a soft edge, dark colours a soft highlight and a strong edge
           const L = lum(c), t = clamp01((L - 0.15) / 0.7);
           const peak = soft ? 0.4 + 0.55 * t : 0.2 + 0.12 * L, edge = soft ? 0.95 - 0.4 * t : 0.16 - 0.06 * L;
-          st[0].setAttribute('stop-opacity', peak.toFixed(2)); st[1].setAttribute('stop-opacity', '0'); st[2].setAttribute('stop-opacity', edge.toFixed(2));
+          this.lightGrad.children[0].setAttribute('stop-opacity', peak.toFixed(2)); this.shadowGrad.children[1].setAttribute('stop-opacity', edge.toFixed(2));
         }
       }
       const flat = style === 'flat' || style === 'gradient', fill = custom ? `url(#${this.linId})` : flat ? o.color : `url(#${this.gradId})`;
