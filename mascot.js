@@ -25,7 +25,7 @@
     for (let i = 0; i < 14 && !inGamut(c); i++) { a *= 0.85; b *= 0.85; c = ok2rgb([L, a, b]); }                  // out of gamut: pull chroma in, keep the lightness
     return '#' + c.map(v => l2s(v).toString(16).padStart(2, '0')).join(''); };
   // shader tints: the contrast budget is split by the room the colour has in each direction, so dark bodies get most of it as light, light bodies as shadow
-  const tintOf = (hex, dir) => { const L = rgb2ok(hex2(hex))[0]; return shiftL(hex, dir > 0 ? Math.min(0.03 + 0.15 * (1 - L), 0.8 * (1 - L)) : -Math.min(0.03 + 0.1 * L, 0.8 * L)); };
+  const tintOf = (hex, dir) => { const L = rgb2ok(hex2(hex))[0]; return shiftL(hex, dir > 0 ? Math.min(0.03 + 0.15 * (1 - L), 0.8 * (1 - L)) : -Math.min(0.04 + 0.05 * L, 0.8 * L)); };
   const el = (n, a) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
 
   // body silhouettes, centred on (100,100); sphereR = radius of the inner sphere the eyes ride on
