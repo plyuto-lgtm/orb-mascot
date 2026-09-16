@@ -306,7 +306,7 @@
       this.lin = el('linearGradient', { id: id + 'l', gradientUnits: 'userSpaceOnUse' });
       this.linStops = [el('stop', { offset: '0' }), el('stop', { offset: '1' })]; this.lin.append(...this.linStops);
       this.tintGrad = el('radialGradient', { id: id + 't', gradientUnits: 'userSpaceOnUse' });
-      this.tintGrad.append(el('stop', { offset: '0', 'stop-color': '#fff', 'stop-opacity': '0.34' }), el('stop', { offset: '0.55', 'stop-color': '#fff', 'stop-opacity': '0.1' }), el('stop', { offset: '1', 'stop-color': '#000', 'stop-opacity': '0.12' }));
+      this.tintGrad.append(el('stop', { offset: '0', 'stop-color': '#fff', 'stop-opacity': '0.34' }), el('stop', { offset: '0.3', 'stop-color': '#fff', 'stop-opacity': '0.2' }), el('stop', { offset: '0.6', 'stop-color': '#fff', 'stop-opacity': '0' }), el('stop', { offset: '1', 'stop-color': '#000', 'stop-opacity': '0.12' }));
       defs.append(this.specGrad, this.rimGrad, this.lin, this.tintGrad); this.specId = id + 's'; this.rimId = id + 'r'; this.linId = id + 'l';
       this.tintEl = el('rect', { x: -40, y: -40, width: 280, height: 280, fill: `url(#${id}t)`, mask: `url(#${id}c)` });
       this.blur = el('feGaussianBlur', { stdDeviation: 7, result: 'b' });
@@ -453,8 +453,8 @@
         if (this._tintKey !== tk) {                                                                 // chromatic colours: soft-light keeps the hue clean; greys: plain white/black overlay
           this._tintKey = tk; const st = this.tintGrad.children, soft = chroma > 0.12;
           this.tintEl.style.mixBlendMode = soft ? 'soft-light' : 'normal';
-          st[1].setAttribute('stop-color', baseHex);                                                // mid stop carries the body colour (gradient body: its centre mix) so the fade has no grey band
-          st[0].setAttribute('stop-opacity', soft ? '1' : '0.34'); st[1].setAttribute('stop-opacity', soft ? '0' : '0.1'); st[2].setAttribute('stop-opacity', soft ? '0.7' : '0.12');
+          st[2].setAttribute('stop-color', baseHex);                                                // fade-out stop carries the body colour (gradient body: its centre mix) so there is no grey band
+          st[0].setAttribute('stop-opacity', soft ? '0.7' : '0.3'); st[1].setAttribute('stop-opacity', soft ? '0.45' : '0.18'); st[2].setAttribute('stop-opacity', '0'); st[3].setAttribute('stop-opacity', soft ? '0.7' : '0.12');   // a broad, soft highlight rather than a tight bright spot
         }
       }
       const flat = style === 'flat' || style === 'gradient', fill = custom ? `url(#${this.linId})` : flat ? o.color : `url(#${this.gradId})`;
