@@ -338,7 +338,7 @@
       this.over = el('g', {});
       this.mouthEl = el('path', { fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
       this.face.append(this.rimEl, this.spec, this.wire, this.eyeL, this.eyeR, this.starL, this.starR, this.mouthEl, this.over);
-      this.body.append(this.sphere, this.goo, this.lightEl, this.shadowEl, this.face);
+      this.body.append(this.sphere, this.goo, this.shadowEl, this.lightEl, this.face);   // shadow first, light on top
       this.root.append(this.body); s.append(this.root);
     }
 
@@ -457,7 +457,7 @@
         const c = hex2(baseHex), chroma = (Math.max(...c) - Math.min(...c)) / 255, tk = 'tint|' + (chroma > 0.12) + '|' + baseHex;
         if (this._tintKey !== tk) {                                                                 // chromatic colours: soft-light keeps the hue clean; greys: plain white/black overlay
           this._tintKey = tk; const soft = chroma > 0.12;
-          this.lightEl.style.mixBlendMode = this.shadowEl.style.mixBlendMode = soft ? 'soft-light' : 'normal';
+          this.lightEl.style.mixBlendMode = soft ? 'soft-light' : 'normal'; this.shadowEl.style.mixBlendMode = soft ? 'overlay' : 'normal';
           // intensity follows the body's lightness: light colours get a strong highlight and a soft edge, dark colours a soft highlight and a strong edge
           const L = lum(c), t = clamp01((L - 0.15) / 0.7);
           const peak = soft ? 0.4 + 0.55 * t : 0.2 + 0.12 * L, edge = soft ? 0.95 - 0.4 * t : 0.16 - 0.06 * L;
