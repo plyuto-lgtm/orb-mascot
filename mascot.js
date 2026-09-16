@@ -528,7 +528,7 @@
     // run an ad-hoc act definition {dur, run} on any body
     act(def) { this._act = { def, t0: performance.now() }; this.manual = true; this.look(0, 0); return def.dur * 1000; }
     // thinking: the two eyes orbit their midpoint like a spinner, three turns, easing in and out
-    think() { return this.act({ dur: 3.0, run: (t, A) => { const u = seg(t, 0, 2.9); A.eyeOrbit = 1080 * E.io(u); A.eyeScale = 1 - 0.15 * S(Math.PI * u); A.mouthTrim = 1 - E.io(seg(t, 0, 0.5)) + E.io(seg(t, 2.5, 2.95)); } }); }
+    think() { return this.act({ dur: 3.0, run: (t, A) => { const u = seg(t, 0, 2.9); A.eyeOrbit = 1080 * E.io(u); A.eyeScale = 1 - 0.15 * S(Math.PI * u); A.mouthTrim = 1 - E.io(seg(t, 0, 0.9)) + E.io(seg(t, 2.2, 2.95)); } }); }
     twitch(i = 1) { this._twitch = { i, t0: performance.now(), p: 0 }; }   // one ear wiggle on a body whose anim uses it (bear)
     poke() { this._poke = 1; this.set({ eyeScale: 1.22, squash: 1.1, mouth: 0.9 }); clearTimeout(this._pokeT); this._pokeT = setTimeout(() => { this.set({ eyeScale: 1, squash: 1, mouth: null }); this.blink(1); }, 420); }
 
