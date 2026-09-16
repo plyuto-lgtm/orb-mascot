@@ -64,11 +64,10 @@
   .toggles label:has(:checked){background:var(--ink);color:var(--bg);border-color:var(--ink)}
   .toggles input{position:absolute;opacity:0;width:0;height:0}
   .swatches label{padding:4px 10px 4px 6px}
-  .swatches i{width:14px;height:14px;border-radius:50%;background:var(--sw);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+  .swatches > label > i{width:14px;height:14px;border-radius:50%;background:var(--sw);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
   #customDot{background:linear-gradient(90deg,var(--g1,#1E6DF6),var(--g2,#DBDBDB))}
   .gradRow{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}
-  .swatches .gradRow i.arrow{width:7px;height:7px;border-radius:0;background:none;box-shadow:none;border-top:1.5px solid var(--muted);border-right:1.5px solid var(--muted);transform:rotate(45deg);margin:0 2px}
-  .swatches .cpick i{width:16px;height:16px}
+  .gradRow i.arrow{width:7px;height:7px;border-top:1.5px solid var(--muted);border-right:1.5px solid var(--muted);transform:rotate(45deg);margin:0 2px}
   .pop{flex-basis:100%;width:100%;margin-top:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
   #customChip .chev{width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;border-radius:0;background:none;box-shadow:none;transform:translateY(-1px) rotate(45deg);margin-left:2px}
   #customChip .chev{width:6px;height:6px}
