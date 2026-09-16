@@ -180,7 +180,7 @@
         run: (t, A) => { const u = seg(t, 0, 2.7), k = spr0(u, 4.5, 6);                                       // master: starts at rest, springy 0 -> 1 with a slight overshoot
           const kc = clamp01(k), ss = x => x * x * x * (x * (x * 6 - 15) + 10), m = Math.min(ss(clamp01(kc / 0.5)), 1 - ss(clamp01((kc - 0.65) / 0.35)));   // eyes glide together over the first half of the turn, hold, and part over the last third; quintic edges
           A.pieces = cs => cs.map((p, i) => i ? rotP(p, 180 * k) : p);
-          A.roundMul = 1 - 0.6 * m; A.eyeMerge = m; A.eyeScale = 1 + 0.6 * m; A.mouthCurve = 0.4 + 0.6 * (1 - m) * clamp01((kc - 0.6) / 0.4); } },
+          A.roundMul = 1 - 0.6 * m; A.eyeMerge = m; A.eyeScale = 1 + 0.6 * m; A.mouthTrim = 1 - m; A.mouthCurve = 0.4 + 0.6 * (1 - m) * clamp01((kc - 0.6) / 0.4); } },
       inflate: { label: 'Inflate', hint: 'Swells into one big circle with a soft spring, holds, then shrinks past its size and springs back. One curve drives it all.', dur: 3.15,
         run: (t, A) => { const p = t < 1.0 ? spr0(seg(t, 0, 1.0), 5, 5.5) : t < 1.5 ? 1 : 1 - spr0(seg(t, 1.5, 3.1), 4, 6.5);   // master: in at rest, hold, spring out through an undershoot
           A.pieces = cs => cs.map((p2, i) => i ? [p2[0], p2[1], p2[2] * (1 + 0.1 * p)] : [p2[0], p2[1], p2[2] * (1 + 0.22 * p)]);
@@ -360,7 +360,9 @@
       let f = this._frame(lon, lat);
       if (A && (A.eyeOrbit || A.eyeMerge)) {                                                   // spinner / merge: a perfect screen-space circle around the midpoint, eyes stay round
         const fl = this._frame(-o.eyeLon, o.eyeLat), fr = this._frame(o.eyeLon, o.eyeLat);
-        const cx = (fl.m[4] + fr.m[4]) / 2, cy = (fl.m[5] + fr.m[5]) / 2, d = Math.hypot(fr.m[4] - fl.m[4], fr.m[5] - fl.m[5]) / 2 * (1 - (A.eyeMerge || 0)) * (A.orbitScale || 1);
+        const mg = A.eyeMerge || 0, su = this._surf, R = o.radius;
+        const cx = (fl.m[4] + fr.m[4]) / 2 * (1 - mg) + (100 + R * su.cx) * mg, cy = (fl.m[5] + fr.m[5]) / 2 * (1 - mg) + (100 + R * su.cy) * mg;   // merged eye settles on the body centre
+        const d = Math.hypot(fr.m[4] - fl.m[4], fr.m[5] - fl.m[5]) / 2 * (1 - mg) * (A.orbitScale || 1);
         const th = (A.eyeOrbit || 0) * D2R + (side < 0 ? Math.PI : 0);
         f = { m: [1, 0, 0, 1, cx + d * Math.cos(th), cy + d * Math.sin(th)], z: 1 }; round = true;
       }
@@ -378,7 +380,7 @@
     _mouth(stroke) {
       const o = this.o, A = this._A, el = this.mouthEl;
       const trim = A && A.mouthTrim != null ? A.mouthTrim : 1;
-      if (!o.mouth || (A && A.eyeMerge) || trim <= 0.01) { el.setAttribute('d', ''); return; }
+      if (!o.mouth || trim <= 0.01) { el.setAttribute('d', ''); return; }
       const f = this._frame(0, o.eyeLat - o.mouthDrop); if (f.z < -0.05) { el.setAttribute('d', ''); return; }
       const curve = A && A.mouthCurve != null ? A.mouthCurve : (this.mouth == null ? o.mouthCurve : this.mouth);
       const len = A && A.mouthLen != null ? A.mouthLen : this.mouthLen, side = A && A.mouthSide ? A.mouthSide : this.mouthSide;   // side: +1 keeps the right end, trims the left (smirk to the right)
