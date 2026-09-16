@@ -459,7 +459,7 @@
         const f = this._frame(0, 28), cx = (f.m[4] - 0.12 * o.radius).toFixed(1), cy = (f.m[5] - 0.1 * o.radius).toFixed(1), r = (1.35 * o.radius).toFixed(1);
         for (const g of [this.lightGrad, this.shadowGrad]) { g.setAttribute('cx', cx); g.setAttribute('cy', cy); g.setAttribute('r', r); }
         if (this._tintKey !== baseHex) {                                                            // light = the body colour with HSL lightness raised, shadow = lowered; hue and saturation stay put, no blend modes
-          this._tintKey = baseHex; const light = shiftL(baseHex, 0.14), shadow = shiftL(baseHex, -0.12);
+          this._tintKey = baseHex; const light = shiftL(baseHex, 0.14), shadow = shiftL(baseHex, -0.07);
           const ls = this.lightGrad.children, ss = this.shadowGrad.children;
           ls[0].setAttribute('stop-color', light); ls[1].setAttribute('stop-color', light); ls[0].setAttribute('stop-opacity', '1');
           ss[0].setAttribute('stop-color', shadow); ss[1].setAttribute('stop-color', shadow); ss[1].setAttribute('stop-opacity', '1');
