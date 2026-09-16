@@ -380,7 +380,9 @@
         const r0 = w / 2, pts = []; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = r0 * (1 + star * (i % 2 ? -0.55 : 0.28)); pts.push([Math.cos(a) * rr, Math.sin(a) * rr]); }
         const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2]; const soft = 1 - 0.85 * star;   // soft corners at 0, sharper tips at 1
         let d = ''; for (let i = 0; i < 10; i++) { const p = pts[i], q = pts[(i + 1) % 10], m = mid(p, q); const c = [p[0] + (m[0] - p[0]) * soft, p[1] + (m[1] - p[1]) * soft]; if (!i) { const m0 = mid(pts[9], pts[0]); d = `M ${m0[0].toFixed(2)} ${m0[1].toFixed(2)} `; } d += `Q ${p[0].toFixed(2)} ${p[1].toFixed(2)} ${m[0].toFixed(2)} ${m[1].toFixed(2)} `; }
-        sp.setAttribute('d', d + 'Z'); sp.setAttribute('transform', tf); sp.style.visibility = f.z > -0.05 ? 'visible' : 'hidden'; rect.style.visibility = 'hidden';
+        const us = sx * (1 + 0.1 * star);                                                       // stars stay upright and round, only scaled a little
+        sp.setAttribute('d', d + 'Z'); sp.setAttribute('transform', `translate(${(jx + f.m[4]).toFixed(2)} ${(jy + f.m[5]).toFixed(2)}) scale(${us.toFixed(3)})`);
+        sp.style.visibility = f.z > -0.05 ? 'visible' : 'hidden'; rect.style.visibility = 'hidden';
       } else { sp.setAttribute('d', ''); rect.style.visibility = f.z > -0.05 ? 'visible' : 'hidden'; }
       return f.z;
     }
@@ -560,7 +562,7 @@
     act(def) { this._fade = null; this._act = { def, t0: performance.now() }; this.manual = true; this.look(0, 0); return def.dur * 1000; }
     // surprised: eyes morph into stars and grow, the mouth pulls into a short 'oh', the body gives a small start
     surprise() { return this.act({ dur: 1.7, run: (t, A) => { const inA = E.back(seg(t, 0, 0.28)), out = 1 - E.io(seg(t, 1.2, 1.6)), k = Math.min(inA, out);
-      A.eyeStar = clamp01(k); A.eyeScale = 1 + 0.3 * k; A.mouthCurve = -0.25; A.mouthLen = 1 - 0.55 * k; A.dy = -5 * pulse(t, 0, 0.35); A.sy = 1 + 0.03 * pulse(t, 0, 0.35); } }); }
+      A.eyeStar = clamp01(k); A.eyeScale = 1 + 0.2 * k; A.mouthCurve = 0.4 + 0.5 * k; A.mouthLen = 1 - 0.25 * k; A.dy = -5 * pulse(t, 0, 0.35); A.sy = 1 + 0.03 * pulse(t, 0, 0.35); } }); }
     // thinking: the two eyes orbit their midpoint like a spinner, three turns, easing in and out
     think() { return this.act({ dur: 3.0, run: (t, A) => { const u = seg(t, 0, 2.9), w = S(Math.PI * u); A.eyeOrbit = 1080 * E.io(u); A.eyeScale = 1 + 0.18 * w; A.orbitScale = 1 + 0.28 * w; A.mouthTrim = 1 - E.io(seg(t, 0, 0.9)) + E.io(seg(t, 2.2, 2.95)); } }); }
     twitch(i = 1) { this._twitch = { i, t0: performance.now(), p: 0 }; }   // one ear wiggle on a body whose anim uses it (bear)
