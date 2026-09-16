@@ -300,7 +300,7 @@
     ['Idle', {y:0,p:0}], ['Glance left', {y:-15,p:0}], ['Glance right', {y:15,p:0}], ['Look left', {y:-30,p:0}], ['Look right', {y:30,p:0}],
     ['Look up', {y:0,p:22}], ['Look down', {y:0,p:-22}], ['Up-left', {y:-24,p:16}], ['Up-right', {y:24,p:16}], ['Down-left', {y:-24,p:-14}], ['Down-right', {y:24,p:-14}],
     ['Far left', {y:-40,p:0}], ['Far right', {y:40,p:0}], ['Blink', {y:0,p:0,blink:1}], ['Half closed', {y:0,p:0,blink:0.55}], ['Sleepy', {y:0,p:-10,blink:0.7}],
-    ['Surprised', {y:0,p:6,scale:1.25,mouth:-0.15}], ['Happy', {y:0,p:0,squash:0.45,scale:1.05,mouth:1}], ['Suspicious', {y:22,p:-4,squash:0.55,mouth:0}], ['Thinking', {y:26,p:20,squash:0.8,mouth:0.1}], ['Sad', {y:-10,p:-14,squash:0.85,mouth:-0.8}],
+    ['Surprised', {y:0,p:6,scale:1.25,mouth:-0.15}], ['Happy', {y:0,p:0,squash:0.45,scale:1.05,mouth:1}], ['Suspicious', {y:22,p:-4,squash:0.55,mouth:0.1,side:0.7,tilt:8}], ['Thinking', {y:26,p:20,squash:0.8,mouth:0.1}], ['Sad', {y:-10,p:-14,squash:0.85,mouth:-0.8}],
   ];
 
   // ---------- filled slider ----------
@@ -418,8 +418,8 @@
       case 'turn':  m.set({ mouth: 0.7 }); dur = seq([[-36, 0], [36, 0]], 1300); at(dur - 300, () => m.set({ mouth: null })); break;
       case 'pitch': m.set({ mouth: 0.7 }); dur = seq([[0, 26], [0, -26]], 1300); at(dur - 300, () => m.set({ mouth: null })); break;
       case 'fast':  m.set({ mouth: 0.15, mouthLen: 0.8 }); dur = seq([[36, 0], [-36, 0], [36, 0], [-36, 0]], 420);
-        [1, -1, 1, -1].forEach((d, i) => at(i * 420, () => m.set({ mouthSide: d })));            // smirk toward each turn
-        at(dur - 300, () => m.set({ mouth: null, mouthSide: 0, mouthLen: 1 })); break;
+        [1, -1, 1, -1].forEach((d, i) => at(i * 420, () => m.set({ mouthSide: d, mouthTilt: 9 * d })));   // smirk and tilt toward each turn
+        at(dur - 300, () => m.set({ mouth: null, mouthSide: 0, mouthLen: 1, mouthTilt: 0 })); break;
       case 'poke':  m.look(0, 0); m.poke(); dur = 900; break;
       case 'blink': m.look(0, 0); m.set({ mouth: 0.8 }); m.blink(2); dur = 800; at(700, () => m.set({ mouth: null })); break;
       case 'twitch': m.look(0, 0); m.twitch(1 + Math.floor(Math.random() * 2)); dur = 650; break;
@@ -472,7 +472,7 @@
       const extra = []; if (s.blink) extra.push('blink ' + s.blink); if (s.scale) extra.push('×' + s.scale); if (s.squash) extra.push('squash ' + s.squash); if (s.mouth !== undefined) extra.push('mouth ' + s.mouth);
       sm.textContent = `${s.y} / ${s.p}` + (extra.length ? '  ' + extra.join(' ') : '');
       c.append(svg, b, sm); $('dStates').append(c);
-      const m = new Mascot(svg, { body }); m.snap(s.y, s.p); m.setNow({ blink: s.blink || 0, eyeScale: s.scale || 1, squash: s.squash || 1, mouth: s.mouth === undefined ? null : s.mouth }); statics.push(m);
+      const m = new Mascot(svg, { body }); m.snap(s.y, s.p); m.setNow({ blink: s.blink || 0, eyeScale: s.scale || 1, squash: s.squash || 1, mouth: s.mouth === undefined ? null : s.mouth, mouthSide: s.side || 0, mouthTilt: s.tilt || 0 }); statics.push(m);
     }
     $('dSizes').innerHTML = '';
     for (const px of [16, 24, 32, 48, 64, 96, 128]) {

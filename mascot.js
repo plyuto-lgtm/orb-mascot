@@ -106,7 +106,7 @@
       bell: { label: 'Bell', hint: 'Swings from its top nub like an old alarm-clock bell, ringing down to rest.', dur: 3.0,
         run: (t, A) => { const e = Math.exp(-t / 1.1); A.rot = 18 * S(PI2 * t / 0.85) * e; A.pivotY = -0.98;
           const lag = 0.05 * S(PI2 * t / 0.85 - 1.2) * e; A.pieces = cs => cs.map((p, i) => i === 2 ? [p[0] + lag, p[1], p[2]] : p);
-          A.mouthCurve = 0.5 + 0.4 * e; } },
+          A.mouthCurve = 0.5 + 0.4 * e; A.mouthTilt = -0.35 * A.rot; } },
       propeller: { label: 'Propeller', hint: 'Eyes bump, then the nubs orbit the core two full turns; the body shrinks with the speed of the spin.', dur: 2.9,
         run: (t, A) => { const b = pulse(t, 0, 0.45); A.eyeScale = 1 + 0.3 * b; A.eyeSquash = 1 - 0.15 * b;
           const u = seg(t, 0.45, 2.75), th = 720 * E.io(u);
@@ -126,7 +126,7 @@
       piano: { label: 'Piano', hint: 'Presses its tail bumps one after another like piano keys; the idle keys shrink and lean away.', dur: 3.3,
         run: (t, A) => { const order = [1, 2, 3, 2, 1, 2, 3, 3, 2], step = 0.36, k = Math.min(order.length - 1, Math.floor(t / step)), u = (t % step) / step, pr = t < order.length * step ? S(Math.PI * u) : 0, key = order[k];
           A.pieces = cs => { const kx = cs[key][0]; return cs.map((p, i) => { if (!i) return p; if (i === key) return [p[0], p[1] + 0.09 * pr, p[2] * (1 - 0.12 * pr)]; const away = Math.sign(p[0] - kx) || (i < key ? -1 : 1); return [p[0] + away * 0.06 * pr, p[1] - 0.03 * pr, p[2] * (1 - 0.15 * pr)]; }); };
-          A.look = [0, -14]; A.dy = 1.5 * pr; A.mouthCurve = 0.5 + 0.35 * pr; A.mouthLen = 0.7 + 0.2 * pr; } },
+          A.look = [0, -14]; A.dy = 1.5 * pr; A.mouthCurve = 0.5 + 0.35 * pr; A.mouthLen = 0.7 + 0.2 * pr; A.mouthTilt = (key - 2) * 7 * pr; } },
     },
     cloud: {
       quarter: { label: 'Quarter turns', hint: 'Turns a full circle in four springy 90 degree steps; the eyes start to follow each turn and swing back.', dur: 3.5,
@@ -160,7 +160,7 @@
       wave: { label: 'Wave', hint: 'Lifts and waves the left flipper, then the right, glancing at each.', dur: 3.1,
         run: (t, A) => { const side = t < 1.55 ? 1 : 2, u = side === 1 ? seg(t, 0.1, 1.5) : seg(t, 1.6, 3.0), lift = S(Math.PI * u), wig = S(PI2 * u * 3) * 0.06 * lift;
           A.pieces = cs => cs.map((p, i) => i === side ? [p[0] + (side === 1 ? -0.12 : 0.12) * lift + wig, p[1] - 0.55 * lift, p[2]] : p);
-          A.look = [side === 1 ? -18 : 18, 8]; A.rot = (side === 1 ? -4 : 4) * lift; A.mouthCurve = 0.5 + 0.5 * lift; A.mouthSide = (side === 1 ? -1 : 1) * lift; A.mouthLen = 1 + 0.15 * lift; } },
+          A.look = [side === 1 ? -18 : 18, 8]; A.rot = (side === 1 ? -4 : 4) * lift; A.mouthCurve = 0.5 + 0.5 * lift; A.mouthSide = (side === 1 ? -1 : 1) * lift; A.mouthLen = 1 + 0.15 * lift; A.mouthTilt = (side === 1 ? 10 : -10) * lift; } },
       cover: { label: 'Cover eyes', hint: 'Each flipper travels up its own side of the body and in over the eye, holds, then goes back down the same way.', dur: 3.25,
         run: (t, A, ctx) => {
           const o = ctx.self.o, su = ctx.self._surf, ex = Math.sin(o.eyeLon * D2R) * su.rx, ey = su.cy - Math.sin(o.eyeLat * D2R) * su.ry;
@@ -281,7 +281,7 @@
       // live values
       this.yaw = 0; this.pitch = 0; this.tYaw = 0; this.tPitch = 0;
       this.blinkAmt = 0; this.eyeScale = 1; this.squash = 1; this.mouth = null; this.tMouth = null;   // null = follow o.mouthCurve
-      this.mouthSide = 0; this.tMouthSide = 0; this.mouthLen = 1; this.tMouthLen = 1;   // animatable smirk and length outside acts
+      this.mouthSide = 0; this.tMouthSide = 0; this.mouthLen = 1; this.tMouthLen = 1; this.mouthTilt = 0; this.tMouthTilt = 0;   // animatable smirk, length and tilt outside acts
       this.tEyeScale = 1; this.tSquash = 1;
       this.manual = false;
       this._poke = 0; this._pokeS = 0; this._vel = 0; this._twitch = null; this._t = 0; this._dt = 0; this._mem = {};
@@ -382,6 +382,7 @@
       const f = this._frame(0, o.eyeLat - o.mouthDrop); if (f.z < -0.05) { el.setAttribute('d', ''); return; }
       const curve = A && A.mouthCurve != null ? A.mouthCurve : (this.mouth == null ? o.mouthCurve : this.mouth);
       const len = A && A.mouthLen != null ? A.mouthLen : this.mouthLen, side = A && A.mouthSide ? A.mouthSide : this.mouthSide;   // side: +1 keeps the right end, trims the left (smirk to the right)
+      const tilt = A && A.mouthTilt != null ? A.mouthTilt : this.mouthTilt;                                  // degrees, positive = right end drops
       const hw = 14 * o.mouthWidth * this.eyeScale * (A ? A.eyeScale : 1) * trim * len;
       const hl = hw * (1 - 0.7 * Math.max(0, side)), hr = hw * (1 - 0.7 * Math.max(0, -side));
       const bulge = curve * (hl + hr) / 2 * 1.15, mid = (hr - hl) / 2;                            // positive = smile (bulges down on screen)
@@ -390,10 +391,10 @@
       if (A && A.eyeOrbit) {                                                                   // spinner: the mouth is the third point on the eyes' circle, kept tangent
         const fl = this._frame(-o.eyeLon, o.eyeLat), fr = this._frame(o.eyeLon, o.eyeLat);
         const cx = (fl.m[4] + fr.m[4]) / 2, cy = (fl.m[5] + fr.m[5]) / 2, dm = Math.hypot(f.m[4] - cx, f.m[5] - cy) * (A.orbitScale || 1), th = A.eyeOrbit * D2R + Math.PI / 2;
-        el.setAttribute('transform', `translate(${(cx + dm * Math.cos(th)).toFixed(2)} ${(cy + dm * Math.sin(th)).toFixed(2)}) rotate(${A.eyeOrbit.toFixed(2)})`);
+        el.setAttribute('transform', `translate(${(cx + dm * Math.cos(th)).toFixed(2)} ${(cy + dm * Math.sin(th)).toFixed(2)}) rotate(${(A.eyeOrbit + tilt).toFixed(2)})`);
         return;
       }
-      el.setAttribute('transform', `matrix(${f.m.map(n => n.toFixed(4)).join(' ')})`);
+      el.setAttribute('transform', `matrix(${f.m.map(n => n.toFixed(4)).join(' ')}) rotate(${tilt.toFixed(2)})`);
     }
 
     _wireframe() {
@@ -500,8 +501,8 @@
     /* ---------- convenience ---------- */
     look(yaw, pitch) { const o = this.o; this.tYaw = Math.max(-o.maxYaw, Math.min(o.maxYaw, yaw)); this.tPitch = Math.max(-o.maxPitch, Math.min(o.maxPitch, pitch)); }
     snap(yaw, pitch) { this.look(yaw, pitch); this.yaw = this.tYaw; this.pitch = this.tPitch; }
-    set(v) { if (v.eyeScale != null) this.tEyeScale = v.eyeScale; if (v.squash != null) this.tSquash = v.squash; if (v.blink != null) this.blinkAmt = v.blink; if (v.mouth !== undefined) this.tMouth = v.mouth; if (v.mouthSide != null) this.tMouthSide = v.mouthSide; if (v.mouthLen != null) this.tMouthLen = v.mouthLen; }
-    setNow(v) { this.set(v); this.eyeScale = this.tEyeScale; this.squash = this.tSquash; this.mouth = this.tMouth; this.mouthSide = this.tMouthSide; this.mouthLen = this.tMouthLen; }
+    set(v) { if (v.eyeScale != null) this.tEyeScale = v.eyeScale; if (v.squash != null) this.tSquash = v.squash; if (v.blink != null) this.blinkAmt = v.blink; if (v.mouth !== undefined) this.tMouth = v.mouth; if (v.mouthSide != null) this.tMouthSide = v.mouthSide; if (v.mouthLen != null) this.tMouthLen = v.mouthLen; if (v.mouthTilt != null) this.tMouthTilt = v.mouthTilt; }
+    setNow(v) { this.set(v); this.eyeScale = this.tEyeScale; this.squash = this.tSquash; this.mouth = this.tMouth; this.mouthSide = this.tMouthSide; this.mouthLen = this.tMouthLen; this.mouthTilt = this.tMouthTilt; }
 
     blink(times = 1) {
       if (this._blinking) return; this._blinking = true;
@@ -577,7 +578,7 @@
         if (this._act) {
           const t = (now - this._act.t0) / 1000;
           if (t >= this._act.def.dur) { this._act = null; this._A = null; }
-          else { const A = { rot: 0, dx: 0, dy: 0, sx: 1, sy: 1, pivotY: 1, pieces: null, floor: 0, roundMul: 1, eyeScale: 1, eyeSquash: 1, eyeShake: 0, eyeOrbit: 0, eyeMerge: 0, orbitScale: 1, overlay: null, mouthCurve: null, mouthTrim: null, mouthLen: null, mouthSide: 0, look: null }; this._act.def.run(t, A, { R: o.radius, comp: this._comp, self: this }); if (A.look) this.look(A.look[0], A.look[1]); this._A = A; }
+          else { const A = { rot: 0, dx: 0, dy: 0, sx: 1, sy: 1, pivotY: 1, pieces: null, floor: 0, roundMul: 1, eyeScale: 1, eyeSquash: 1, eyeShake: 0, eyeOrbit: 0, eyeMerge: 0, orbitScale: 1, overlay: null, mouthCurve: null, mouthTrim: null, mouthLen: null, mouthSide: 0, mouthTilt: null, look: null }; this._act.def.run(t, A, { R: o.radius, comp: this._comp, self: this }); if (A.look) this.look(A.look[0], A.look[1]); this._A = A; }
         }
         // signals for the extra pieces
         this._t = now / 1000; this._dt = dt / 1000;
@@ -595,7 +596,7 @@
         else if (o.twitch && !reduce && (!this._nextTwitch || now > this._nextTwitch)) { if (this._nextTwitch) this._twitch = { i: 1 + Math.floor(Math.random() * 2), t0: now, p: 0 }; this._nextTwitch = now + 2500 + Math.random() * 4000; }
         this.eyeScale += (this.tEyeScale - this.eyeScale) * k2; this.squash += (this.tSquash - this.squash) * k2;
         { const target = this.tMouth == null ? o.mouthCurve : this.tMouth; if (this.mouth == null) this.mouth = target; this.mouth += (target - this.mouth) * k2; }
-        this.mouthSide += (this.tMouthSide - this.mouthSide) * k2; this.mouthLen += (this.tMouthLen - this.mouthLen) * k2;
+        this.mouthSide += (this.tMouthSide - this.mouthSide) * k2; this.mouthLen += (this.tMouthLen - this.mouthLen) * k2; this.mouthTilt += (this.tMouthTilt - this.mouthTilt) * k2;
         if (o.breathe && !reduce) { const s = 1 + 0.012 * Math.sin(now / 3200 * Math.PI * 2); this.root.setAttribute('transform', `translate(100 100) scale(${s.toFixed(4)}) translate(-100 -100)`); }
         else this.root.removeAttribute('transform');
         this.render();
