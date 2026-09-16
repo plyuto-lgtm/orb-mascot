@@ -60,7 +60,8 @@
   .swatches i{width:14px;height:14px;border-radius:50%;background:var(--sw);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
   #customDot{background:linear-gradient(90deg,var(--g1,#1E6DF6),var(--g2,#DBDBDB))}
   .gradRow{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}
-  .gradRow .arrow{width:7px;height:7px;border-top:1.5px solid var(--muted);border-right:1.5px solid var(--muted);transform:rotate(45deg)}
+  .swatches .gradRow i.arrow{width:7px;height:7px;border-radius:0;background:none;box-shadow:none;border-top:1.5px solid var(--muted);border-right:1.5px solid var(--muted);transform:rotate(45deg);margin:0 2px}
+  .swatches .cpick i{width:16px;height:16px}
   .pop{flex-basis:100%;width:100%;margin-top:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
   #customChip .chev{width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;border-radius:0;background:none;box-shadow:none;transform:translateY(-1px) rotate(45deg);margin-left:2px}
   #customChip .chev{width:6px;height:6px}
@@ -197,6 +198,8 @@
         </div>
         <div class="gazeVals"><span>yaw <output id="yawV">0&deg;</output></span><span>pitch <output id="pitchV">0&deg;</output></span><span class="note" style="margin:10px 0 0">Drag the dot. Auto resumes when you let go.</span></div>
       </div>
+      <div class="row"><span>Yaw limit</span><div class="fs"><input type="range" id="maxYaw" min="5" max="60" value="20" step="1" aria-label="Yaw limit"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
+      <div class="row"><span>Pitch limit</span><div class="fs"><input type="range" id="maxPitch" min="5" max="40" value="15" step="1" aria-label="Pitch limit"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
       <div class="row"><span>Size</span><div class="fs"><input type="range" id="size" min="64" max="480" value="240" step="8" aria-label="Orb size"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
       <h3>Behaviour</h3>
       <div class="toggles">
@@ -260,8 +263,8 @@
   // Every body gets the same baseline in the same order; each body supplies its own hint per baseline
   // scenario (what to watch for) and may append extras that only it has.
   const BASE = [
-    ['Head turn', 'turn',  'Looks 36\u00b0 left, then right, then back to centre.'],
-    ['Nod',       'pitch', 'Looks 26\u00b0 up, then down, then back to centre.'],
+    ['Head turn', 'turn',  'Looks to the yaw limit left, then right, then back to centre.'],
+    ['Nod',       'pitch', 'Looks to the pitch limit up, then down, then back to centre.'],
     ['Quick turns', 'fast', 'Four fast alternating looks; shows how the springs settle.'],
     ['Blink',     'blink', 'Double blink.'],
     ['Poke',      'poke',  'Eyes pop, then blink.'],
@@ -296,11 +299,12 @@
     const unique = [...(info.extras || []), ...Object.entries(acts).map(([key, act]) => [act.label, 'act:' + key, act.hint])];
     return { base: BASE.map(([label, demo, hint]) => [label, demo, (info.hints && info.hints[demo]) || hint]), unique };
   };
+  // gaze values are fractions of the yaw / pitch limits
   const STATES = [
-    ['Idle', {y:0,p:0}], ['Glance left', {y:-15,p:0}], ['Glance right', {y:15,p:0}], ['Look left', {y:-30,p:0}], ['Look right', {y:30,p:0}],
-    ['Look up', {y:0,p:22}], ['Look down', {y:0,p:-22}], ['Up-left', {y:-24,p:16}], ['Up-right', {y:24,p:16}], ['Down-left', {y:-24,p:-14}], ['Down-right', {y:24,p:-14}],
-    ['Far left', {y:-40,p:0}], ['Far right', {y:40,p:0}], ['Blink', {y:0,p:0,blink:1}], ['Half closed', {y:0,p:0,blink:0.55}], ['Sleepy', {y:0,p:-10,blink:0.7}],
-    ['Surprised', {y:0,p:6,scale:1.25,mouth:-0.15}], ['Happy', {y:0,p:0,squash:0.45,scale:1.05,mouth:1}], ['Suspicious', {y:22,p:-4,squash:0.55,mouth:0.1,side:0.7,tilt:8}], ['Thinking', {y:26,p:20,squash:0.8,mouth:0.1}], ['Sad', {y:-10,p:-14,squash:0.85,mouth:-0.8}],
+    ['Idle', {y:0,p:0}], ['Glance left', {y:-0.4,p:0}], ['Glance right', {y:0.4,p:0}], ['Look left', {y:-0.75,p:0}], ['Look right', {y:0.75,p:0}],
+    ['Look up', {y:0,p:0.8}], ['Look down', {y:0,p:-0.8}], ['Up-left', {y:-0.6,p:0.6}], ['Up-right', {y:0.6,p:0.6}], ['Down-left', {y:-0.6,p:-0.5}], ['Down-right', {y:0.6,p:-0.5}],
+    ['Far left', {y:-1,p:0}], ['Far right', {y:1,p:0}], ['Blink', {y:0,p:0,blink:1}], ['Half closed', {y:0,p:0,blink:0.55}], ['Sleepy', {y:0,p:-0.35,blink:0.7}],
+    ['Surprised', {y:0,p:0.2,scale:1.25,mouth:-0.15}], ['Happy', {y:0,p:0,squash:0.45,scale:1.05,mouth:1}], ['Suspicious', {y:0.55,p:-0.15,squash:0.55,mouth:0.1,side:0.7,tilt:8}], ['Thinking', {y:0.65,p:0.7,squash:0.8,mouth:0.1}], ['Sad', {y:-0.25,p:-0.5,squash:0.85,mouth:-0.8}],
   ];
 
   // ---------- filled slider ----------
@@ -314,7 +318,7 @@
   }
 
   // ---------- settings shared across bodies ----------
-  const settings = { mouth: true, smile: 0.4, colorName: 'black', mode: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light', round: 0.5, wireframe: false, gradient: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true };
+  const settings = { maxYaw: 20, maxPitch: 15, mouth: true, smile: 0.4, colorName: 'black', mode: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light', round: 0.5, wireframe: false, gradient: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true };
   settings.g1 = '#1E6DF6'; settings.g2 = '#DBDBDB'; settings.gAngle = 90;
   const palette = () => settings.mode === 'dark' ? Mascot.COLORS_DARK : Mascot.COLORS;
   const colorHex = () => settings.colorName === 'custom' ? [settings.g1, settings.g2] : palette()[settings.colorName];
@@ -343,7 +347,7 @@
   }
   // ---------- settings controls (inside the modal) ----------
   const applySettings = () => {
-    const opts = { round: settings.round, wireframe: settings.wireframe, shade: settings.gradient ? 'gradient' : 'flat', mouth: settings.mouth, mouthCurve: settings.smile };
+    const opts = { round: settings.round, wireframe: settings.wireframe, shade: settings.gradient ? 'gradient' : 'flat', mouth: settings.mouth, mouthCurve: settings.smile, maxYaw: settings.maxYaw, maxPitch: settings.maxPitch };
     if (live) Object.assign(live.o, opts, { color: colorHex(), gradientAngle: settings.gAngle, follow: settings.follow, idle: settings.idle, autoBlink: settings.autoBlink, lean: settings.lean, breathe: settings.breathe });
     for (const m of statics) { Object.assign(m.o, opts, { color: cardColor(), gradientAngle: settings.gAngle }); m.render(); }
     if (settings.colorName !== 'custom') $('customBox').hidden = true;
@@ -369,6 +373,9 @@
   document.addEventListener('pointerdown', e => { if (!$('customBox').hidden && !e.target.closest('#customChip, #customBox')) $('customBox').hidden = true; });
   const drawAngle = filledSlider($('gAngle'), v => v + '\u00b0');
   const drawSize = filledSlider($('size'), v => v + ' px');
+  const drawYaw = filledSlider($('maxYaw'), v => '\u00b1' + v + '\u00b0'), drawPitch = filledSlider($('maxPitch'), v => '\u00b1' + v + '\u00b0');
+  $('maxYaw').addEventListener('input', () => { settings.maxYaw = +$('maxYaw').value; applySettings(); rebuildStates(); });
+  $('maxPitch').addEventListener('input', () => { settings.maxPitch = +$('maxPitch').value; applySettings(); rebuildStates(); });
   const drawSmile = filledSlider($('smile'), v => v > 0 ? 'smile ' + Math.round(v * 100) + '%' : v < 0 ? 'frown ' + Math.round(-v * 100) + '%' : 'flat');
   $('smile').addEventListener('input', () => { settings.smile = +$('smile').value; applySettings(); });
   $('mouthOn').addEventListener('change', e => { settings.mouth = e.target.checked; applySettings(); });
@@ -379,12 +386,13 @@
   for (const r of document.querySelectorAll('input[name=mode], input[name=modeTop]')) r.addEventListener('change', e => { settings.mode = e.target.value; applySettings(); });
   for (const k of ['follow', 'idle', 'autoBlink', 'lean', 'breathe', 'wireframe', 'gradient']) $(k).addEventListener('change', e => { settings[k] = e.target.checked; applySettings(); });
   // gaze pad: x -> yaw (-60..60), y -> pitch (40..-40)
-  const pad = $('pad'), knob = $('knob'), MAXY = 40, MAXP = 28;
+  const pad = $('pad'), knob = $('knob'); let MAXY = 20, MAXP = 15;
+  const syncLimits = () => { MAXY = settings.maxYaw; MAXP = settings.maxPitch; };
   let manualT = 0, padGaze = { y: 0, p: 0 };
-  const setKnob = (y, p) => { knob.style.left = (50 + y / MAXY * 46) + '%'; knob.style.top = (50 - p / MAXP * 46) + '%'; $('yawV').textContent = Math.round(y) + '\u00b0'; $('pitchV').textContent = Math.round(p) + '\u00b0'; pad.setAttribute('aria-valuetext', `yaw ${Math.round(y)}, pitch ${Math.round(p)}`); };
+  const setKnob = (y, p) => { syncLimits(); knob.style.left = (50 + y / MAXY * 46) + '%'; knob.style.top = (50 - p / MAXP * 46) + '%'; $('yawV').textContent = Math.round(y) + '\u00b0'; $('pitchV').textContent = Math.round(p) + '\u00b0'; pad.setAttribute('aria-valuetext', `yaw ${Math.round(y)}, pitch ${Math.round(p)}`); };
   const holdThenAuto = () => { clearTimeout(manualT); manualT = setTimeout(() => { if (live) live.manual = false; }, 1500); };
   const aim = (y, p) => { padGaze = { y, p }; if (live) { live.manual = true; live.look(y, p); } setKnob(y, p); };
-  const aimFromPointer = e => {
+  const aimFromPointer = e => { syncLimits();
     const r = pad.getBoundingClientRect();
     const nx = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width - 0.5) / 0.46)), ny = Math.max(-1, Math.min(1, (0.5 - (e.clientY - r.top) / r.height) / 0.46));
     aim(nx * MAXY, ny * MAXP);
@@ -415,9 +423,9 @@
     const seq = (steps, hold) => { steps.forEach(([y, p], i) => at(i * hold, () => m.look(y, p))); at(steps.length * hold, () => m.look(0, 0)); return steps.length * hold + 350; };
     let dur = 1200;
     switch (kind) {
-      case 'turn':  m.set({ mouth: 0.7 }); dur = seq([[-36, 0], [36, 0]], 1300); at(dur - 300, () => m.set({ mouth: null })); break;
-      case 'pitch': m.set({ mouth: 0.7 }); dur = seq([[0, 26], [0, -26]], 1300); at(dur - 300, () => m.set({ mouth: null })); break;
-      case 'fast':  m.set({ mouth: 0.15, mouthLen: 0.8 }); dur = seq([[36, 0], [-36, 0], [36, 0], [-36, 0]], 420);
+      case 'turn':  m.set({ mouth: 0.7 }); dur = seq([[-0.9 * settings.maxYaw, 0], [0.9 * settings.maxYaw, 0]], 1300); at(dur - 300, () => m.set({ mouth: null })); break;
+      case 'pitch': m.set({ mouth: 0.7 }); dur = seq([[0, 0.9 * settings.maxPitch], [0, -0.9 * settings.maxPitch]], 1300); at(dur - 300, () => m.set({ mouth: null })); break;
+      case 'fast':  m.set({ mouth: 0.15, mouthLen: 0.8 }); dur = seq([[0.9 * settings.maxYaw, 0], [-0.9 * settings.maxYaw, 0], [0.9 * settings.maxYaw, 0], [-0.9 * settings.maxYaw, 0]], 420);
         [1, -1, 1, -1].forEach((d, i) => at(i * 420, () => m.set({ mouthSide: d, mouthTilt: 9 * d })));   // smirk and tilt toward each turn
         at(dur - 300, () => m.set({ mouth: null, mouthSide: 0, mouthLen: 1, mouthTilt: 0 })); break;
       case 'poke':  m.look(0, 0); m.poke(); dur = 900; break;
@@ -438,7 +446,7 @@
     if (!current) return;
     const custom = settings.colorName === 'custom';
     const colorLine = custom ? `color: ['${settings.g1}', '${settings.g2}'],\n  gradientAngle: ${settings.gAngle}` : `color: '${colorHex()}'${settings.gradient ? ',' : ''}   // ${settings.colorName}, ${settings.mode} palette`;
-    const mouthLine = settings.mouth ? `,\n  mouthCurve: ${settings.smile}` : ',\n  mouth: false';
+    const mouthLine = (settings.mouth ? `,\n  mouthCurve: ${settings.smile}` : ',\n  mouth: false') + `,\n  maxYaw: ${settings.maxYaw}, maxPitch: ${settings.maxPitch}`;
     $('dCfg').textContent = `new Mascot(svg, {\n  body: ${bodyArg(current)},\n  ${colorLine}${settings.gradient ? ",\n  shade: 'gradient'   // shader" : ''}${mouthLine}\n})`;
   }
   function openBody(name) {
@@ -463,26 +471,31 @@
     $('dDef').textContent = comp ? JSON.stringify({ pieces: comp.c.map(p => p.map(fmt)), sphereR: fmt(comp.sphereR), main: comp.main ?? 0, head: fmt(comp.head ?? 0.35), k: fmt(comp.k ?? 50), d: fmt(comp.d ?? 13) }, null, 2) : `body: '${name}'`;
     // live preview
     live = new Mascot($('dLive'), { body }); live.start();
-    // states + sizes
-    statics = [];
+    openBodyStates(name);
+    $('dSizes').innerHTML = '';
+    for (const px of [16, 24, 32, 48, 64, 96, 128]) {
+      const d = document.createElement('div'); const svg = svgEl(px + ' pixel'); svg.setAttribute('width', px); svg.setAttribute('height', px);
+      const l = document.createElement('small'); l.textContent = px + 'px'; d.append(svg, l); $('dSizes').append(d);
+      const m = new Mascot(svg, { body, lean: false }); m.snap(14, 4); m.__size = true; statics.push(m);
+    }
+    applySettings();
+    $('dClose').focus();
+  }
+  function openBodyStates(name) {
+    const body = name;
+    statics = statics.filter(m => m.__size);
     $('dStates').innerHTML = '';
     for (const [label, s] of STATES) {
       const c = document.createElement('div'); c.className = 'card'; const svg = svgEl(label + ' state');
       const b = document.createElement('b'); b.textContent = label; const sm = document.createElement('small');
       const extra = []; if (s.blink) extra.push('blink ' + s.blink); if (s.scale) extra.push('×' + s.scale); if (s.squash) extra.push('squash ' + s.squash); if (s.mouth !== undefined) extra.push('mouth ' + s.mouth);
-      sm.textContent = `${s.y} / ${s.p}` + (extra.length ? '  ' + extra.join(' ') : '');
+      const yy = Math.round(s.y * settings.maxYaw), pp = Math.round(s.p * settings.maxPitch);
+      sm.textContent = `${yy} / ${pp}` + (extra.length ? '  ' + extra.join(' ') : '');
       c.append(svg, b, sm); $('dStates').append(c);
-      const m = new Mascot(svg, { body }); m.snap(s.y, s.p); m.setNow({ blink: s.blink || 0, eyeScale: s.scale || 1, squash: s.squash || 1, mouth: s.mouth === undefined ? null : s.mouth, mouthSide: s.side || 0, mouthTilt: s.tilt || 0 }); statics.push(m);
+      const m = new Mascot(svg, { body, maxYaw: settings.maxYaw, maxPitch: settings.maxPitch }); m.snap(s.y * settings.maxYaw, s.p * settings.maxPitch); m.setNow({ blink: s.blink || 0, eyeScale: s.scale || 1, squash: s.squash || 1, mouth: s.mouth === undefined ? null : s.mouth, mouthSide: s.side || 0, mouthTilt: s.tilt || 0 }); statics.push(m);
     }
-    $('dSizes').innerHTML = '';
-    for (const px of [16, 24, 32, 48, 64, 96, 128]) {
-      const d = document.createElement('div'); const svg = svgEl(px + ' pixel'); svg.setAttribute('width', px); svg.setAttribute('height', px);
-      const l = document.createElement('small'); l.textContent = px + 'px'; d.append(svg, l); $('dSizes').append(d);
-      const m = new Mascot(svg, { body, lean: false }); m.snap(14, 4); statics.push(m);
-    }
-    applySettings();
-    $('dClose').focus();
   }
+  function rebuildStates() { if (current) { const keep = live; openBodyStates(current); } }
   function closeBody() {
     for (const t of demoTimers) clearTimeout(t); demoTimers = [];
     $('detail').hidden = true; $('backdrop').hidden = true; document.body.classList.remove('modal-open');

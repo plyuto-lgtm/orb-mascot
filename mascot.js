@@ -262,7 +262,7 @@
         body: 'circle',  // circle | squircle | egg | pebble | bear | lemon | ghost | cloud | drop | stack | seacow | flower | array of [x,y,r] or [x,y,rx,ry,angle]
         round: 0.5,      // fillet amount for composed bodies, 0..1
         eye: null,       // preset name: round | pill | square | wide | tall (overrides eyeW/eyeH/corner)
-        maxYaw: 40, maxPitch: 28,
+        maxYaw: 20, maxPitch: 15,
         shaded: true, wireframe: false, lean: true, breathe: true,
         follow: true, idle: true, autoBlink: true,
         color: '#0a0a0a',   // body colour, or an array of two hex colours for a custom gradient mapped on the head sphere
@@ -581,7 +581,7 @@
             this._nextIdle = now + 1200;
           } else if (o.idle && now > this._nextIdle && !reduce) {
             const home = Math.random() < 0.35;
-            const ny = home ? 0 : (Math.random() * 2 - 1) * 22, np = home ? 0 : (Math.random() * 2 - 1) * 11;
+            const ny = home ? 0 : (Math.random() * 2 - 1) * o.maxYaw * 0.55, np = home ? 0 : (Math.random() * 2 - 1) * o.maxPitch * 0.4;
             if (Math.abs(ny - this.tYaw) > 28 && Math.random() < 0.5) this.blink();
             this.look(ny, np); this._nextIdle = now + 1200 + Math.random() * 2600;
           }
