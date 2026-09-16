@@ -124,8 +124,8 @@
   body.modal-open{overflow:hidden}
   .top{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:28px;align-items:stretch;min-height:calc(100vh - 32px - 73px - 24px)}
   @media (max-width:880px){.top{grid-template-columns:1fr}}
-  .stage{background:transparent;border-radius:12px;display:grid;place-items:center;min-height:420px;max-width:100%;position:relative;overflow:hidden;container-type:size}
-  @media (max-width:880px){.stage{min-height:360px;height:360px}}
+  .stage{background:transparent;border-radius:12px;display:grid;place-items:center;min-height:420px;max-width:100%;overflow:hidden;container-type:size;position:sticky;top:73px;align-self:start;height:calc(100vh - 32px - 73px - 24px)}   /* stays centred in view while the panel scrolls */
+  @media (max-width:880px){.stage{position:relative;top:auto;min-height:360px;height:360px}}
   .stage{--max:240px;--frame:min(78cqw,78cqh,var(--max))}                  /* the orb frame never exceeds 480 x 480; Size sets a smaller cap */
   .stage svg{width:var(--frame);height:auto;cursor:pointer;touch-action:none}
   .stage .guide{position:absolute;left:50%;top:50%;width:var(--frame);aspect-ratio:1;transform:translate(-50%,-50%);border:1px dashed var(--line);border-radius:6px;pointer-events:none;display:none}
@@ -558,10 +558,9 @@
   $('dExport').addEventListener('click', async () => {
     if (!current) return;
     const size = +$('size').value, svg = svgEl(current + ' mascot');
-    svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg'); svg.setAttribute('width', size); svg.setAttribute('height', size);
     const m = new Mascot(svg, { body: current, color: colorHex(), gradientAngle: settings.gAngle, shade: settings.gradient ? 'gradient' : 'flat', round: settings.round, lean: false, wireframe: false, mouth: settings.mouth, mouthCurve: settings.smile, mouthStroke: settings.stroke });
     m.snap(0, 0); m.render();
-    const text = '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(svg);
+    const text = m.toSVG({ size, id: 'orb-' + current });                                          // goo baked to one path: no filters, opens as plain shapes in Figma and Illustrator
     const name = `orb-${current}.svg`, btn = $('dExport');
     const flash = label => { btn.textContent = label; setTimeout(() => { btn.textContent = 'Export SVG'; }, 1400); };
     // inside the claude.ai artifact viewer, saves go through its downloads capability; elsewhere a plain download

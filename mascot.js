@@ -467,20 +467,6 @@
         this.rimEl.style.display = style === 'rim' ? '' : 'none';
         if (style === 'rim') { this.rimGrad.setAttribute('cx', (100 - dx * 0.35 * R).toFixed(1)); this.rimGrad.setAttribute('cy', (100 - dy * 0.35 * R).toFixed(1)); this.rimGrad.setAttribute('r', (1.25 * R).toFixed(1)); this.rimEl.setAttribute('opacity', (lum0 > 0.5 ? 0.5 : 1) * k); }
       }
-      if (style === 'gradient') { const f = this._frame(0, 28); this.grad.setAttribute('cx', (f.m[4] - 0.12 * o.radius).toFixed(1)); this.grad.setAttribute('cy', (f.m[5] - 0.1 * o.radius).toFixed(1)); }
-      const tintOver = o.shade === 'gradient' && o.shaded !== false;                                 // shader: a light zone that follows the gaze, blended over the flat colour
-      this.lightEl.style.display = this.shadowEl.style.display = tintOver ? '' : 'none';
-      if (tintOver) {
-        const f = this._frame(0, 28), cx = (f.m[4] - 0.12 * o.radius).toFixed(1), cy = (f.m[5] - 0.1 * o.radius).toFixed(1), r = (1.35 * o.radius).toFixed(1);
-        for (const g of [this.lightGrad, this.shadowGrad]) { g.setAttribute('cx', cx); g.setAttribute('cy', cy); g.setAttribute('r', r); }
-        const tk = custom ? o.color[0] + '|' + o.color[1] : o.color;
-        if (this._tintKey !== tk) {                                                                 // each gradient end gets its own lighter / darker version, so the tint always matches what is under it
-          this._tintKey = tk; const c0 = custom ? o.color[0] : o.color, c1 = custom ? o.color[1] : o.color;
-          const ls = this.lightLin.children, ss = this.shadowLin.children;
-          ls[0].setAttribute('stop-color', tintOf(c0, 1)); ls[1].setAttribute('stop-color', tintOf(c1, 1));
-          ss[0].setAttribute('stop-color', tintOf(c0, -1)); ss[1].setAttribute('stop-color', tintOf(c1, -1));
-        }
-      }
       const flat = style === 'flat' || style === 'gradient', fill = custom ? `url(#${this.linId})` : flat ? o.color : `url(#${this.gradId})`;
       this.sphere.setAttribute('fill', fill);
       const eyeFill = o.eyeColor || (lum(hex2(baseHex)) > 0.55 ? '#141416' : '#ffffff');
@@ -526,6 +512,19 @@
         this.sR = shape.sphereR; const sr = shape.sphereR / o.radius; this._surf = Object.assign({ cx: 0, cy: 0, rx: sr, ry: sr }, shape.surf || {}); this._sig = ''; this.goo.innerHTML = ''; this.maskGoo.innerHTML = '';
         this.sphere.setAttribute('d', shape.d); this.clipCircle.setAttribute('d', shape.d);
       }
+      const tintOver = o.shade === 'gradient' && o.shaded !== false;                                 // shader: a light zone that follows the gaze, blended over the flat colour
+      this.lightEl.style.display = this.shadowEl.style.display = tintOver ? '' : 'none';
+      if (tintOver) {
+        const f = this._frame(0, 28), cx = (f.m[4] - 0.12 * o.radius).toFixed(1), cy = (f.m[5] - 0.1 * o.radius).toFixed(1), r = (1.35 * o.radius).toFixed(1);
+        for (const g of [this.lightGrad, this.shadowGrad]) { g.setAttribute('cx', cx); g.setAttribute('cy', cy); g.setAttribute('r', r); }
+        const tk = custom ? o.color[0] + '|' + o.color[1] : o.color;
+        if (this._tintKey !== tk) {                                                                 // each gradient end gets its own lighter / darker version, so the tint always matches what is under it
+          this._tintKey = tk; const c0 = custom ? o.color[0] : o.color, c1 = custom ? o.color[1] : o.color;
+          const ls = this.lightLin.children, ss = this.shadowLin.children;
+          ls[0].setAttribute('stop-color', tintOf(c0, 1)); ls[1].setAttribute('stop-color', tintOf(c1, 1));
+          ss[0].setAttribute('stop-color', tintOf(c0, -1)); ss[1].setAttribute('stop-color', tintOf(c1, -1));
+        }
+      }
       this.eyeL.setAttribute('fill', eyeFill); this.eyeR.setAttribute('fill', eyeFill); this.starL.setAttribute('fill', eyeFill); this.starR.setAttribute('fill', eyeFill);
       this._wireframe();
       { const ov = this._A && this._A.overlay; this.over.innerHTML = '';
@@ -547,6 +546,75 @@
     /* ---------- convenience ---------- */
     look(yaw, pitch) { const o = this.o; this.tYaw = Math.max(-o.maxYaw, Math.min(o.maxYaw, yaw)); this.tPitch = Math.max(-o.maxPitch, Math.min(o.maxPitch, pitch)); }
     snap(yaw, pitch) { this.look(yaw, pitch); this.yaw = this.tYaw; this.pitch = this.tPitch; }
+
+    // ---------- export: a standalone SVG with the goo baked into one path (no filters), so Figma and Illustrator open it as plain shapes ----------
+    _bakeGoo() {
+      const S = 640, k = S / 248, N = S * S, cv = document.createElement('canvas'); cv.width = cv.height = S; const ctx = cv.getContext('2d');
+      ctx.fillStyle = '#000';
+      for (const c of this.goo.children) {                                                        // 1. rasterise the union of the pieces
+        const cx = (+c.getAttribute('cx') + 24) * k, cy = (+c.getAttribute('cy') + 24) * k; ctx.beginPath();
+        if (c.tagName === 'ellipse') { const tr = c.getAttribute('transform') || '', mm = tr.match(/rotate\(([-\d.]+)/); ctx.ellipse(cx, cy, +c.getAttribute('rx') * k, +c.getAttribute('ry') * k, (mm ? +mm[1] : 0) * D2R, 0, Math.PI * 2); }
+        else ctx.arc(cx, cy, +c.getAttribute('r') * k, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      const px = ctx.getImageData(0, 0, S, S).data; let a = new Float32Array(N), b = new Float32Array(N);
+      for (let i = 0; i < N; i++) a[i] = px[i * 4 + 3] / 255;
+      const sigma = +this.blur.getAttribute('stdDeviation') * k, d = Math.floor(sigma * 3 * Math.sqrt(2 * Math.PI) / 4 + 0.5);   // 2. three box blurs, as the SVG spec approximates feGaussianBlur
+      const box = (src, dst, stride, len, lines, lineStride) => { const r = Math.floor(d / 2), r2 = d - r - 1;
+        for (let l = 0; l < lines; l++) { const base = l * lineStride; let sum = 0; for (let i = -r; i <= r2; i++) sum += src[base + Math.min(Math.max(i, 0), len - 1) * stride];
+          for (let i = 0; i < len; i++) { dst[base + i * stride] = sum / d; sum += src[base + Math.min(i + r2 + 1, len - 1) * stride] - src[base + Math.max(i - r, 0) * stride]; } } };
+      for (let pass = 0; pass < 3; pass++) { box(a, b, 1, S, S, S); box(b, a, S, S, S, 1); }
+      const tau = 0.479, f = (i, j) => a[j * S + i] - tau, lerp = (i0, j0, i1, j1) => { const v0 = f(i0, j0), v1 = f(i1, j1), t = v0 / (v0 - v1); return [i0 + 0.5 + (i1 - i0) * t, j0 + 0.5 + (j1 - j0) * t]; };
+      const segs = new Map(), pts = new Map();                                                    // 3. marching squares: entry edge -> exit edge, keyed by edge id
+      const eid = (e, i, j) => e === 0 ? 'h' + i + ',' + j : e === 1 ? 'v' + (i + 1) + ',' + j : e === 2 ? 'h' + i + ',' + (j + 1) : 'v' + i + ',' + j;
+      const ept = (e, i, j) => e === 0 ? lerp(i, j, i + 1, j) : e === 1 ? lerp(i + 1, j, i + 1, j + 1) : e === 2 ? lerp(i, j + 1, i + 1, j + 1) : lerp(i, j, i, j + 1);
+      for (let j = 0; j < S - 1; j++) for (let i = 0; i < S - 1; i++) {
+        const ins = [f(i, j) > 0, f(i + 1, j) > 0, f(i + 1, j + 1) > 0, f(i, j + 1) > 0]; if (ins.every(v => v) || !ins.some(v => v)) continue;
+        let entry = -1; for (let e = 0; e < 8; e++) { const k0 = e % 4, k1 = (e + 1) % 4; if (!ins[k0] && ins[k1]) entry = k0; else if (ins[k0] && !ins[k1] && entry >= 0) { const s0 = eid(entry, i, j), s1 = eid(k0, i, j); if (!segs.has(s0)) { segs.set(s0, s1); pts.set(s0, ept(entry, i, j)); pts.set(s1, ept(k0, i, j)); } entry = -1; } }
+      }
+      const loops = [], used = new Set();                                                          // 4. link into closed loops
+      for (const start of segs.keys()) { if (used.has(start)) continue; const loop = []; let cur = start; while (cur && !used.has(cur)) { used.add(cur); loop.push(pts.get(cur)); cur = segs.get(cur); } if (loop.length > 8) loops.push(loop); }
+      const toU = ([x, y]) => [-24 + x / k, -24 + y / k];
+      const rdp = (P, tol) => { if (P.length < 3) return P; const [ax, ay] = P[0], [bx, by] = P[P.length - 1]; let mi = 0, md = -1; const L = Math.hypot(bx - ax, by - ay) || 1e-9;
+        for (let i = 1; i < P.length - 1; i++) { const dd = Math.abs((bx - ax) * (ay - P[i][1]) - (ax - P[i][0]) * (by - ay)) / L; if (dd > md) { md = dd; mi = i; } }
+        return md > tol ? rdp(P.slice(0, mi + 1), tol).slice(0, -1).concat(rdp(P.slice(mi), tol)) : [P[0], P[P.length - 1]]; };
+      let dPath = '';
+      for (const loop of loops) {                                                                  // 5. simplify, then a closed Catmull-Rom spline as cubic Béziers
+        const U = loop.map(toU), h = Math.floor(U.length / 2), P = rdp(U.slice(0, h + 1), 0.12).slice(0, -1).concat(rdp(U.slice(h).concat([U[0]]), 0.12).slice(0, -1));
+        const n = P.length, g = i => P[(i + n) % n], fx = v => v.toFixed(2);
+        dPath += `M ${fx(P[0][0])} ${fx(P[0][1])} `;
+        for (let i = 0; i < n; i++) { const p0 = g(i - 1), p1 = g(i), p2 = g(i + 1), p3 = g(i + 2);
+          dPath += `C ${fx(p1[0] + (p2[0] - p0[0]) / 6)} ${fx(p1[1] + (p2[1] - p0[1]) / 6)} ${fx(p2[0] - (p3[0] - p1[0]) / 6)} ${fx(p2[1] - (p3[1] - p1[1]) / 6)} ${fx(p2[0])} ${fx(p2[1])} `; }
+        dPath += 'Z ';
+      }
+      return dPath.trim();
+    }
+    toSVG(opts = {}) {
+      const o = this.o, custom = Array.isArray(o.color), id = opts.id || 'orb', size = opts.size || 240;
+      const out = el('svg', { xmlns: NS, viewBox: '-24 -24 248 248', width: size, height: size }), defs = el('defs', {}); out.append(defs);
+      const d = this._comp ? this._bakeGoo() : this.sphere.getAttribute('d');
+      const clip = el('clipPath', { id: id + '-clip' }); clip.append(el('path', { d })); defs.append(clip);
+      let bodyFill = o.color;
+      if (custom) { const lin = this.lin.cloneNode(true); lin.setAttribute('id', id + '-fill'); defs.append(lin); bodyFill = `url(#${id}-fill)`; }
+      out.append(el('path', { d, fill: bodyFill }));
+      if (this.lightEl.style.display !== 'none') {                                                 // shader: shadow under light, both clipped to the body
+        const layer = (name, lin, rad, gradG) => {
+          const g = el('g', { 'clip-path': `url(#${id}-clip)` });
+          if (!custom) { const r = rad.cloneNode(true); r.setAttribute('id', `${id}-${name}`); const col = lin.children[0].getAttribute('stop-color'); for (const st of r.children) st.setAttribute('stop-color', col); defs.append(r);
+            g.append(el('rect', { x: -40, y: -40, width: 280, height: 280, fill: `url(#${id}-${name})` })); }
+          else { const r = rad.cloneNode(true); r.setAttribute('id', `${id}-${name}-a`); const l = lin.cloneNode(true); l.setAttribute('id', `${id}-${name}`); const mk = el('mask', { id: `${id}-${name}-m` }); mk.append(el('rect', { x: -40, y: -40, width: 280, height: 280, fill: `url(#${id}-${name}-a)` })); defs.append(r, l, mk);
+            g.append(el('rect', { x: -40, y: -40, width: 280, height: 280, fill: `url(#${id}-${name})`, mask: `url(#${id}-${name}-m)` })); }
+          out.append(g); };
+        layer('shadow', this.shadowLin, this.shadowGrad); layer('light', this.lightLin, this.lightGrad);
+      }
+      const face = el('g', { 'clip-path': `url(#${id}-clip)` }); out.append(face);
+      for (const e of [this.eyeL, this.eyeR, this.starL, this.starR, this.mouthEl]) {
+        if (e.style.visibility === 'hidden' || e.style.display === 'none' || (e.tagName === 'path' && !e.getAttribute('d'))) continue;
+        const c = e.cloneNode(true); c.removeAttribute('style'); face.append(c);
+      }
+      for (const c of this.over.children) face.append(c.cloneNode(true));
+      return '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(out);
+    }
     set(v) { if (v.eyeScale != null) this.tEyeScale = v.eyeScale; if (v.squash != null) this.tSquash = v.squash; if (v.blink != null) this.blinkAmt = v.blink; if (v.mouth !== undefined) this.tMouth = v.mouth; if (v.mouthSide != null) this.tMouthSide = v.mouthSide; if (v.mouthLen != null) this.tMouthLen = v.mouthLen; if (v.mouthTilt != null) this.tMouthTilt = v.mouthTilt; }
     setNow(v) { this.set(v); this.eyeScale = this.tEyeScale; this.squash = this.tSquash; this.mouth = this.tMouth; this.mouthSide = this.tMouthSide; this.mouthLen = this.tMouthLen; this.mouthTilt = this.tMouthTilt; }
 
