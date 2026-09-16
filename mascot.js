@@ -359,7 +359,7 @@
       let f = this._frame(lon, lat);
       if (A && (A.eyeOrbit || A.eyeMerge)) {                                                   // spinner / merge: a perfect screen-space circle around the midpoint, eyes stay round
         const fl = this._frame(-o.eyeLon, o.eyeLat), fr = this._frame(o.eyeLon, o.eyeLat);
-        const cx = (fl.m[4] + fr.m[4]) / 2, cy = (fl.m[5] + fr.m[5]) / 2, d = Math.hypot(fr.m[4] - fl.m[4], fr.m[5] - fl.m[5]) / 2 * (1 - (A.eyeMerge || 0));
+        const cx = (fl.m[4] + fr.m[4]) / 2, cy = (fl.m[5] + fr.m[5]) / 2, d = Math.hypot(fr.m[4] - fl.m[4], fr.m[5] - fl.m[5]) / 2 * (1 - (A.eyeMerge || 0)) * (A.orbitScale || 1);
         const th = (A.eyeOrbit || 0) * D2R + (side < 0 ? Math.PI : 0);
         f = { m: [1, 0, 0, 1, cx + d * Math.cos(th), cy + d * Math.sin(th)], z: 1 }; round = true;
       }
@@ -385,7 +385,7 @@
       el.setAttribute('stroke', stroke); el.setAttribute('stroke-width', (5.2 * this.eyeScale * (0.6 + 0.4 * trim)).toFixed(2));
       if (A && A.eyeOrbit) {                                                                   // spinner: the mouth is the third point on the eyes' circle, kept tangent
         const fl = this._frame(-o.eyeLon, o.eyeLat), fr = this._frame(o.eyeLon, o.eyeLat);
-        const cx = (fl.m[4] + fr.m[4]) / 2, cy = (fl.m[5] + fr.m[5]) / 2, dm = Math.hypot(f.m[4] - cx, f.m[5] - cy), th = A.eyeOrbit * D2R + Math.PI / 2;
+        const cx = (fl.m[4] + fr.m[4]) / 2, cy = (fl.m[5] + fr.m[5]) / 2, dm = Math.hypot(f.m[4] - cx, f.m[5] - cy) * (A.orbitScale || 1), th = A.eyeOrbit * D2R + Math.PI / 2;
         el.setAttribute('transform', `translate(${(cx + dm * Math.cos(th)).toFixed(2)} ${(cy + dm * Math.sin(th)).toFixed(2)}) rotate(${A.eyeOrbit.toFixed(2)})`);
         return;
       }
@@ -528,7 +528,7 @@
     // run an ad-hoc act definition {dur, run} on any body
     act(def) { this._act = { def, t0: performance.now() }; this.manual = true; this.look(0, 0); return def.dur * 1000; }
     // thinking: the two eyes orbit their midpoint like a spinner, three turns, easing in and out
-    think() { return this.act({ dur: 3.0, run: (t, A) => { const u = seg(t, 0, 2.9); A.eyeOrbit = 1080 * E.io(u); A.eyeScale = 1 - 0.15 * S(Math.PI * u); A.mouthTrim = 1 - E.io(seg(t, 0, 0.9)) + E.io(seg(t, 2.2, 2.95)); } }); }
+    think() { return this.act({ dur: 3.0, run: (t, A) => { const u = seg(t, 0, 2.9), w = S(Math.PI * u); A.eyeOrbit = 1080 * E.io(u); A.eyeScale = 1 + 0.18 * w; A.orbitScale = 1 + 0.28 * w; A.mouthTrim = 1 - E.io(seg(t, 0, 0.9)) + E.io(seg(t, 2.2, 2.95)); } }); }
     twitch(i = 1) { this._twitch = { i, t0: performance.now(), p: 0 }; }   // one ear wiggle on a body whose anim uses it (bear)
     poke() { this._poke = 1; this.set({ eyeScale: 1.22, squash: 1.1, mouth: 0.9 }); clearTimeout(this._pokeT); this._pokeT = setTimeout(() => { this.set({ eyeScale: 1, squash: 1, mouth: null }); this.blink(1); }, 420); }
 
@@ -573,7 +573,7 @@
         if (this._act) {
           const t = (now - this._act.t0) / 1000;
           if (t >= this._act.def.dur) { this._act = null; this._A = null; }
-          else { const A = { rot: 0, dx: 0, dy: 0, sx: 1, sy: 1, pivotY: 1, pieces: null, floor: 0, roundMul: 1, eyeScale: 1, eyeSquash: 1, eyeShake: 0, eyeOrbit: 0, eyeMerge: 0, overlay: null, mouthCurve: null, mouthTrim: null, look: null }; this._act.def.run(t, A, { R: o.radius, comp: this._comp, self: this }); if (A.look) this.look(A.look[0], A.look[1]); this._A = A; }
+          else { const A = { rot: 0, dx: 0, dy: 0, sx: 1, sy: 1, pivotY: 1, pieces: null, floor: 0, roundMul: 1, eyeScale: 1, eyeSquash: 1, eyeShake: 0, eyeOrbit: 0, eyeMerge: 0, orbitScale: 1, overlay: null, mouthCurve: null, mouthTrim: null, look: null }; this._act.def.run(t, A, { R: o.radius, comp: this._comp, self: this }); if (A.look) this.look(A.look[0], A.look[1]); this._A = A; }
         }
         // signals for the extra pieces
         this._t = now / 1000; this._dt = dt / 1000;
