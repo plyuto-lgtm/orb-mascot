@@ -306,7 +306,7 @@
       this.lin = el('linearGradient', { id: id + 'l', gradientUnits: 'userSpaceOnUse' });
       this.linStops = [el('stop', { offset: '0' }), el('stop', { offset: '1' })]; this.lin.append(...this.linStops);
       this.tintGrad = el('radialGradient', { id: id + 't', gradientUnits: 'userSpaceOnUse' });
-      this.tintGrad.append(el('stop', { offset: '0', 'stop-color': '#fff', 'stop-opacity': '0.34' }), el('stop', { offset: '0.55', 'stop-color': '#fff', 'stop-opacity': '0' }), el('stop', { offset: '1', 'stop-color': '#000', 'stop-opacity': '0.12' }));
+      this.tintGrad.append(el('stop', { offset: '0', 'stop-color': '#fff', 'stop-opacity': '0.34' }), el('stop', { offset: '0.65', 'stop-color': '#fff', 'stop-opacity': '0' }), el('stop', { offset: '1', 'stop-color': '#000', 'stop-opacity': '0.12' }));
       defs.append(this.specGrad, this.rimGrad, this.lin, this.tintGrad); this.specId = id + 's'; this.rimId = id + 'r'; this.linId = id + 'l';
       this.tintEl = el('rect', { x: -40, y: -40, width: 280, height: 280, fill: `url(#${id}t)`, mask: `url(#${id}c)` });
       this.blur = el('feGaussianBlur', { stdDeviation: 7, result: 'b' });
@@ -454,9 +454,9 @@
           this._tintKey = tk; const st = this.tintGrad.children, soft = chroma > 0.12;
           this.tintEl.style.mixBlendMode = soft ? 'soft-light' : 'normal';
           st[1].setAttribute('stop-color', baseHex);                                                // mid stop carries the body colour (gradient body: its centre mix) so there is no grey band
-          // intensity follows the body's lightness: dark colours need a strong lift and little edge, light colours the reverse
+          // intensity follows the body's lightness: light colours get a strong highlight and a soft edge, dark colours a soft highlight and a strong edge
           const L = lum(c), t = clamp01((L - 0.15) / 0.7);
-          const peak = soft ? 0.95 - 0.55 * t : 0.32 - 0.12 * L, edge = soft ? 0.55 + 0.4 * t : 0.1 + 0.06 * L;
+          const peak = soft ? 0.4 + 0.55 * t : 0.2 + 0.12 * L, edge = soft ? 0.95 - 0.4 * t : 0.16 - 0.06 * L;
           st[0].setAttribute('stop-opacity', peak.toFixed(2)); st[1].setAttribute('stop-opacity', '0'); st[2].setAttribute('stop-opacity', edge.toFixed(2));
         }
       }
