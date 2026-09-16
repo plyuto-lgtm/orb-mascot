@@ -415,11 +415,11 @@
     const seq = (steps, hold) => { steps.forEach(([y, p], i) => at(i * hold, () => m.look(y, p))); at(steps.length * hold, () => m.look(0, 0)); return steps.length * hold + 350; };
     let dur = 1200;
     switch (kind) {
-      case 'turn':  dur = seq([[-36, 0], [36, 0]], 1300); break;
-      case 'pitch': dur = seq([[0, 26], [0, -26]], 1300); break;
-      case 'fast':  dur = seq([[36, 0], [-36, 0], [36, 0], [-36, 0]], 420); break;
+      case 'turn':  m.set({ mouth: 0.7 }); dur = seq([[-36, 0], [36, 0]], 1300); at(dur - 300, () => m.set({ mouth: null })); break;
+      case 'pitch': m.set({ mouth: 0.7 }); dur = seq([[0, 26], [0, -26]], 1300); at(dur - 300, () => m.set({ mouth: null })); break;
+      case 'fast':  m.set({ mouth: 0 }); dur = seq([[36, 0], [-36, 0], [36, 0], [-36, 0]], 420); at(dur - 300, () => m.set({ mouth: null })); break;
       case 'poke':  m.look(0, 0); m.poke(); dur = 900; break;
-      case 'blink': m.look(0, 0); m.blink(2); dur = 800; break;
+      case 'blink': m.look(0, 0); m.set({ mouth: 0.8 }); m.blink(2); dur = 800; at(700, () => m.set({ mouth: null })); break;
       case 'twitch': m.look(0, 0); m.twitch(1 + Math.floor(Math.random() * 2)); dur = 650; break;
       case 'idle':  m.look(0, 0); dur = 2200; break;
       case 'think': dur = m.think(); at(dur - 200, () => m.blink(1)); break;
