@@ -12,6 +12,10 @@
   const hex2 = h => { h = h.replace('#', ''); if (h.length === 3) h = h.split('').map(c => c + c).join(''); const n = parseInt(h, 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
   const mix = (a, b, t) => '#' + a.map((v, i) => Math.round(v + (b[i] - v) * t).toString(16).padStart(2, '0')).join('');
   const lum = ([r, g, b]) => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  const rgb2hsl = ([r, g, b]) => { r /= 255; g /= 255; b /= 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn; if (!d) return [0, 0, l];
+    const sat = d / (1 - Math.abs(2 * l - 1)); const h = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return [h * 60, sat, l]; };
+  const hsl2hex = (h, sat, l) => { const a = sat * Math.min(l, 1 - l), f = n => { const k = (n + h / 30) % 12; return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); }; return mix([f(0), f(8), f(4)], [0, 0, 0], 0); };
+  const shiftL = (hex, dl) => { const [h, sat, l] = rgb2hsl(hex2(hex)); return hsl2hex(h, sat, clamp01(l + dl)); };   // same hue and saturation, lightness moved
   const el = (n, a) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
 
   // body silhouettes, centred on (100,100); sphereR = radius of the inner sphere the eyes ride on
@@ -454,14 +458,11 @@
       if (tintOver) {
         const f = this._frame(0, 28), cx = (f.m[4] - 0.12 * o.radius).toFixed(1), cy = (f.m[5] - 0.1 * o.radius).toFixed(1), r = (1.35 * o.radius).toFixed(1);
         for (const g of [this.lightGrad, this.shadowGrad]) { g.setAttribute('cx', cx); g.setAttribute('cy', cy); g.setAttribute('r', r); }
-        const c = hex2(baseHex), chroma = (Math.max(...c) - Math.min(...c)) / 255, tk = 'tint|' + (chroma > 0.12) + '|' + baseHex;
-        if (this._tintKey !== tk) {                                                                 // chromatic colours: soft-light keeps the hue clean; greys: plain white/black overlay
-          this._tintKey = tk; const soft = chroma > 0.12;
-          this.lightEl.style.mixBlendMode = soft ? 'soft-light' : 'normal'; this.shadowEl.style.mixBlendMode = soft ? 'multiply' : 'normal';   // multiply darkens every hue by the same proportion; overlay crushed some channels and left others alone
-          // intensity follows the body's HSL lightness: light colours get a strong highlight and a soft edge, dark colours a soft highlight and a stronger edge
-          const L = (Math.max(...c) + Math.min(...c)) / 510, t = clamp01((L - 0.1) / 0.8);
-          const peak = soft ? 0.45 + 0.5 * t : 0.2 + 0.12 * L, edge = soft ? 0.12 + 0.13 * t : 0.16 - 0.06 * L;   // lighter bodies have more room to darken, so the edge grows with lightness
-          this.lightGrad.children[0].setAttribute('stop-opacity', peak.toFixed(2)); this.shadowGrad.children[1].setAttribute('stop-opacity', edge.toFixed(2));
+        if (this._tintKey !== baseHex) {                                                            // light = the body colour with HSL lightness raised, shadow = lowered; hue and saturation stay put, no blend modes
+          this._tintKey = baseHex; const light = shiftL(baseHex, 0.14), shadow = shiftL(baseHex, -0.12);
+          const ls = this.lightGrad.children, ss = this.shadowGrad.children;
+          ls[0].setAttribute('stop-color', light); ls[1].setAttribute('stop-color', light); ls[0].setAttribute('stop-opacity', '1');
+          ss[0].setAttribute('stop-color', shadow); ss[1].setAttribute('stop-color', shadow); ss[1].setAttribute('stop-opacity', '1');
         }
       }
       const flat = style === 'flat' || style === 'gradient', fill = custom ? `url(#${this.linId})` : flat ? o.color : `url(#${this.gradId})`;
