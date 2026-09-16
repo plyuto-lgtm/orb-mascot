@@ -147,13 +147,14 @@
   .scen button{position:relative;padding:6px 12px 6px 26px;border-radius:999px;background:transparent}
   .scen button::before{content:'';position:absolute;left:11px;top:50%;transform:translateY(-50%);border-style:solid;border-width:4px 0 4px 7px;border-color:transparent transparent transparent var(--muted)}
   .scen button:hover{background:var(--surface-2)}
-  .scen button{overflow:hidden}
-  .scen button::after{content:'';position:absolute;left:12px;right:12px;bottom:3px;height:2px;border-radius:1px;background:var(--accent);transform:scaleX(0);transform-origin:left}
+  .scen button{overflow:visible}
+  .scen button .ring{position:absolute;inset:-1px;width:calc(100% + 2px);height:calc(100% + 2px);pointer-events:none;overflow:visible}
+  .scen button .ring rect{fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;opacity:0}
   .scen button[aria-pressed]{background:var(--surface-2)}
   .scen button[aria-pressed]::before{border-color:transparent transparent transparent var(--accent)}
-  .scen button[aria-pressed]::after{animation:scenProgress var(--dur,1s) linear forwards}
-  @keyframes scenProgress{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-  @media (prefers-reduced-motion:reduce){.scen button[aria-pressed]::after{animation:none;transform:scaleX(1)}}
+  .scen button[aria-pressed] .ring rect{opacity:1;animation:scenRing var(--dur,1s) linear forwards}
+  @keyframes scenRing{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+  @media (prefers-reduced-motion:reduce){.scen button[aria-pressed] .ring rect{animation:none;stroke-dashoffset:0}}
   .params{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
   .params div{background:var(--surface);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
   .params span{font-size:12px;color:var(--muted)}
@@ -278,6 +279,7 @@
     ['Poke',      'poke',  'Eyes pop, then blink.'],
     ['Idle',      'idle',  'Holds centre for a moment so idle motion is visible.'],
     ['Thinking',  'think', 'The eyes orbit each other like a spinner, three turns, then settle back.'],
+    ['Surprised', 'surprise', 'The eyes flash into stars and grow, the mouth shrinks to a short oh, the body gives a small start.'],
   ];
   const INFO = {
     bear:   { blurb: 'Round head, two ears on top.',
@@ -443,6 +445,7 @@
       case 'twitch': m.look(0, 0); m.twitch(1 + Math.floor(Math.random() * 2)); dur = 650; break;
       case 'idle':  m.look(0, 0); dur = 2200; break;
       case 'think': dur = m.think(); at(dur - 200, () => m.blink(1)); break;
+      case 'surprise': dur = m.surprise(); break;
       default: if (kind.startsWith('act:')) dur = m.play(kind.slice(4));
     }
     btn.style.setProperty('--dur', dur + 'ms'); btn.setAttribute('aria-pressed', 'true');
@@ -469,7 +472,12 @@
     const title = cap(name);
     const scen = scenariosFor(name);
     $('dName').textContent = title; $('dTitle').textContent = title; fillPick(); $('dBlurb').textContent = INFO[name].blurb;
-    const chip = (host, [label, demo, hint]) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.title = hint; b.addEventListener('click', () => runScenario(demo, b, hint)); host.append(b); };
+    const chip = (host, [label, demo, hint]) => {
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.title = hint; b.addEventListener('click', () => runScenario(demo, b, hint));
+      const ring = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); ring.setAttribute('class', 'ring');
+      const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect'); r.setAttribute('x', 1); r.setAttribute('y', 1); r.setAttribute('width', 'calc(100% - 2px)'); r.setAttribute('height', 'calc(100% - 2px)'); r.setAttribute('rx', 999); r.setAttribute('pathLength', 1);
+      ring.append(r); b.append(ring); host.append(b);
+    };
     $('dScen').innerHTML = ''; $('dScenUnique').innerHTML = '';
     for (const sc of scen.base) chip($('dScen'), sc);
     for (const sc of scen.unique) chip($('dScenUnique'), sc);

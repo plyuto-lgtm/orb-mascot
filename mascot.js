@@ -327,11 +327,12 @@
       this.wire = el('path', { fill: 'none', stroke: 'rgba(255,255,255,0.22)', 'stroke-width': 0.6 });
       this.eyeL = el('rect', {});
       this.eyeR = el('rect', {});
+      this.starL = el('path', {}); this.starR = el('path', {});   // star-shaped eyes for the surprised morph
       this.rimEl = el('rect', { x: -40, y: -40, width: 280, height: 280, fill: `url(#${id}r)` });
       this.spec = el('ellipse', { fill: `url(#${id}s)` });
       this.over = el('g', {});
       this.mouthEl = el('path', { fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
-      this.face.append(this.rimEl, this.tintEl, this.spec, this.wire, this.eyeL, this.eyeR, this.mouthEl, this.over);
+      this.face.append(this.rimEl, this.tintEl, this.spec, this.wire, this.eyeL, this.eyeR, this.starL, this.starR, this.mouthEl, this.over);
       this.body.append(this.sphere, this.goo, this.face);
       this.root.append(this.body); s.append(this.root);
     }
@@ -372,8 +373,15 @@
       const jx = A && A.eyeShake ? (Math.random() * 2 - 1) * A.eyeShake : 0, jy = A && A.eyeShake ? (Math.random() * 2 - 1) * A.eyeShake : 0;
       rect.setAttribute('x', -w / 2); rect.setAttribute('y', -h / 2);
       rect.setAttribute('width', w); rect.setAttribute('height', h); rect.setAttribute('rx', rx);
-      rect.setAttribute('transform', `translate(${jx.toFixed(2)} ${jy.toFixed(2)}) matrix(${f.m.map(n => n.toFixed(4)).join(' ')}) translate(0 ${(round ? 0 : this.blinkAmt * h * 0.08).toFixed(2)}) scale(${sx.toFixed(3)} ${sy.toFixed(3)})`);
-      rect.style.visibility = f.z > -0.05 ? 'visible' : 'hidden';
+      const tf = `translate(${jx.toFixed(2)} ${jy.toFixed(2)}) matrix(${f.m.map(n => n.toFixed(4)).join(' ')}) translate(0 ${(round ? 0 : this.blinkAmt * h * 0.08).toFixed(2)}) scale(${sx.toFixed(3)} ${sy.toFixed(3)})`;
+      rect.setAttribute('transform', tf);
+      const star = A && A.eyeStar ? A.eyeStar : 0, sp = side < 0 ? this.starL : this.starR;
+      if (star > 0.001) {                                                                      // morph: a smoothed 10-point polygon from circle (0) to a five-point star (1)
+        const r0 = w / 2, pts = []; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = r0 * (1 + star * (i % 2 ? -0.55 : 0.28)); pts.push([Math.cos(a) * rr, Math.sin(a) * rr]); }
+        const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2]; const soft = 1 - 0.85 * star;   // soft corners at 0, sharper tips at 1
+        let d = ''; for (let i = 0; i < 10; i++) { const p = pts[i], q = pts[(i + 1) % 10], m = mid(p, q); const c = [p[0] + (m[0] - p[0]) * soft, p[1] + (m[1] - p[1]) * soft]; if (!i) { const m0 = mid(pts[9], pts[0]); d = `M ${m0[0].toFixed(2)} ${m0[1].toFixed(2)} `; } d += `Q ${p[0].toFixed(2)} ${p[1].toFixed(2)} ${m[0].toFixed(2)} ${m[1].toFixed(2)} `; }
+        sp.setAttribute('d', d + 'Z'); sp.setAttribute('transform', tf); sp.style.visibility = f.z > -0.05 ? 'visible' : 'hidden'; rect.style.visibility = 'hidden';
+      } else { sp.setAttribute('d', ''); rect.style.visibility = f.z > -0.05 ? 'visible' : 'hidden'; }
       return f.z;
     }
 
@@ -482,7 +490,7 @@
         this.sR = shape.sphereR; const sr = shape.sphereR / o.radius; this._surf = Object.assign({ cx: 0, cy: 0, rx: sr, ry: sr }, shape.surf || {}); this._sig = ''; this.goo.innerHTML = ''; this.maskGoo.innerHTML = '';
         this.sphere.setAttribute('d', shape.d); this.clipCircle.setAttribute('d', shape.d);
       }
-      this.eyeL.setAttribute('fill', eyeFill); this.eyeR.setAttribute('fill', eyeFill);
+      this.eyeL.setAttribute('fill', eyeFill); this.eyeR.setAttribute('fill', eyeFill); this.starL.setAttribute('fill', eyeFill); this.starR.setAttribute('fill', eyeFill);
       this._wireframe();
       { const ov = this._A && this._A.overlay; this.over.innerHTML = '';
         if (ov) for (const [x, y, r] of ov) this.over.append(el('circle', { cx: (100 + x * o.radius).toFixed(2), cy: (100 + y * o.radius).toFixed(2), r: (r * o.radius).toFixed(2), fill })); }
@@ -538,6 +546,7 @@
       B.rot = L(A.rot, 0); B.dx = L(A.dx, 0); B.dy = L(A.dy, 0); B.sx = L(A.sx, 1); B.sy = L(A.sy, 1); B.pivotY = A.pivotY;
       B.floor = L(A.floor || 0, 0); B.roundMul = L(A.roundMul == null ? 1 : A.roundMul, 1);
       B.eyeScale = L(A.eyeScale, 1); B.eyeSquash = L(A.eyeSquash, 1); B.eyeShake = 0;
+      B.eyeStar = L(A.eyeStar || 0, 0);
       B.eyeOrbit = A.eyeOrbit ? L(A.eyeOrbit, Math.round(A.eyeOrbit / 360) * 360) : 0; B.eyeMerge = L(A.eyeMerge || 0, 0); B.orbitScale = L(A.orbitScale || 1, 1);
       const mouthRest = this.mouth == null ? o.mouthCurve : this.mouth;
       B.mouthCurve = A.mouthCurve == null ? null : L(A.mouthCurve, mouthRest);
@@ -549,6 +558,9 @@
     }
     // run an ad-hoc act definition {dur, run} on any body
     act(def) { this._fade = null; this._act = { def, t0: performance.now() }; this.manual = true; this.look(0, 0); return def.dur * 1000; }
+    // surprised: eyes morph into stars and grow, the mouth pulls into a short 'oh', the body gives a small start
+    surprise() { return this.act({ dur: 1.7, run: (t, A) => { const inA = E.back(seg(t, 0, 0.28)), out = 1 - E.io(seg(t, 1.2, 1.6)), k = Math.min(inA, out);
+      A.eyeStar = clamp01(k); A.eyeScale = 1 + 0.3 * k; A.mouthCurve = -0.25; A.mouthLen = 1 - 0.55 * k; A.dy = -5 * pulse(t, 0, 0.35); A.sy = 1 + 0.03 * pulse(t, 0, 0.35); } }); }
     // thinking: the two eyes orbit their midpoint like a spinner, three turns, easing in and out
     think() { return this.act({ dur: 3.0, run: (t, A) => { const u = seg(t, 0, 2.9), w = S(Math.PI * u); A.eyeOrbit = 1080 * E.io(u); A.eyeScale = 1 + 0.18 * w; A.orbitScale = 1 + 0.28 * w; A.mouthTrim = 1 - E.io(seg(t, 0, 0.9)) + E.io(seg(t, 2.2, 2.95)); } }); }
     twitch(i = 1) { this._twitch = { i, t0: performance.now(), p: 0 }; }   // one ear wiggle on a body whose anim uses it (bear)
@@ -595,7 +607,7 @@
         if (this._act) {
           const t = (now - this._act.t0) / 1000;
           if (t >= this._act.def.dur) { this._fade = this._A ? { A: this._A, t0: now } : null; this._act = null; this._A = null; }
-          else { const A = { rot: 0, dx: 0, dy: 0, sx: 1, sy: 1, pivotY: 1, pieces: null, floor: 0, roundMul: 1, eyeScale: 1, eyeSquash: 1, eyeShake: 0, eyeOrbit: 0, eyeMerge: 0, orbitScale: 1, overlay: null, mouthCurve: null, mouthTrim: null, mouthLen: null, mouthSide: 0, mouthTilt: null, look: null }; this._act.def.run(t, A, { R: o.radius, comp: this._comp, self: this }); if (A.look) this.look(A.look[0], A.look[1]); this._A = A; }
+          else { const A = { rot: 0, dx: 0, dy: 0, sx: 1, sy: 1, pivotY: 1, pieces: null, floor: 0, roundMul: 1, eyeScale: 1, eyeSquash: 1, eyeShake: 0, eyeOrbit: 0, eyeMerge: 0, orbitScale: 1, overlay: null, mouthCurve: null, mouthTrim: null, mouthLen: null, mouthSide: 0, mouthTilt: null, eyeStar: 0, look: null }; this._act.def.run(t, A, { R: o.radius, comp: this._comp, self: this }); if (A.look) this.look(A.look[0], A.look[1]); this._A = A; }
         }
         else if (this._fade) {                                                                  // blend the act's last frame into the idle pose
           const f = (now - this._fade.t0) / 380;
