@@ -475,8 +475,9 @@
     const chip = (host, [label, demo, hint]) => {
       const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.title = hint; b.addEventListener('click', () => runScenario(demo, b, hint));
       const ring = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); ring.setAttribute('class', 'ring');
-      const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect'); r.setAttribute('x', 1.5); r.setAttribute('y', 1.5); r.setAttribute('width', 'calc(100% - 3px)'); r.setAttribute('height', 'calc(100% - 3px)'); r.setAttribute('rx', 999); r.setAttribute('pathLength', 1);
+      const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect'); r.setAttribute('x', 1.5); r.setAttribute('y', 1.5); r.setAttribute('width', 'calc(100% - 3px)'); r.setAttribute('height', 'calc(100% - 3px)'); r.setAttribute('pathLength', 1);
       ring.append(r); b.append(ring); host.append(b);
+      requestAnimationFrame(() => { const rad = (b.offsetHeight + 6 - 3) / 2; r.setAttribute('rx', rad); r.setAttribute('ry', rad); });   // true pill: corner radius = half the height
     };
     $('dScen').innerHTML = ''; $('dScenUnique').innerHTML = '';
     for (const sc of scen.base) chip($('dScen'), sc);
