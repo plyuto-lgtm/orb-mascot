@@ -457,10 +457,10 @@
         const c = hex2(baseHex), chroma = (Math.max(...c) - Math.min(...c)) / 255, tk = 'tint|' + (chroma > 0.12) + '|' + baseHex;
         if (this._tintKey !== tk) {                                                                 // chromatic colours: soft-light keeps the hue clean; greys: plain white/black overlay
           this._tintKey = tk; const soft = chroma > 0.12;
-          this.lightEl.style.mixBlendMode = soft ? 'soft-light' : 'normal'; this.shadowEl.style.mixBlendMode = soft ? 'overlay' : 'normal';
+          this.lightEl.style.mixBlendMode = soft ? 'soft-light' : 'normal'; this.shadowEl.style.mixBlendMode = soft ? 'multiply' : 'normal';   // multiply darkens every hue by the same proportion; overlay crushed some channels and left others alone
           // intensity follows the body's HSL lightness: light colours get a strong highlight and a soft edge, dark colours a soft highlight and a stronger edge
           const L = (Math.max(...c) + Math.min(...c)) / 510, t = clamp01((L - 0.1) / 0.8);
-          const peak = soft ? 0.45 + 0.5 * t : 0.2 + 0.12 * L, edge = soft ? 0.6 - 0.35 * t : 0.16 - 0.06 * L;
+          const peak = soft ? 0.45 + 0.5 * t : 0.2 + 0.12 * L, edge = soft ? 0.25 + 0.25 * t : 0.16 - 0.06 * L;   // lighter bodies have more room to darken, so the edge grows with lightness
           this.lightGrad.children[0].setAttribute('stop-opacity', peak.toFixed(2)); this.shadowGrad.children[1].setAttribute('stop-opacity', edge.toFixed(2));
         }
       }
