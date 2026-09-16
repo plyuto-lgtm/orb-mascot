@@ -535,7 +535,7 @@
     // thinking: the two eyes orbit their midpoint like a spinner, three turns, easing in and out
     think() { return this.act({ dur: 3.0, run: (t, A) => { const u = seg(t, 0, 2.9), w = S(Math.PI * u); A.eyeOrbit = 1080 * E.io(u); A.eyeScale = 1 + 0.18 * w; A.orbitScale = 1 + 0.28 * w; A.mouthTrim = 1 - E.io(seg(t, 0, 0.9)) + E.io(seg(t, 2.2, 2.95)); } }); }
     twitch(i = 1) { this._twitch = { i, t0: performance.now(), p: 0 }; }   // one ear wiggle on a body whose anim uses it (bear)
-    poke() { this._poke = 1; this.set({ eyeScale: 1.22, squash: 1.1, mouth: 0.9 }); clearTimeout(this._pokeT); this._pokeT = setTimeout(() => { this.set({ eyeScale: 1, squash: 1, mouth: null }); this.blink(1); }, 420); }
+    poke() { this._poke = 1; this.set({ eyeScale: 1.22, squash: 1.1, mouth: 0.5, mouthLen: 0.55 }); clearTimeout(this._pokeT); this._pokeT = setTimeout(() => { this.set({ eyeScale: 1, squash: 1, mouth: null, mouthLen: 1 }); this.blink(1); }, 420); }
 
     start() {
       if (this._running) return; this._running = true;
