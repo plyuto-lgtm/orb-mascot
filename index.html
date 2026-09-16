@@ -239,8 +239,8 @@
       <div class="row"><span>Stroke</span><div class="toggles" id="strokePick" role="group" aria-label="Mouth stroke">
         <label><input type="radio" name="stroke" value="2">2px</label>
         <label><input type="radio" name="stroke" value="3">3px</label>
-        <label><input type="radio" name="stroke" value="4" checked>4px</label>
-        <label><input type="radio" name="stroke" value="6">6px</label>
+        <label><input type="radio" name="stroke" value="4">4px</label>
+        <label><input type="radio" name="stroke" value="6" checked>6px</label>
       </div></div>
       <h3>Scenarios</h3>
       <div class="scen" id="dScen"></div>
@@ -338,7 +338,7 @@
   }
 
   // ---------- settings shared across bodies ----------
-  const settings = { maxYaw: 20, maxPitch: 15, mouth: true, smile: 0.4, stroke: 4, colorName: 'black', mode: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light', round: 0.5, wireframe: false, gradient: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true };
+  const settings = { maxYaw: 20, maxPitch: 15, mouth: true, smile: 0.4, stroke: 6, colorName: 'black', mode: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light', round: 0.5, wireframe: false, gradient: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true };
   settings.g1 = '#1E6DF6'; settings.g2 = '#DBDBDB'; settings.gAngle = 90;
   const palette = () => settings.mode === 'dark' ? Mascot.COLORS_DARK : Mascot.COLORS;
   const colorHex = () => settings.colorName === 'custom' ? [settings.g1, settings.g2] : palette()[settings.colorName];
@@ -474,7 +474,7 @@
     if (!current) return;
     const custom = settings.colorName === 'custom';
     const colorLine = custom ? `color: ['${settings.g1}', '${settings.g2}'],\n  gradientAngle: ${settings.gAngle}` : `color: '${colorHex()}'${settings.gradient ? ',' : ''}   // ${settings.colorName}, ${settings.mode} palette`;
-    const mouthLine = (settings.mouth ? `,\n  mouthCurve: ${settings.smile}${settings.stroke !== 4 ? `, mouthStroke: ${settings.stroke}` : ''}` : ',\n  mouth: false') + `,\n  maxYaw: ${settings.maxYaw}, maxPitch: ${settings.maxPitch}`;
+    const mouthLine = (settings.mouth ? `,\n  mouthCurve: ${settings.smile}${settings.stroke !== 6 ? `, mouthStroke: ${settings.stroke}` : ''}` : ',\n  mouth: false') + `,\n  maxYaw: ${settings.maxYaw}, maxPitch: ${settings.maxPitch}`;
     $('dCfg').textContent = `new Mascot(svg, {\n  body: ${bodyArg(current)},\n  ${colorLine}${settings.gradient ? ",\n  shade: 'gradient'   // shader" : ''}${mouthLine}\n})`;
   }
   function openBody(name) {

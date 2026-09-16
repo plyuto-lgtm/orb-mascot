@@ -288,7 +288,7 @@
         mouth: true,        // draw a mouth: a stroked arc on the eye sphere below the eyes
         mouthCurve: 0.4,    // -1 frown .. 0 flat .. 1 smile
         mouthWidth: 1,      // relative width
-        mouthStroke: 4,     // stroke width (viewBox units, about 1px at a 240px render)
+        mouthStroke: 6,     // stroke width (viewBox units, about 1px at a 240px render)
         mouthDrop: 22,      // degrees below the eye line
         twitch: false,      // bear only: occasional single ear wiggle
         fit: true,          // scale composed bodies to a common visual extent
@@ -423,7 +423,7 @@
       const hl = hw * (1 - 0.7 * Math.max(0, side)), hr = hw * (1 - 0.7 * Math.max(0, -side));
       const bulge = curve * (hl + hr) / 2 * 1.15, mid = (hr - hl) / 2;                            // positive = smile (bulges down on screen)
       el.setAttribute('d', `M ${(-hl).toFixed(2)} 0 Q ${mid.toFixed(2)} ${bulge.toFixed(2)} ${hr.toFixed(2)} 0`);
-      el.setAttribute('stroke', stroke); el.setAttribute('stroke-width', ((o.mouthStroke == null ? 4 : o.mouthStroke) * 1.3 * this.eyeScale * (0.6 + 0.4 * trim)).toFixed(2));
+      el.setAttribute('stroke', stroke); el.setAttribute('stroke-width', ((o.mouthStroke == null ? 6 : o.mouthStroke) * 1.3 * this.eyeScale * (0.6 + 0.4 * trim)).toFixed(2));
       if (A && A.eyeOrbit) {                                                                   // spinner: the mouth is the third point on the eyes' circle, kept tangent
         const fl = this._frame(-o.eyeLon, o.eyeLat), fr = this._frame(o.eyeLon, o.eyeLat);
         const cx = (fl.m[4] + fr.m[4]) / 2, cy = (fl.m[5] + fr.m[5]) / 2, dm = Math.hypot(f.m[4] - cx, f.m[5] - cy) * (A.orbitScale || 1), th = A.eyeOrbit * D2R + Math.PI / 2;
