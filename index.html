@@ -417,7 +417,9 @@
     switch (kind) {
       case 'turn':  m.set({ mouth: 0.7 }); dur = seq([[-36, 0], [36, 0]], 1300); at(dur - 300, () => m.set({ mouth: null })); break;
       case 'pitch': m.set({ mouth: 0.7 }); dur = seq([[0, 26], [0, -26]], 1300); at(dur - 300, () => m.set({ mouth: null })); break;
-      case 'fast':  m.set({ mouth: 0 }); dur = seq([[36, 0], [-36, 0], [36, 0], [-36, 0]], 420); at(dur - 300, () => m.set({ mouth: null })); break;
+      case 'fast':  m.set({ mouth: 0.15, mouthLen: 0.8 }); dur = seq([[36, 0], [-36, 0], [36, 0], [-36, 0]], 420);
+        [1, -1, 1, -1].forEach((d, i) => at(i * 420, () => m.set({ mouthSide: d })));            // smirk toward each turn
+        at(dur - 300, () => m.set({ mouth: null, mouthSide: 0, mouthLen: 1 })); break;
       case 'poke':  m.look(0, 0); m.poke(); dur = 900; break;
       case 'blink': m.look(0, 0); m.set({ mouth: 0.8 }); m.blink(2); dur = 800; at(700, () => m.set({ mouth: null })); break;
       case 'twitch': m.look(0, 0); m.twitch(1 + Math.floor(Math.random() * 2)); dur = 650; break;

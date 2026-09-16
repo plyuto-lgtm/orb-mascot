@@ -281,6 +281,7 @@
       // live values
       this.yaw = 0; this.pitch = 0; this.tYaw = 0; this.tPitch = 0;
       this.blinkAmt = 0; this.eyeScale = 1; this.squash = 1; this.mouth = null; this.tMouth = null;   // null = follow o.mouthCurve
+      this.mouthSide = 0; this.tMouthSide = 0; this.mouthLen = 1; this.tMouthLen = 1;   // animatable smirk and length outside acts
       this.tEyeScale = 1; this.tSquash = 1;
       this.manual = false;
       this._poke = 0; this._pokeS = 0; this._vel = 0; this._twitch = null; this._t = 0; this._dt = 0; this._mem = {};
@@ -380,7 +381,7 @@
       if (!o.mouth || (A && A.eyeMerge) || trim <= 0.01) { el.setAttribute('d', ''); return; }
       const f = this._frame(0, o.eyeLat - o.mouthDrop); if (f.z < -0.05) { el.setAttribute('d', ''); return; }
       const curve = A && A.mouthCurve != null ? A.mouthCurve : (this.mouth == null ? o.mouthCurve : this.mouth);
-      const len = A && A.mouthLen != null ? A.mouthLen : 1, side = A && A.mouthSide ? A.mouthSide : 0;   // side: +1 keeps the right end, trims the left (smirk to the right)
+      const len = A && A.mouthLen != null ? A.mouthLen : this.mouthLen, side = A && A.mouthSide ? A.mouthSide : this.mouthSide;   // side: +1 keeps the right end, trims the left (smirk to the right)
       const hw = 14 * o.mouthWidth * this.eyeScale * (A ? A.eyeScale : 1) * trim * len;
       const hl = hw * (1 - 0.7 * Math.max(0, side)), hr = hw * (1 - 0.7 * Math.max(0, -side));
       const bulge = curve * (hl + hr) / 2 * 1.15, mid = (hr - hl) / 2;                            // positive = smile (bulges down on screen)
@@ -499,8 +500,8 @@
     /* ---------- convenience ---------- */
     look(yaw, pitch) { const o = this.o; this.tYaw = Math.max(-o.maxYaw, Math.min(o.maxYaw, yaw)); this.tPitch = Math.max(-o.maxPitch, Math.min(o.maxPitch, pitch)); }
     snap(yaw, pitch) { this.look(yaw, pitch); this.yaw = this.tYaw; this.pitch = this.tPitch; }
-    set(v) { if (v.eyeScale != null) this.tEyeScale = v.eyeScale; if (v.squash != null) this.tSquash = v.squash; if (v.blink != null) this.blinkAmt = v.blink; if (v.mouth !== undefined) this.tMouth = v.mouth; }
-    setNow(v) { this.set(v); this.eyeScale = this.tEyeScale; this.squash = this.tSquash; this.mouth = this.tMouth; }
+    set(v) { if (v.eyeScale != null) this.tEyeScale = v.eyeScale; if (v.squash != null) this.tSquash = v.squash; if (v.blink != null) this.blinkAmt = v.blink; if (v.mouth !== undefined) this.tMouth = v.mouth; if (v.mouthSide != null) this.tMouthSide = v.mouthSide; if (v.mouthLen != null) this.tMouthLen = v.mouthLen; }
+    setNow(v) { this.set(v); this.eyeScale = this.tEyeScale; this.squash = this.tSquash; this.mouth = this.tMouth; this.mouthSide = this.tMouthSide; this.mouthLen = this.tMouthLen; }
 
     blink(times = 1) {
       if (this._blinking) return; this._blinking = true;
@@ -594,6 +595,7 @@
         else if (o.twitch && !reduce && (!this._nextTwitch || now > this._nextTwitch)) { if (this._nextTwitch) this._twitch = { i: 1 + Math.floor(Math.random() * 2), t0: now, p: 0 }; this._nextTwitch = now + 2500 + Math.random() * 4000; }
         this.eyeScale += (this.tEyeScale - this.eyeScale) * k2; this.squash += (this.tSquash - this.squash) * k2;
         { const target = this.tMouth == null ? o.mouthCurve : this.tMouth; if (this.mouth == null) this.mouth = target; this.mouth += (target - this.mouth) * k2; }
+        this.mouthSide += (this.tMouthSide - this.mouthSide) * k2; this.mouthLen += (this.tMouthLen - this.mouthLen) * k2;
         if (o.breathe && !reduce) { const s = 1 + 0.012 * Math.sin(now / 3200 * Math.PI * 2); this.root.setAttribute('transform', `translate(100 100) scale(${s.toFixed(4)}) translate(-100 -100)`); }
         else this.root.removeAttribute('transform');
         this.render();
