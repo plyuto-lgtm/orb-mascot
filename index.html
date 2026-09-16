@@ -223,7 +223,8 @@
         <label><input type="checkbox" id="lean" checked>Lean</label>
         <label><input type="checkbox" id="breathe" checked>Breathe</label>
       </div>
-      <div class="h3row"><h3>Colour</h3><label class="switch"><input type="checkbox" id="gradient"><span class="track"><span class="knob"></span></span><span>Shader</span></label></div>
+      <h3>Colour</h3>
+      <div class="row"><span>Shader</span><label class="switch" style="margin:0"><input type="checkbox" id="gradient"><span class="track"><span class="knob"></span></span></label></div>
       <div class="toggles swatches" id="colorPick" style="position:relative"><label id="customChip"><input type="radio" name="color" id="color-custom" autocomplete="off"><i id="customDot"></i>Gradient<i class="chev"></i></label>
       <div id="customBox" class="pop" hidden>
         <div class="row"><span>Colours</span><div class="gradRow">
@@ -233,7 +234,7 @@
         </div></div>
         <div class="row" style="margin-top:10px"><span>Angle</span><div class="fs"><input type="range" id="gAngle" min="0" max="360" value="90" step="5" aria-label="Gradient angle"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
       </div></div>
-      <div class="h3row"><h3>Face</h3><label class="switch"><input type="checkbox" id="mouthOn" checked><span class="track"><span class="knob"></span></span><span>Mouth</span></label></div>
+      <h3>Face</h3>
       <div class="row"><span>Smile</span><div class="fs"><input type="range" id="smile" min="-1" max="1" value="0.4" step="0.05" aria-label="Mouth curve"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
       <div class="row"><span>Stroke</span><div class="toggles" id="strokePick" role="group" aria-label="Mouth stroke">
         <label><input type="radio" name="stroke" value="2">2px</label>
@@ -401,7 +402,6 @@
   const drawSmile = filledSlider($('smile'), v => v > 0 ? 'smile ' + Math.round(v * 100) + '%' : v < 0 ? 'frown ' + Math.round(-v * 100) + '%' : 'flat');
   $('smile').addEventListener('input', () => { settings.smile = +$('smile').value; applySettings(); });
   for (const r of document.querySelectorAll('input[name=stroke]')) r.addEventListener('change', e => { settings.stroke = +e.target.value; applySettings(); });
-  $('mouthOn').addEventListener('change', e => { settings.mouth = e.target.checked; applySettings(); });
   $('size').addEventListener('input', () => { $('stage').style.setProperty('--max', $('size').value + 'px'); $('guideLabel').textContent = $('size').value + (+$('size').value === 480 ? ' max' : ''); });
   $('gAngle').addEventListener('input', () => { settings.gAngle = +$('gAngle').value; applySettings(); });
   for (const k of ['g1', 'g2']) {                                       // typed hex: applies as soon as it is a valid 3- or 6-digit code
