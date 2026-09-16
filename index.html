@@ -134,8 +134,9 @@
   .stage .guide i{position:absolute;left:calc(10% + 8px);top:calc(10% + 6px);font:11px var(--mono);color:var(--muted);font-style:normal}
   .stage.guides .guide{display:block}
 
-  .mode{position:absolute;left:14px;top:14px;display:flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface);z-index:1}
-  .mode .sep{width:1px;margin:5px 3px;background:var(--line)}
+  .stage .bar{position:absolute;left:14px;top:14px;display:flex;align-items:center;gap:14px;z-index:1}   /* mode selector with the grid toggle beside it */
+  .mode{display:flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface)}
+  .switch.gridToggle{margin:0}
   .mode label{font-size:12px;font-weight:500;padding:4px 10px;border-radius:999px;color:var(--muted);cursor:pointer;user-select:none}
   .mode label:has(:checked){background:var(--ink);color:var(--bg)}
   .mode input{position:absolute;opacity:0;width:0;height:0}
@@ -193,12 +194,11 @@
   </div>
   <div class="top">
     <div class="stage" id="stage">
-      <div class="mode" role="group" aria-label="Canvas mode">
+      <div class="bar"><div class="mode" role="group" aria-label="Canvas mode">
         <label><input type="radio" name="mode" value="light" checked>Light</label>
         <label><input type="radio" name="mode" value="dark">Dark</label>
-        <i class="sep"></i>
-        <label><input type="checkbox" id="wireframe">Grid</label>
       </div>
+      <label class="switch gridToggle"><input type="checkbox" id="wireframe"><span class="track"><span class="knob"></span></span><span>Grid</span></label></div>
       <div class="guide"><b id="guideLabel">240</b><i>safe area</i></div>
       <svg id="dLive" aria-label="Selected body, live"></svg>
     </div>
