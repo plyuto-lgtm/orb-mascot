@@ -50,6 +50,13 @@
   .pad .ring{position:absolute;inset:22px;border:1px dashed var(--line);border-radius:50%}
   .pad .knob{position:absolute;width:16px;height:16px;border-radius:50%;background:var(--ink);left:50%;top:50%;transform:translate(-50%,-50%);box-shadow:0 1px 3px rgba(0,0,0,.3);pointer-events:none}
   .pad.active .knob{background:var(--accent)}
+  .limits{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .num{display:flex;align-items:center;gap:6px;height:32px;padding:0 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-size:13px}
+  .num span{color:var(--muted)}
+  .num input{flex:1;min-width:0;width:100%;border:none;background:none;color:var(--ink);font:500 13px var(--mono);font-variant-numeric:tabular-nums;text-align:right;padding:0;-moz-appearance:textfield}
+  .num input::-webkit-outer-spin-button,.num input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .num b{font-weight:400;color:var(--muted)}
+  .num:hover{border-color:var(--muted)}
   .gazeVals{display:flex;flex-direction:column;gap:4px;font-size:13px}
   .gazeVals output{font:12px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
   .toggles{display:flex;flex-wrap:wrap;gap:6px}
@@ -198,8 +205,10 @@
         </div>
         <div class="gazeVals"><span>yaw <output id="yawV">0&deg;</output></span><span>pitch <output id="pitchV">0&deg;</output></span><span class="note" style="margin:10px 0 0">Drag the dot. Auto resumes when you let go.</span></div>
       </div>
-      <div class="row"><span>Yaw limit</span><div class="fs"><input type="range" id="maxYaw" min="5" max="60" value="20" step="1" aria-label="Yaw limit"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
-      <div class="row"><span>Pitch limit</span><div class="fs"><input type="range" id="maxPitch" min="5" max="40" value="15" step="1" aria-label="Pitch limit"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
+      <div class="row"><span>Limits</span><div class="limits">
+        <label class="num"><span>Yaw</span><input type="number" id="maxYaw" min="5" max="60" step="1" value="20" aria-label="Yaw limit"><b>&deg;</b></label>
+        <label class="num"><span>Pitch</span><input type="number" id="maxPitch" min="5" max="40" step="1" value="15" aria-label="Pitch limit"><b>&deg;</b></label>
+      </div></div>
       <div class="row"><span>Size</span><div class="fs"><input type="range" id="size" min="64" max="480" value="240" step="8" aria-label="Orb size"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
       <h3>Behaviour</h3>
       <div class="toggles">
@@ -373,9 +382,11 @@
   document.addEventListener('pointerdown', e => { if (!$('customBox').hidden && !e.target.closest('#customChip, #customBox')) $('customBox').hidden = true; });
   const drawAngle = filledSlider($('gAngle'), v => v + '\u00b0');
   const drawSize = filledSlider($('size'), v => v + ' px');
-  const drawYaw = filledSlider($('maxYaw'), v => '\u00b1' + v + '\u00b0'), drawPitch = filledSlider($('maxPitch'), v => '\u00b1' + v + '\u00b0');
-  $('maxYaw').addEventListener('input', () => { settings.maxYaw = +$('maxYaw').value; applySettings(); rebuildStates(); });
-  $('maxPitch').addEventListener('input', () => { settings.maxPitch = +$('maxPitch').value; applySettings(); rebuildStates(); });
+  const limitInput = (id, key, lo, hi) => {
+    const el = $(id), commit = () => { const v = Math.max(lo, Math.min(hi, Math.round(+el.value) || lo)); el.value = v; settings[key] = v; applySettings(); rebuildStates(); };
+    el.addEventListener('change', commit); el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); commit(); el.blur(); } });
+  };
+  limitInput('maxYaw', 'maxYaw', 5, 60); limitInput('maxPitch', 'maxPitch', 5, 40);
   const drawSmile = filledSlider($('smile'), v => v > 0 ? 'smile ' + Math.round(v * 100) + '%' : v < 0 ? 'frown ' + Math.round(-v * 100) + '%' : 'flat');
   $('smile').addEventListener('input', () => { settings.smile = +$('smile').value; applySettings(); });
   $('mouthOn').addEventListener('change', e => { settings.mouth = e.target.checked; applySettings(); });
