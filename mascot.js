@@ -12,10 +12,20 @@
   const hex2 = h => { h = h.replace('#', ''); if (h.length === 3) h = h.split('').map(c => c + c).join(''); const n = parseInt(h, 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
   const mix = (a, b, t) => '#' + a.map((v, i) => Math.round(v + (b[i] - v) * t).toString(16).padStart(2, '0')).join('');
   const lum = ([r, g, b]) => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-  const rgb2hsl = ([r, g, b]) => { r /= 255; g /= 255; b /= 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn; if (!d) return [0, 0, l];
-    const sat = d / (1 - Math.abs(2 * l - 1)); const h = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return [h * 60, sat, l]; };
-  const hsl2hex = (h, sat, l) => { const a = sat * Math.min(l, 1 - l), f = n => { const k = (n + h / 30) % 12; return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); }; return mix([f(0), f(8), f(4)], [0, 0, 0], 0); };
-  const shiftL = (hex, dl) => { const [h, sat, l] = rgb2hsl(hex2(hex)); return hsl2hex(h, sat, clamp01(l + dl)); };   // same hue and saturation, lightness moved
+  // OKLab: perceptually uniform, so an equal lightness step looks equal on every hue
+  const s2l = v => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  const l2s = v => { v = Math.max(0, Math.min(1, v)); return Math.round(255 * (v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055)); };
+  const rgb2ok = ([r, g, b]) => { r = s2l(r); g = s2l(g); b = s2l(b);
+    const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b), m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b), q = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+    return [0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * q, 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * q, 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * q]; };
+  const ok2rgb = ([L, a, b]) => { const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3, m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3, q = (L - 0.0894841775 * a - 1.2914855480 * b) ** 3;
+    return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * q, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * q, -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * q]; };
+  const inGamut = c => c.every(v => v > -0.002 && v < 1.002);
+  const shiftL = (hex, dl) => { let [L, a, b] = rgb2ok(hex2(hex)); L = clamp01(L + dl); let c = ok2rgb([L, a, b]);
+    for (let i = 0; i < 14 && !inGamut(c); i++) { a *= 0.85; b *= 0.85; c = ok2rgb([L, a, b]); }                  // out of gamut: pull chroma in, keep the lightness
+    return '#' + c.map(v => l2s(v).toString(16).padStart(2, '0')).join(''); };
+  // shader tints: the contrast budget is split by the room the colour has in each direction, so dark bodies get most of it as light, light bodies as shadow
+  const tintOf = (hex, dir) => { const L = rgb2ok(hex2(hex))[0]; return shiftL(hex, dir > 0 ? Math.min(0.03 + 0.15 * (1 - L), 0.8 * (1 - L)) : -Math.min(0.03 + 0.1 * L, 0.8 * L)); };
   const el = (n, a) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
 
   // body silhouettes, centred on (100,100); sphereR = radius of the inner sphere the eyes ride on
@@ -310,13 +320,18 @@
       this.lin = el('linearGradient', { id: id + 'l', gradientUnits: 'userSpaceOnUse' });
       this.linStops = [el('stop', { offset: '0' }), el('stop', { offset: '1' })]; this.lin.append(...this.linStops);
       // shader = two separate layers over the flat colour: a white light (centre to 0.65) and a black shadow (0.65 to the rim); each fades to its own colour, so no mid tint is needed
-      this.lightGrad = el('radialGradient', { id: id + 't', gradientUnits: 'userSpaceOnUse' });
-      this.lightGrad.append(el('stop', { offset: '0', 'stop-color': '#fff', 'stop-opacity': '0.34' }), el('stop', { offset: '0.65', 'stop-color': '#fff', 'stop-opacity': '0' }));
-      this.shadowGrad = el('radialGradient', { id: id + 'd', gradientUnits: 'userSpaceOnUse' });
-      this.shadowGrad.append(el('stop', { offset: '0.65', 'stop-color': '#000', 'stop-opacity': '0' }), el('stop', { offset: '1', 'stop-color': '#000', 'stop-opacity': '0.12' }));
-      defs.append(this.specGrad, this.rimGrad, this.lin, this.lightGrad, this.shadowGrad); this.specId = id + 's'; this.rimId = id + 'r'; this.linId = id + 'l';
-      this.lightEl = el('rect', { x: -40, y: -40, width: 280, height: 280, fill: `url(#${id}t)`, mask: `url(#${id}c)` });
-      this.shadowEl = el('rect', { x: -40, y: -40, width: 280, height: 280, fill: `url(#${id}d)`, mask: `url(#${id}c)` });
+      // shader: two layers in the body's own colours (lighter / darker, OKLab), each a linear gradient on the body's axis, faded by a radial alpha mask that follows the gaze
+      this.lightLin = el('linearGradient', { id: id + 'tl', gradientUnits: 'userSpaceOnUse' }); this.lightLin.append(el('stop', { offset: '0' }), el('stop', { offset: '1' }));
+      this.shadowLin = el('linearGradient', { id: id + 'ts', gradientUnits: 'userSpaceOnUse' }); this.shadowLin.append(el('stop', { offset: '0' }), el('stop', { offset: '1' }));
+      this.lightGrad = el('radialGradient', { id: id + 'ta', gradientUnits: 'userSpaceOnUse' });
+      this.lightGrad.append(el('stop', { offset: '0', 'stop-color': '#fff', 'stop-opacity': '1' }), el('stop', { offset: '0.65', 'stop-color': '#fff', 'stop-opacity': '0' }));
+      this.shadowGrad = el('radialGradient', { id: id + 'sa', gradientUnits: 'userSpaceOnUse' });
+      this.shadowGrad.append(el('stop', { offset: '0.65', 'stop-color': '#fff', 'stop-opacity': '0' }), el('stop', { offset: '1', 'stop-color': '#fff', 'stop-opacity': '1' }));
+      const maskL = el('mask', { id: id + 'ml' }), maskS = el('mask', { id: id + 'ms' });
+      maskL.append(el('rect', { x: -40, y: -40, width: 280, height: 280, fill: `url(#${id}ta)` })); maskS.append(el('rect', { x: -40, y: -40, width: 280, height: 280, fill: `url(#${id}sa)` }));
+      defs.append(this.specGrad, this.rimGrad, this.lin, this.lightLin, this.shadowLin, this.lightGrad, this.shadowGrad, maskL, maskS); this.specId = id + 's'; this.rimId = id + 'r'; this.linId = id + 'l';
+      this.lightEl = el('g', { mask: `url(#${id}ml)` }); this.lightEl.append(el('rect', { x: -40, y: -40, width: 280, height: 280, fill: `url(#${id}tl)`, mask: `url(#${id}c)` }));
+      this.shadowEl = el('g', { mask: `url(#${id}ms)` }); this.shadowEl.append(el('rect', { x: -40, y: -40, width: 280, height: 280, fill: `url(#${id}ts)`, mask: `url(#${id}c)` }));
       this.blur = el('feGaussianBlur', { stdDeviation: 7, result: 'b' });
       const goo = el('filter', { id: id + 'f', x: '-20%', y: '-20%', width: '140%', height: '140%' });
       goo.append(this.blur, el('feColorMatrix', { in: 'b', type: 'matrix', values: '1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -11' }));
@@ -458,11 +473,12 @@
       if (tintOver) {
         const f = this._frame(0, 28), cx = (f.m[4] - 0.12 * o.radius).toFixed(1), cy = (f.m[5] - 0.1 * o.radius).toFixed(1), r = (1.35 * o.radius).toFixed(1);
         for (const g of [this.lightGrad, this.shadowGrad]) { g.setAttribute('cx', cx); g.setAttribute('cy', cy); g.setAttribute('r', r); }
-        if (this._tintKey !== baseHex) {                                                            // light = the body colour with HSL lightness raised, shadow = lowered; hue and saturation stay put, no blend modes
-          this._tintKey = baseHex; const light = shiftL(baseHex, 0.14), shadow = shiftL(baseHex, -0.07);
-          const ls = this.lightGrad.children, ss = this.shadowGrad.children;
-          ls[0].setAttribute('stop-color', light); ls[1].setAttribute('stop-color', light); ls[0].setAttribute('stop-opacity', '1');
-          ss[0].setAttribute('stop-color', shadow); ss[1].setAttribute('stop-color', shadow); ss[1].setAttribute('stop-opacity', '1');
+        const tk = custom ? o.color[0] + '|' + o.color[1] : o.color;
+        if (this._tintKey !== tk) {                                                                 // each gradient end gets its own lighter / darker version, so the tint always matches what is under it
+          this._tintKey = tk; const c0 = custom ? o.color[0] : o.color, c1 = custom ? o.color[1] : o.color;
+          const ls = this.lightLin.children, ss = this.shadowLin.children;
+          ls[0].setAttribute('stop-color', tintOf(c0, 1)); ls[1].setAttribute('stop-color', tintOf(c1, 1));
+          ss[0].setAttribute('stop-color', tintOf(c0, -1)); ss[1].setAttribute('stop-color', tintOf(c1, -1));
         }
       }
       const flat = style === 'flat' || style === 'gradient', fill = custom ? `url(#${this.linId})` : flat ? o.color : `url(#${this.gradId})`;
@@ -517,7 +533,7 @@
       if (custom) {                                                                                  // gradient axis anchored on the head sphere: it shifts with the gaze
         const a = (o.gradientAngle == null ? 45 : o.gradientAngle) * D2R, lon = 62 * Math.cos(a), lat = -62 * Math.sin(a);
         const f1 = this._frame(-lon, -lat), f2 = this._frame(lon, lat);
-        this.lin.setAttribute('x1', f1.m[4].toFixed(1)); this.lin.setAttribute('y1', f1.m[5].toFixed(1)); this.lin.setAttribute('x2', f2.m[4].toFixed(1)); this.lin.setAttribute('y2', f2.m[5].toFixed(1));
+        for (const g of [this.lin, this.lightLin, this.shadowLin]) { g.setAttribute('x1', f1.m[4].toFixed(1)); g.setAttribute('y1', f1.m[5].toFixed(1)); g.setAttribute('x2', f2.m[4].toFixed(1)); g.setAttribute('y2', f2.m[5].toFixed(1)); }
       }
       this.zL = this._eye(this.eyeL, -1);
       this.zR = this._eye(this.eyeR, 1);
