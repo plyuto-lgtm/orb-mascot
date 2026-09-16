@@ -528,12 +528,27 @@
     // run a scripted act (see ACTS); returns its duration in ms, 0 if the body has no such act
     play(name) {
       const comp = this._comp, act = comp && comp.acts && comp.acts[name]; if (!act) return 0;
-      this._act = { def: act, t0: performance.now() }; this.manual = true; this.look(0, 0);
+      this._fade = null; this._act = { def: act, t0: performance.now() }; this.manual = true; this.look(0, 0);
       return act.dur * 1000;
     }
-    stopAct() { this._act = null; this._A = null; }
+    stopAct() { if (this._A) this._fade = { A: this._A, t0: performance.now() }; this._act = null; this._A = null; }
+    // mix an act frame toward neutral by k (0 = the act's frame, 1 = idle)
+    _blendOut(A, k) {
+      const L = (a, b) => a + (b - a) * k, o = this.o, B = {};
+      B.rot = L(A.rot, 0); B.dx = L(A.dx, 0); B.dy = L(A.dy, 0); B.sx = L(A.sx, 1); B.sy = L(A.sy, 1); B.pivotY = A.pivotY;
+      B.floor = L(A.floor || 0, 0); B.roundMul = L(A.roundMul == null ? 1 : A.roundMul, 1);
+      B.eyeScale = L(A.eyeScale, 1); B.eyeSquash = L(A.eyeSquash, 1); B.eyeShake = 0;
+      B.eyeOrbit = A.eyeOrbit ? L(A.eyeOrbit, Math.round(A.eyeOrbit / 360) * 360) : 0; B.eyeMerge = L(A.eyeMerge || 0, 0); B.orbitScale = L(A.orbitScale || 1, 1);
+      const mouthRest = this.mouth == null ? o.mouthCurve : this.mouth;
+      B.mouthCurve = A.mouthCurve == null ? null : L(A.mouthCurve, mouthRest);
+      B.mouthTrim = A.mouthTrim == null ? null : L(A.mouthTrim, 1); B.mouthLen = A.mouthLen == null ? null : L(A.mouthLen, this.mouthLen);
+      B.mouthSide = L(A.mouthSide || 0, this.mouthSide); B.mouthTilt = A.mouthTilt == null ? null : L(A.mouthTilt, this.mouthTilt);
+      B.overlay = A.overlay ? A.overlay.map(([x, y, r]) => [x, y, r * (1 - k)]) : null; B.look = null;
+      B.pieces = A.pieces ? cs => { const out = A.pieces(cs); return out.map((p, i) => { const q = cs[i]; if (!q || q.length !== p.length) return p; return p.map((v, j) => j === 4 ? L(v, q[j]) : L(v, q[j])); }); } : null;
+      return B;
+    }
     // run an ad-hoc act definition {dur, run} on any body
-    act(def) { this._act = { def, t0: performance.now() }; this.manual = true; this.look(0, 0); return def.dur * 1000; }
+    act(def) { this._fade = null; this._act = { def, t0: performance.now() }; this.manual = true; this.look(0, 0); return def.dur * 1000; }
     // thinking: the two eyes orbit their midpoint like a spinner, three turns, easing in and out
     think() { return this.act({ dur: 3.0, run: (t, A) => { const u = seg(t, 0, 2.9), w = S(Math.PI * u); A.eyeOrbit = 1080 * E.io(u); A.eyeScale = 1 + 0.18 * w; A.orbitScale = 1 + 0.28 * w; A.mouthTrim = 1 - E.io(seg(t, 0, 0.9)) + E.io(seg(t, 2.2, 2.95)); } }); }
     twitch(i = 1) { this._twitch = { i, t0: performance.now(), p: 0 }; }   // one ear wiggle on a body whose anim uses it (bear)
@@ -579,8 +594,13 @@
         // scripted act
         if (this._act) {
           const t = (now - this._act.t0) / 1000;
-          if (t >= this._act.def.dur) { this._act = null; this._A = null; }
+          if (t >= this._act.def.dur) { this._fade = this._A ? { A: this._A, t0: now } : null; this._act = null; this._A = null; }
           else { const A = { rot: 0, dx: 0, dy: 0, sx: 1, sy: 1, pivotY: 1, pieces: null, floor: 0, roundMul: 1, eyeScale: 1, eyeSquash: 1, eyeShake: 0, eyeOrbit: 0, eyeMerge: 0, orbitScale: 1, overlay: null, mouthCurve: null, mouthTrim: null, mouthLen: null, mouthSide: 0, mouthTilt: null, look: null }; this._act.def.run(t, A, { R: o.radius, comp: this._comp, self: this }); if (A.look) this.look(A.look[0], A.look[1]); this._A = A; }
+        }
+        else if (this._fade) {                                                                  // blend the act's last frame into the idle pose
+          const f = (now - this._fade.t0) / 380;
+          if (f >= 1) { this._fade = null; this._A = null; }
+          else this._A = this._blendOut(this._fade.A, E.io(f));
         }
         // signals for the extra pieces
         this._t = now / 1000; this._dt = dt / 1000;
