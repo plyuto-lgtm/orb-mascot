@@ -217,6 +217,9 @@
         <div class="row" style="margin-top:10px"><span>Angle</span><div class="fs"><input type="range" id="gAngle" min="0" max="360" value="90" step="5" aria-label="Gradient angle"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
       </div></div>
       <label class="switch"><input type="checkbox" id="gradient"><span class="track"><span class="knob"></span></span><span>Shader</span></label>
+      <h3>Face</h3>
+      <label class="switch"><input type="checkbox" id="mouthOn" checked><span class="track"><span class="knob"></span></span><span>Mouth</span></label>
+      <div class="row"><span>Smile</span><div class="fs"><input type="range" id="smile" min="-1" max="1" value="0.4" step="0.05" aria-label="Mouth curve"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
       <h3>Scenarios</h3>
       <div class="scen" id="dScen"></div>
       <div id="uniqueBox"><h3>Unique to this body</h3><div class="scen" id="dScenUnique"></div></div>
@@ -297,7 +300,7 @@
     ['Idle', {y:0,p:0}], ['Glance left', {y:-15,p:0}], ['Glance right', {y:15,p:0}], ['Look left', {y:-30,p:0}], ['Look right', {y:30,p:0}],
     ['Look up', {y:0,p:22}], ['Look down', {y:0,p:-22}], ['Up-left', {y:-24,p:16}], ['Up-right', {y:24,p:16}], ['Down-left', {y:-24,p:-14}], ['Down-right', {y:24,p:-14}],
     ['Far left', {y:-40,p:0}], ['Far right', {y:40,p:0}], ['Blink', {y:0,p:0,blink:1}], ['Half closed', {y:0,p:0,blink:0.55}], ['Sleepy', {y:0,p:-10,blink:0.7}],
-    ['Surprised', {y:0,p:6,scale:1.25}], ['Happy', {y:0,p:0,squash:0.45,scale:1.05}], ['Suspicious', {y:22,p:-4,squash:0.55}], ['Thinking', {y:26,p:20,squash:0.8}],
+    ['Surprised', {y:0,p:6,scale:1.25,mouth:-0.15}], ['Happy', {y:0,p:0,squash:0.45,scale:1.05,mouth:1}], ['Suspicious', {y:22,p:-4,squash:0.55,mouth:0}], ['Thinking', {y:26,p:20,squash:0.8,mouth:0.1}], ['Sad', {y:-10,p:-14,squash:0.85,mouth:-0.8}],
   ];
 
   // ---------- filled slider ----------
@@ -311,7 +314,7 @@
   }
 
   // ---------- settings shared across bodies ----------
-  const settings = { colorName: 'black', mode: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light', round: 0.5, wireframe: false, gradient: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true };
+  const settings = { mouth: true, smile: 0.4, colorName: 'black', mode: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light', round: 0.5, wireframe: false, gradient: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true };
   settings.g1 = '#1E6DF6'; settings.g2 = '#DBDBDB'; settings.gAngle = 90;
   const palette = () => settings.mode === 'dark' ? Mascot.COLORS_DARK : Mascot.COLORS;
   const colorHex = () => settings.colorName === 'custom' ? [settings.g1, settings.g2] : palette()[settings.colorName];
@@ -328,7 +331,7 @@
     const m = new Mascot(svg, { body: def, round: settings.round, color: cardColor(), gradientAngle: settings.gAngle }); m.snap(-16, 6); m.render(); m.cardHost = host; return m;
   }
   for (const n of Object.keys(Mascot.COMPOSED)) cardBots.push(card($('gComposed'), n, cap(n), `body: '${n}'`, n));
-  const refreshCards = () => { for (const m of cardBots) { Object.assign(m.o, { color: cardColor(), gradientAngle: settings.gAngle, round: settings.round, shade: settings.gradient ? 'gradient' : 'flat' }); m.render(); } };
+  const refreshCards = () => { for (const m of cardBots) { Object.assign(m.o, { color: cardColor(), gradientAngle: settings.gAngle, round: settings.round, shade: settings.gradient ? 'gradient' : 'flat', mouth: settings.mouth, mouthCurve: settings.smile }); m.render(); } };
 
   function chips(host, list, key, onPick) {
     for (const name of list) {
@@ -340,7 +343,7 @@
   }
   // ---------- settings controls (inside the modal) ----------
   const applySettings = () => {
-    const opts = { round: settings.round, wireframe: settings.wireframe, shade: settings.gradient ? 'gradient' : 'flat' };
+    const opts = { round: settings.round, wireframe: settings.wireframe, shade: settings.gradient ? 'gradient' : 'flat', mouth: settings.mouth, mouthCurve: settings.smile };
     if (live) Object.assign(live.o, opts, { color: colorHex(), gradientAngle: settings.gAngle, follow: settings.follow, idle: settings.idle, autoBlink: settings.autoBlink, lean: settings.lean, breathe: settings.breathe });
     for (const m of statics) { Object.assign(m.o, opts, { color: cardColor(), gradientAngle: settings.gAngle }); m.render(); }
     if (settings.colorName !== 'custom') $('customBox').hidden = true;
@@ -366,6 +369,9 @@
   document.addEventListener('pointerdown', e => { if (!$('customBox').hidden && !e.target.closest('#customChip, #customBox')) $('customBox').hidden = true; });
   const drawAngle = filledSlider($('gAngle'), v => v + '\u00b0');
   const drawSize = filledSlider($('size'), v => v + ' px');
+  const drawSmile = filledSlider($('smile'), v => v > 0 ? 'smile ' + Math.round(v * 100) + '%' : v < 0 ? 'frown ' + Math.round(-v * 100) + '%' : 'flat');
+  $('smile').addEventListener('input', () => { settings.smile = +$('smile').value; applySettings(); });
+  $('mouthOn').addEventListener('change', e => { settings.mouth = e.target.checked; applySettings(); });
   $('size').addEventListener('input', () => { $('stage').style.setProperty('--max', $('size').value + 'px'); $('guideLabel').textContent = $('size').value + (+$('size').value === 480 ? ' max' : ''); });
   $('gAngle').addEventListener('input', () => { settings.gAngle = +$('gAngle').value; applySettings(); });
   $('g1').addEventListener('input', () => { settings.g1 = $('g1').value; applySettings(); });
@@ -430,7 +436,8 @@
     if (!current) return;
     const custom = settings.colorName === 'custom';
     const colorLine = custom ? `color: ['${settings.g1}', '${settings.g2}'],\n  gradientAngle: ${settings.gAngle}` : `color: '${colorHex()}'${settings.gradient ? ',' : ''}   // ${settings.colorName}, ${settings.mode} palette`;
-    $('dCfg').textContent = `new Mascot(svg, {\n  body: ${bodyArg(current)},\n  ${colorLine}${settings.gradient ? ",\n  shade: 'gradient'   // shader" : ''}\n})`;
+    const mouthLine = settings.mouth ? `,\n  mouthCurve: ${settings.smile}` : ',\n  mouth: false';
+    $('dCfg').textContent = `new Mascot(svg, {\n  body: ${bodyArg(current)},\n  ${colorLine}${settings.gradient ? ",\n  shade: 'gradient'   // shader" : ''}${mouthLine}\n})`;
   }
   function openBody(name) {
     if (!Mascot.COMPOSED[name]) { closeBody(); return; }
@@ -460,10 +467,10 @@
     for (const [label, s] of STATES) {
       const c = document.createElement('div'); c.className = 'card'; const svg = svgEl(label + ' state');
       const b = document.createElement('b'); b.textContent = label; const sm = document.createElement('small');
-      const extra = []; if (s.blink) extra.push('blink ' + s.blink); if (s.scale) extra.push('×' + s.scale); if (s.squash) extra.push('squash ' + s.squash);
+      const extra = []; if (s.blink) extra.push('blink ' + s.blink); if (s.scale) extra.push('×' + s.scale); if (s.squash) extra.push('squash ' + s.squash); if (s.mouth !== undefined) extra.push('mouth ' + s.mouth);
       sm.textContent = `${s.y} / ${s.p}` + (extra.length ? '  ' + extra.join(' ') : '');
       c.append(svg, b, sm); $('dStates').append(c);
-      const m = new Mascot(svg, { body }); m.snap(s.y, s.p); m.setNow({ blink: s.blink || 0, eyeScale: s.scale || 1, squash: s.squash || 1 }); statics.push(m);
+      const m = new Mascot(svg, { body }); m.snap(s.y, s.p); m.setNow({ blink: s.blink || 0, eyeScale: s.scale || 1, squash: s.squash || 1, mouth: s.mouth === undefined ? null : s.mouth }); statics.push(m);
     }
     $('dSizes').innerHTML = '';
     for (const px of [16, 24, 32, 48, 64, 96, 128]) {
@@ -503,7 +510,7 @@
     if (!current) return;
     const size = +$('size').value, svg = svgEl(current + ' mascot');
     svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg'); svg.setAttribute('width', size); svg.setAttribute('height', size);
-    const m = new Mascot(svg, { body: current, color: colorHex(), gradientAngle: settings.gAngle, shade: settings.gradient ? 'gradient' : 'flat', round: settings.round, lean: false, wireframe: false });
+    const m = new Mascot(svg, { body: current, color: colorHex(), gradientAngle: settings.gAngle, shade: settings.gradient ? 'gradient' : 'flat', round: settings.round, lean: false, wireframe: false, mouth: settings.mouth, mouthCurve: settings.smile });
     m.snap(0, 0); m.render();
     const text = '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(svg);
     const name = `orb-${current}.svg`, btn = $('dExport');
