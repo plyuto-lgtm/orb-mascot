@@ -449,10 +449,11 @@
       this.tintEl.style.display = tintOver ? '' : 'none';
       if (tintOver) {
         const f = this._frame(0, 28); this.tintGrad.setAttribute('cx', (f.m[4] - 0.12 * o.radius).toFixed(1)); this.tintGrad.setAttribute('cy', (f.m[5] - 0.1 * o.radius).toFixed(1)); this.tintGrad.setAttribute('r', (1.35 * o.radius).toFixed(1));
-        const c = hex2(baseHex), chroma = (Math.max(...c) - Math.min(...c)) / 255, tk = 'tint|' + (chroma > 0.12);
+        const c = hex2(baseHex), chroma = (Math.max(...c) - Math.min(...c)) / 255, tk = 'tint|' + (chroma > 0.12) + '|' + baseHex;
         if (this._tintKey !== tk) {                                                                 // chromatic colours: soft-light keeps the hue clean; greys: plain white/black overlay
           this._tintKey = tk; const st = this.tintGrad.children, soft = chroma > 0.12;
           this.tintEl.style.mixBlendMode = soft ? 'soft-light' : 'normal';
+          st[1].setAttribute('stop-color', baseHex);                                                // mid stop carries the body colour (gradient body: its centre mix) so the fade has no grey band
           st[0].setAttribute('stop-opacity', soft ? '1' : '0.34'); st[1].setAttribute('stop-opacity', soft ? '0' : '0.1'); st[2].setAttribute('stop-opacity', soft ? '0.7' : '0.12');
         }
       }
