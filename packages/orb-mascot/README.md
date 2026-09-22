@@ -1,6 +1,6 @@
 # orb-mascot
 
-The Orb mascot as a dependency: a vanilla core (`orb-mascot`) and a React component (`orb-mascot/react`).
+The Orb mascot as a dependency: a framework-free core (`orb-mascot`) and a React component (`orb-mascot/react`).
 No build step, no runtime dependencies. React is an optional peer.
 
 ## Install
@@ -30,7 +30,7 @@ export function Assistant({ thinking }: { thinking: boolean }) {
       size={160}
       mouthCurve={thinking ? 0.1 : 0.4}
       onReady={m => m.blink(2)}
-      onClick={() => orb.current?.surprise()}
+      onClick={() => orb.current?.play('custom1')}
     />
   );
 }
@@ -44,7 +44,8 @@ imperative API for moments your state cannot express as a value:
 | `look(yaw, pitch)` / `snap(yaw, pitch)` | aim the eyes, smoothly or instantly |
 | `blink(n)` | blink n times |
 | `poke()` | the tap reaction |
-| `play(name)` | a body's own act: `'twitch'`, `'newEars'` (bear), `'spin'` (flower), ... |
+| `play('custom1')` | the body's first own act, `'custom2'` the second, and so on; same call on every body |
+| `acts()` | the body's acts with their ids, labels and durations, for building UI |
 | `think()` / `surprise()` | the shared scenarios; both return their duration in ms |
 | `set({ eyeScale, squash, mouth, mouthSide, mouthLen, mouthTilt })` | animate the face directly |
 | `stopAct()` | fade the running act back to idle |
@@ -79,7 +80,7 @@ useEffect(() => { if (mood === 'busy') orb.current?.think(); }, [mood]);
 The component renders an empty `<svg>` on the server and builds the mascot in a layout effect on the
 client, so it is safe in Next.js and Remix without a dynamic import.
 
-## Vanilla
+## Without React
 
 ```js
 import Mascot from 'orb-mascot';           // or <script src="core.js"> for window.Mascot
@@ -89,8 +90,21 @@ m.start();
 m.look(20, -5);
 ```
 
-`core.d.ts` documents every option. Six palette colours are on `Mascot.COLORS` and, for dark grounds,
-`Mascot.COLORS_DARK`.
+`core.d.ts` documents every option.
+
+## Colour
+
+`color` is any hex value, or a pair of hex values for a gradient across the body, with `gradientAngle`
+in degrees (0 = left to right, 90 = top to bottom). Eye contrast and the `shade="gradient"` shader are
+derived from the colour you pass, so any brand colour works without tuning:
+
+```tsx
+<Orb color="#FF5A1F" />
+<Orb color={['#7C3AED', '#0EA5E9']} gradientAngle={120} shade="gradient" />
+```
+
+The catalog's six swatches are only examples; they are available as `Mascot.COLORS` and, for dark
+grounds, `Mascot.COLORS_DARK`.
 
 ## Keeping the copy current
 

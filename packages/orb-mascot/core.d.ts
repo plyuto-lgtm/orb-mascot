@@ -61,8 +61,10 @@ export default class Mascot {
   setNow(v: LiveValues): void;
   blink(times?: number): void;
   poke(): void;
-  /** Run a named act of the current body; returns its duration in ms, 0 if the body has none. */
+  /** Run one of the current body's acts: 'custom1', 'custom2', ... by position (works on every body), or its own key as an alias. Returns the duration in ms, 0 if there is no such act. */
   play(name: string): number;
+  /** The current body's acts in order, with the position id you pass to play(). */
+  acts(): { id: string; key: string; label: string; hint: string; dur: number }[];
   act(def: ActDef): number;
   think(): number;
   surprise(): number;

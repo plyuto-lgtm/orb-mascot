@@ -640,8 +640,11 @@
     }
 
     // run a scripted act (see ACTS); returns its duration in ms, 0 if the body has no such act
+    // acts of the current body as a list: id 'custom1', 'custom2', ... in definition order, plus the body-specific key
+    acts() { const a = this._comp && this._comp.acts; return a ? Object.entries(a).map(([key, act], i) => ({ id: 'custom' + (i + 1), key, label: act.label, hint: act.hint, dur: act.dur })) : []; }
     play(name) {
-      const comp = this._comp, act = comp && comp.acts && comp.acts[name]; if (!act) return 0;
+      const comp = this._comp, acts = comp && comp.acts; if (!acts) return 0;
+      const n = /^custom(\d+)$/.exec(name), act = n ? Object.values(acts)[+n[1] - 1] : acts[name]; if (!act) return 0;   // 'custom1' works on every body; the key name is an alias
       this._fade = null; this._act = { def: act, t0: performance.now() }; this.manual = true; this.look(0, 0);
       return act.dur * 1000;
     }

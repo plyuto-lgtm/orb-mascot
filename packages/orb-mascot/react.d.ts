@@ -9,8 +9,10 @@ export interface OrbHandle {
   set(v: LiveValues): void;
   blink(times?: number): void;
   poke(): void;
-  /** Named act of the current body ('twitch', 'newEars', 'spin', ...). Returns duration in ms. */
+  /** One of the body's acts by position: 'custom1', 'custom2', ... (the body's own key works as an alias). Returns duration in ms, 0 if none. */
   play(name: string): number;
+  /** The current body's acts, with ids for play(). */
+  acts(): { id: string; key: string; label: string; hint: string; dur: number }[];
   think(): number;
   surprise(): number;
   stopAct(): void;

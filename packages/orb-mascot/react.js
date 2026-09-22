@@ -45,6 +45,7 @@
       blink: n => inst.current && inst.current.blink(n),
       poke: () => inst.current && inst.current.poke(),
       play: name => inst.current ? inst.current.play(name) : 0,
+      acts: () => inst.current ? inst.current.acts() : [],
       think: () => inst.current ? inst.current.think() : 0,
       surprise: () => inst.current ? inst.current.surprise() : 0,
       stopAct: () => inst.current && inst.current.stopAct(),

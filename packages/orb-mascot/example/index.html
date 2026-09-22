@@ -26,7 +26,7 @@
     const [smile, setSmile] = useState(0.4);
     const [follow, setFollow] = useState(true);
     const orb = useRef(null);
-    const acts = Object.keys((Mascot.COMPOSED[body] || {}).acts || {});
+    const acts = orb.current ? orb.current.acts() : [];
     return h('div', { className: 'row' },
       h(Orb, { ref: orb, body, color, shade: shade ? 'gradient' : 'flat', mouthCurve: smile, follow, idle: follow, size: 240, onClick: () => orb.current.poke() }),
       h('div', { className: 'ctl' },
@@ -39,7 +39,7 @@
           h('button', { onClick: () => orb.current.think() }, 'Think'),
           h('button', { onClick: () => orb.current.surprise() }, 'Surprise'),
           h('button', { onClick: () => orb.current.blink(2) }, 'Blink'),
-          ...acts.map(a => h('button', { key: a, onClick: () => orb.current.play(a) }, a)))));
+          ...acts.map(a => h('button', { key: a.id, title: a.hint, onClick: () => orb.current.play(a.id) }, a.label + ' (' + a.id + ')')))));
   }
   ReactDOM.createRoot(document.getElementById('root')).render(h(App));
 </script>
