@@ -1,0 +1,18 @@
+{
+  "name": "orb-mascot",
+  "version": "0.1.0",
+  "description": "Orb mascot: an animated character with eyes on a 3D sphere. Vanilla core plus a React component.",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/plyuto-lgtm/orb-mascot.git", "directory": "packages/orb-mascot" },
+  "main": "./core.js",
+  "types": "./core.d.ts",
+  "exports": {
+    ".": { "types": "./core.d.ts", "default": "./core.js" },
+    "./react": { "types": "./react.d.ts", "default": "./react.js" }
+  },
+  "files": ["core.js", "core.d.ts", "react.js", "react.d.ts", "README.md"],
+  "sideEffects": false,
+  "peerDependencies": { "react": ">=17" },
+  "peerDependenciesMeta": { "react": { "optional": true } },
+  "scripts": { "sync": "node sync.mjs" }
+}

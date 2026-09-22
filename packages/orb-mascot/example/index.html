@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>orb-mascot React example</title>
+<style>
+  body{margin:0;font:15px/1.5 system-ui,sans-serif;background:#f5f5f2;color:#141416;padding:32px}
+  .row{display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+  .ctl{display:flex;flex-direction:column;gap:10px;min-width:260px}
+  label{display:flex;justify-content:space-between;gap:12px;font-size:13px}
+  button{font:500 13px system-ui;padding:7px 12px;border-radius:8px;border:1px solid #d6d6cf;background:#e1e1db;cursor:pointer}
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+</style>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="../core.js"></script>
+<script src="../react.js"></script>
+<script>
+  // no JSX, no bundler: the same component you would import from 'orb-mascot/react'
+  const { useState, useRef, createElement: h } = React;
+  const { Orb } = OrbReact;
+
+  function App() {
+    const [body, setBody] = useState('bear');
+    const [color, setColor] = useState('#1E6DF6');
+    const [shade, setShade] = useState(true);
+    const [smile, setSmile] = useState(0.4);
+    const [follow, setFollow] = useState(true);
+    const orb = useRef(null);
+    const acts = Object.keys((Mascot.COMPOSED[body] || {}).acts || {});
+    return h('div', { className: 'row' },
+      h(Orb, { ref: orb, body, color, shade: shade ? 'gradient' : 'flat', mouthCurve: smile, follow, idle: follow, size: 240, onClick: () => orb.current.poke() }),
+      h('div', { className: 'ctl' },
+        h('label', null, 'Body', h('select', { value: body, onChange: e => setBody(e.target.value) }, Object.keys(Mascot.COMPOSED).map(b => h('option', { key: b, value: b }, b)))),
+        h('label', null, 'Colour', h('select', { value: color, onChange: e => setColor(e.target.value) }, Object.entries(Mascot.COLORS).map(([n, c]) => h('option', { key: n, value: c }, n)))),
+        h('label', null, 'Shader', h('input', { type: 'checkbox', checked: shade, onChange: e => setShade(e.target.checked) })),
+        h('label', null, 'Smile ' + smile, h('input', { type: 'range', min: -1, max: 1, step: 0.05, value: smile, onChange: e => setSmile(+e.target.value) })),
+        h('label', null, 'Follow cursor', h('input', { type: 'checkbox', checked: follow, onChange: e => setFollow(e.target.checked) })),
+        h('div', { className: 'btns' },
+          h('button', { onClick: () => orb.current.think() }, 'Think'),
+          h('button', { onClick: () => orb.current.surprise() }, 'Surprise'),
+          h('button', { onClick: () => orb.current.blink(2) }, 'Blink'),
+          ...acts.map(a => h('button', { key: a, onClick: () => orb.current.play(a) }, a)))));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(App));
+</script>

@@ -3,8 +3,9 @@
 A web mascot: a black orb (or one of several bodies) with two eyes that live on a 3D sphere,
 so they foreshorten and converge as it looks around. Blinks, follows the cursor, idles.
 
-- `mascot.js` — standalone library, no dependencies. Exposes a global `Mascot`.
-- `index.html` — workbench: live demo, tuning sliders, state sheet, body/colour/eye galleries.
+- `mascot.js` — standalone library, no dependencies. UMD: a global `Mascot` from a script tag, or `import Mascot from './mascot.js'` through a bundler.
+- `index.html` — catalog: live demo, settings, scenarios, export.
+- `packages/orb-mascot` — the same core plus a React component (`orb-mascot/react`), type definitions and a README for using it in an app.
 
 ## Use
 

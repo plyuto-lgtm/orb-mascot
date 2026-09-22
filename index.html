@@ -165,6 +165,10 @@
   .params span{font-size:12px;color:var(--muted)}
   .params b{font:500 14px var(--mono);font-variant-numeric:tabular-nums}
   pre{background:var(--surface);border-radius:12px;padding:16px 18px;font:12px/1.55 var(--mono);overflow-x:auto;margin:0}
+  .impl{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .impl h3{margin:0 0 8px}
+  .impl a,.note a{color:inherit}
+  @media (max-width:880px){.impl{grid-template-columns:1fr}}
   .sizes{display:flex;align-items:flex-end;flex-wrap:wrap;gap:24px;background:var(--surface);border-radius:12px;padding:20px}
   .sizes div{display:flex;flex-direction:column;align-items:center;gap:8px}
   .sizes small{font:11px var(--mono);color:var(--muted)}
@@ -181,6 +185,26 @@
 
   <section style="margin-top:0">
     <div class="grid" id="gComposed"></div>
+  </section>
+  <section>
+    <h2>Use in an app</h2>
+    <div class="impl">
+      <div>
+        <h3>React</h3>
+        <pre>import { Orb } from 'orb-mascot/react';
+
+&lt;Orb body="bear" color="#1E6DF6" shade="gradient" size={160}
+     mouthCurve={0.4} ref={orb} onClick={() =&gt; orb.current.surprise()} /&gt;</pre>
+      </div>
+      <div>
+        <h3>Vanilla</h3>
+        <pre>import Mascot from 'orb-mascot';   // or &lt;script src="mascot.js"&gt;
+
+const m = new Mascot(svg, { body: 'bear', color: '#1E6DF6' });
+m.start(); m.look(20, -5);</pre>
+      </div>
+    </div>
+    <p class="note">Package folder: <code>packages/orb-mascot</code> in the <a href="https://github.com/plyuto-lgtm/orb-mascot">repository</a>, with type definitions, a README covering every prop and ref method, and a no-build example. Open a body above for a snippet with its current settings.</p>
   </section>
 </div>
 
@@ -264,6 +288,9 @@
     <h2>Config</h2>
     <pre id="dCfg"></pre>
     <p class="note">Drop <code>mascot.js</code> into a page, give it an <code>&lt;svg&gt;</code>, pass this object to the constructor and call <code>start()</code>.</p>
+    <h2 style="margin-top:20px">React</h2>
+    <pre id="dCfgReact"></pre>
+    <p class="note">From the <code>orb-mascot</code> package in <code>packages/orb-mascot</code>. Every option is a prop and updates live; the ref gives you <code>think()</code>, <code>surprise()</code>, <code>play(name)</code>, <code>look()</code> and <code>toSVG()</code>.</p>
   </section>
   <section>
     <h2>Definition</h2>
@@ -476,6 +503,9 @@
     const colorLine = custom ? `color: ['${settings.g1}', '${settings.g2}'],\n  gradientAngle: ${settings.gAngle}` : `color: '${colorHex()}'${settings.gradient ? ',' : ''}   // ${settings.colorName}, ${settings.mode} palette`;
     const mouthLine = (settings.mouth ? `,\n  mouthCurve: ${settings.smile}${settings.stroke !== 6 ? `, mouthStroke: ${settings.stroke}` : ''}` : ',\n  mouth: false') + `,\n  maxYaw: ${settings.maxYaw}, maxPitch: ${settings.maxPitch}`;
     $('dCfg').textContent = `new Mascot(svg, {\n  body: ${bodyArg(current)},\n  ${colorLine}${settings.gradient ? ",\n  shade: 'gradient'   // shader" : ''}${mouthLine}\n})`;
+    const rColor = custom ? `color={['${settings.g1}', '${settings.g2}']} gradientAngle={${settings.gAngle}}` : `color="${colorHex()}"`;
+    const rMouth = settings.mouth ? `mouthCurve={${settings.smile}}${settings.stroke !== 6 ? ` mouthStroke={${settings.stroke}}` : ''}` : 'mouth={false}';
+    $('dCfgReact').textContent = `import { Orb } from 'orb-mascot/react';\n\n<Orb body="${current}" ${rColor}${settings.gradient ? ' shade="gradient"' : ''}\n     ${rMouth} maxYaw={${settings.maxYaw}} maxPitch={${settings.maxPitch}} size={${$('size').value}} />`;
   }
   function openBody(name) {
     if (!Mascot.COMPOSED[name]) { closeBody(); return; }
