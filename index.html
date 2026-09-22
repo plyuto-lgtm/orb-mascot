@@ -171,6 +171,14 @@
   .tbl td{padding:8px 10px 8px 0;border-bottom:1px solid var(--divider);vertical-align:top}
   .tbl td:first-child{white-space:nowrap;font-weight:500}
   .tbl td:nth-child(2){white-space:nowrap}
+  /* copy: every code block gets a button; API cells copy on click */
+  pre{position:relative}
+  pre .copy{position:absolute;top:8px;right:8px;font:500 11px var(--sans);padding:4px 8px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--muted);cursor:pointer;opacity:0;transition:opacity .12s}
+  pre:hover .copy,pre .copy:focus-visible,pre .copy.done{opacity:1}
+  pre .copy.done{color:var(--accent);border-color:var(--accent)}
+  .tbl td code{cursor:pointer;border-radius:4px;padding:1px 4px;margin-left:-4px;transition:background .12s}
+  .tbl td code:hover{background:var(--surface)}
+  .tbl td code.done{background:var(--accent);color:var(--accent-ink)}
   .tbl td:last-child{white-space:nowrap;color:var(--muted);font-variant-numeric:tabular-nums}
   .impl{display:grid;grid-template-columns:1fr 1fr;gap:16px}
   .impl h3{margin:0 0 8px}
@@ -507,6 +515,7 @@ m.start(); m.look(20, -5);</pre>
     at(dur, () => { btn.removeAttribute('aria-pressed'); m.manual = false; });
   }
 
+  const setPre = (el, text) => { const b = el.querySelector('.copy'); el.textContent = text; if (b) el.append(b); };   // keeps the copy button
   // ---------- modal ----------
   const fmt = v => typeof v === 'number' ? +v.toFixed(3) : v;
   const bodyArg = name => `'${name}'`;
@@ -515,10 +524,10 @@ m.start(); m.look(20, -5);</pre>
     const custom = settings.colorName === 'custom';
     const colorLine = custom ? `color: ['${settings.g1}', '${settings.g2}'],\n  gradientAngle: ${settings.gAngle}` : `color: '${colorHex()}'${settings.gradient ? ',' : ''}   // ${settings.colorName}, ${settings.mode} palette`;
     const mouthLine = (settings.mouth ? `,\n  mouthCurve: ${settings.smile}${settings.stroke !== 6 ? `, mouthStroke: ${settings.stroke}` : ''}` : ',\n  mouth: false') + `,\n  maxYaw: ${settings.maxYaw}, maxPitch: ${settings.maxPitch}`;
-    $('dCfg').textContent = `new Mascot(svg, {\n  body: ${bodyArg(current)},\n  ${colorLine}${settings.gradient ? ",\n  shade: 'gradient'   // shader" : ''}${mouthLine}\n})`;
+    setPre($('dCfg'), `new Mascot(svg, {\n  body: ${bodyArg(current)},\n  ${colorLine}${settings.gradient ? ",\n  shade: 'gradient'   // shader" : ''}${mouthLine}\n})`);
     const rColor = custom ? `color={['${settings.g1}', '${settings.g2}']} gradientAngle={${settings.gAngle}}` : `color="${colorHex()}"`;
     const rMouth = settings.mouth ? `mouthCurve={${settings.smile}}${settings.stroke !== 6 ? ` mouthStroke={${settings.stroke}}` : ''}` : 'mouth={false}';
-    $('dCfgReact').textContent = `import { Orb } from 'orb-mascot/react';\n\n<Orb body="${current}" ${rColor}${settings.gradient ? ' shade="gradient"' : ''}\n     ${rMouth} maxYaw={${settings.maxYaw}} maxPitch={${settings.maxPitch}} size={${$('size').value}} />`;
+    setPre($('dCfgReact'), `import { Orb } from 'orb-mascot/react';\n\n<Orb body="${current}" ${rColor}${settings.gradient ? ' shade="gradient"' : ''}\n     ${rMouth} maxYaw={${settings.maxYaw}} maxPitch={${settings.maxPitch}} size={${$('size').value}} />`);
   }
   function openBody(name) {
     if (!Mascot.COMPOSED[name]) { closeBody(); return; }
@@ -553,7 +562,7 @@ m.start(); m.look(20, -5);</pre>
       ? { type: 'composed', pieces: comp.c.length, core: comp.main === -1 ? 'none (all move)' : 'piece ' + (comp.main ?? 0), 'inner sphere': fmt(comp.sphereR) + ' R', 'head follow': fmt(comp.head ?? 0.35), 'spring k': fmt(comp.k ?? 50), 'damping d': fmt(comp.d ?? 13), 'lag rule': comp.lag ? 'yes' : 'no', 'idle motion': comp.anim ? 'yes' : 'no' }
       : { type: 'outline', 'inner sphere': 'set by shape' };
     $('dParams').innerHTML = ''; for (const [k, v] of Object.entries(params)) { const d = document.createElement('div'); const a = document.createElement('span'); a.textContent = k; const b = document.createElement('b'); b.textContent = v; d.append(a, b); $('dParams').append(d); }
-    $('dDef').textContent = comp ? JSON.stringify({ pieces: comp.c.map(p => p.map(fmt)), sphereR: fmt(comp.sphereR), main: comp.main ?? 0, head: fmt(comp.head ?? 0.35), k: fmt(comp.k ?? 50), d: fmt(comp.d ?? 13) }, null, 2) : `body: '${name}'`;
+    setPre($('dDef'), comp ? JSON.stringify({ pieces: comp.c.map(p => p.map(fmt)), sphereR: fmt(comp.sphereR), main: comp.main ?? 0, head: fmt(comp.head ?? 0.35), k: fmt(comp.k ?? 50), d: fmt(comp.d ?? 13) }, null, 2) : `body: '${name}'`);
     // live preview
     live = new Mascot($('dLive'), { body }); live.start();
     openBodyStates(name);
@@ -627,6 +636,15 @@ m.start(); m.look(20, -5);</pre>
       flash('Saved');
     } catch (e) { try { await navigator.clipboard.writeText(text); flash('Copied SVG'); } catch (_) { flash('Not available'); } }
   });
+  // ---------- copy to clipboard: code blocks and API names ----------
+  const copyText = async (text, el, cls) => { try { await navigator.clipboard.writeText(text); } catch (_) { const ta = document.createElement('textarea'); ta.value = text; document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+    el.classList.add(cls); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove(cls), 1200); };
+  for (const pre of document.querySelectorAll('pre')) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'copy'; b.textContent = 'Copy'; b.setAttribute('aria-label', 'Copy code');
+    b.addEventListener('click', () => { const t = [...pre.childNodes].filter(n => n !== b).map(n => n.textContent).join(''); copyText(t, b, 'done'); b.textContent = 'Copied'; setTimeout(() => { b.textContent = 'Copy'; }, 1200); });
+    pre.append(b);
+  }
+  $('dScenTable').addEventListener('click', e => { const c = e.target.closest('code'); if (c) copyText(c.textContent.replace(/\s+\[.*\]$/, ''), c, 'done'); });   // the alias in brackets is not part of the call
   // ---------- routing: #bear ----------
   function route() { const name = decodeURIComponent(location.hash.slice(1)); if (name) openBody(name); else closeBody(); }
   window.addEventListener('hashchange', route);
