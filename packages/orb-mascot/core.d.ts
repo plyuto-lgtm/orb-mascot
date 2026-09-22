@@ -34,6 +34,8 @@ export interface MascotOptions {
   radius?: number; light?: number; contrast?: number; shaded?: boolean;
 }
 
+export type ScenarioId = 'turn' | 'nod' | 'quick' | 'blink' | 'poke' | 'idle' | 'think' | 'surprise' | 'twitch';
+
 export interface LiveValues {
   eyeScale?: number; squash?: number; blink?: number;
   /** Mouth curve override; null returns to options.mouthCurve. */
@@ -65,6 +67,10 @@ export default class Mascot {
   play(name: string): number;
   /** The current body's acts in order, with the position id you pass to play(). */
   acts(): { id: string; key: string; label: string; hint: string; dur: number }[];
+  /** Run any scenario by id, shared ('turn', 'nod', 'quick', 'blink', 'poke', 'idle', 'think', 'surprise', 'twitch') or body-specific ('custom1', ...). Resolves when it ends; `.dur` is the length in ms. Cursor follow and idle pause for the run. */
+  run(id: ScenarioId | string): Promise<void> & { dur: number };
+  /** Every scenario this body can run: the shared ones plus its own acts. */
+  scenarios(): { id: string; label: string; hint: string; dur: number }[];
   act(def: ActDef): number;
   think(): number;
   surprise(): number;
@@ -81,6 +87,10 @@ export default class Mascot {
   static COMPOSED: Record<string, { acts?: Record<string, ActDef> }>;
   static ACTS: Record<string, Record<string, ActDef>>;
   static SHADES: Shade[];
+  /** Shared scenarios with label, hint and length in ms. */
+  static SCENARIOS: Record<ScenarioId, { label: string; hint: string; dur: number }>;
+  /** Size tokens in px: xs 16, sm 24, md 32, lg 48, xl 64, 2xl 96, 3xl 128, hero 240. */
+  static SIZES: Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | 'hero', number>;
   static EYES: string[];
   static COLORS: Record<'black' | 'blue' | 'olive' | 'cyan' | 'orchid' | 'lime', string>;
   static COLORS_DARK: Record<'black' | 'blue' | 'olive' | 'cyan' | 'orchid' | 'lime', string>;

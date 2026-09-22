@@ -1,5 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>orb-mascot React example</title>
 <style>
   body{margin:0;font:15px/1.5 system-ui,sans-serif;background:#f5f5f2;color:#141416;padding:32px}
@@ -26,9 +27,9 @@
     const [smile, setSmile] = useState(0.4);
     const [follow, setFollow] = useState(true);
     const orb = useRef(null);
-    const acts = orb.current ? orb.current.acts() : [];
+    const [list, setList] = useState([]);
     return h('div', { className: 'row' },
-      h(Orb, { ref: orb, body, color, shade: shade ? 'gradient' : 'flat', mouthCurve: smile, follow, idle: follow, size: 240, onClick: () => orb.current.poke() }),
+      h(Orb, { ref: orb, body, color, shade: shade ? 'gradient' : 'flat', mouthCurve: smile, follow, idle: follow, size: 'hero', onReady: m => setList(m.scenarios()), onClick: () => orb.current.run('poke') }),
       h('div', { className: 'ctl' },
         h('label', null, 'Body', h('select', { value: body, onChange: e => setBody(e.target.value) }, Object.keys(Mascot.COMPOSED).map(b => h('option', { key: b, value: b }, b)))),
         h('label', null, 'Colour', h('select', { value: color, onChange: e => setColor(e.target.value) }, Object.entries(Mascot.COLORS).map(([n, c]) => h('option', { key: n, value: c }, n)))),
@@ -36,10 +37,7 @@
         h('label', null, 'Smile ' + smile, h('input', { type: 'range', min: -1, max: 1, step: 0.05, value: smile, onChange: e => setSmile(+e.target.value) })),
         h('label', null, 'Follow cursor', h('input', { type: 'checkbox', checked: follow, onChange: e => setFollow(e.target.checked) })),
         h('div', { className: 'btns' },
-          h('button', { onClick: () => orb.current.think() }, 'Think'),
-          h('button', { onClick: () => orb.current.surprise() }, 'Surprise'),
-          h('button', { onClick: () => orb.current.blink(2) }, 'Blink'),
-          ...acts.map(a => h('button', { key: a.id, title: a.hint, onClick: () => orb.current.play(a.id) }, a.label + ' (' + a.id + ')')))));
+          ...list.map(s => h('button', { key: s.id, title: s.hint, onClick: () => orb.current.run(s.id) }, s.label)))));
   }
   ReactDOM.createRoot(document.getElementById('root')).render(h(App));
 </script>

@@ -673,6 +673,33 @@
     // thinking: the two eyes orbit their midpoint like a spinner, three turns, easing in and out
     think() { return this.act({ dur: 3.0, run: (t, A) => { const u = seg(t, 0, 2.9), w = S(Math.PI * u); A.eyeOrbit = 1080 * E.io(u); A.eyeScale = 1 + 0.18 * w; A.orbitScale = 1 + 0.28 * w; A.mouthTrim = 1 - E.io(seg(t, 0, 0.9)) + E.io(seg(t, 2.2, 2.95)); } }); }
     twitch(i = 1) { this._twitch = { i, t0: performance.now(), p: 0 }; }   // one ear wiggle on a body whose anim uses it (bear)
+
+    // ---------- scenarios: every catalog scenario as one call ----------
+    // run('turn' | 'nod' | 'quick' | 'blink' | 'poke' | 'idle' | 'think' | 'surprise' | 'twitch' | 'custom1' ...)
+    // returns a Promise that resolves when the scenario ends; promise.dur is the length in ms. Cursor follow and idle are paused for the run.
+    scenarios() { return Object.entries(SCENARIOS).filter(([id]) => id !== 'twitch' || (this._comp && this._comp.anim && /twitch/.test(String(this._comp.anim)))).map(([id, s]) => ({ id, label: s.label, hint: s.hint, dur: s.dur })).concat(this.acts().map(a => ({ id: a.id, label: a.label, hint: a.hint, dur: a.dur * 1000 }))); }
+    run(name) {
+      const o = this.o, T = this._runT || (this._runT = []); for (const t of T) clearTimeout(t); T.length = 0; this.stopAct();
+      const at = (ms, fn) => T.push(setTimeout(fn, ms));
+      const seq = (steps, hold) => { steps.forEach(([y, p], i) => at(i * hold, () => this.look(y, p))); at(steps.length * hold, () => this.look(0, 0)); return steps.length * hold + 350; };
+      this.manual = true; let dur = 0;
+      switch (name) {
+        case 'turn':  this.set({ mouth: 0.7 }); dur = seq([[-0.9 * o.maxYaw, 0], [0.9 * o.maxYaw, 0]], 1300); at(dur - 300, () => this.set({ mouth: null })); break;
+        case 'nod':   this.set({ mouth: 0.7 }); dur = seq([[0, 0.9 * o.maxPitch], [0, -0.9 * o.maxPitch]], 1300); at(dur - 300, () => this.set({ mouth: null })); break;
+        case 'quick': this.set({ mouth: 0.15, mouthLen: 0.8 }); dur = seq([[0.9 * o.maxYaw, 0], [-0.9 * o.maxYaw, 0], [0.9 * o.maxYaw, 0], [-0.9 * o.maxYaw, 0]], 420);
+          [1, -1, 1, -1].forEach((d, i) => at(i * 420, () => this.set({ mouthSide: d, mouthTilt: 9 * d })));
+          at(dur - 300, () => this.set({ mouth: null, mouthSide: 0, mouthLen: 1, mouthTilt: 0 })); break;
+        case 'blink': this.look(0, 0); this.set({ mouth: 0.8 }); this.blink(2); dur = 800; at(700, () => this.set({ mouth: null })); break;
+        case 'poke':  this.look(0, 0); this.poke(); dur = 900; break;
+        case 'idle':  this.look(0, 0); dur = 2200; break;
+        case 'think': dur = this.think(); at(dur - 200, () => this.blink(1)); break;
+        case 'surprise': dur = this.surprise(); break;
+        case 'twitch': this.look(0, 0); this.twitch(1 + Math.floor(Math.random() * 2)); dur = 650; break;
+        default: dur = this.play(name);
+      }
+      const p = new Promise(res => at(dur, () => { this.manual = false; res(); }));
+      p.dur = dur; return p;
+    }
     poke() { this._poke = 1; this.set({ eyeScale: 1.22, squash: 1.1, mouth: 0.5, mouthLen: 0.55 }); clearTimeout(this._pokeT); this._pokeT = setTimeout(() => { this.set({ eyeScale: 1, squash: 1, mouth: null, mouthLen: 1 }); this.blink(1); }, 420); }
 
     start() {
@@ -747,8 +774,21 @@
       };
       requestAnimationFrame(loop);
     }
-    stop() { this._running = false; global.removeEventListener('pointermove', this._onMove); document.removeEventListener('pointerleave', this._onLeave); if (this._io) { this._io.disconnect(); this._io = null; } }
+    stop() { this._running = false; if (this._runT) { for (const t of this._runT) clearTimeout(t); this._runT.length = 0; } global.removeEventListener('pointermove', this._onMove); document.removeEventListener('pointerleave', this._onLeave); if (this._io) { this._io.disconnect(); this._io = null; } }
   }
+  const SCENARIOS = {
+    turn:     { label: 'Head turn',   dur: 2950, hint: 'Looks to the yaw limit left, then right, then back to centre.' },
+    nod:      { label: 'Nod',         dur: 2950, hint: 'Looks to the pitch limit up, then down, then back to centre.' },
+    quick:    { label: 'Quick turns', dur: 2030, hint: 'Four fast alternating looks with a smirk toward each turn.' },
+    blink:    { label: 'Blink',       dur: 800,  hint: 'Double blink.' },
+    poke:     { label: 'Poke',        dur: 900,  hint: 'Eyes pop, then blink. Also fires on tap.' },
+    idle:     { label: 'Idle',        dur: 2200, hint: 'Holds centre so the idle motion is visible.' },
+    think:    { label: 'Thinking',    dur: 3000, hint: 'The eyes orbit each other like a spinner, three turns, then settle.' },
+    surprise: { label: 'Surprised',   dur: 1700, hint: 'The eyes flash into stars and grow, the mouth shrinks, the body gives a small start.' },
+    twitch:   { label: 'Ear twitch',  dur: 650,  hint: 'One ear wiggles once (bear).' },
+  };
+  Mascot.SCENARIOS = SCENARIOS;
+  Mascot.SIZES = { xs: 16, sm: 24, md: 32, lg: 48, xl: 64, '2xl': 96, '3xl': 128, hero: 240 };   // size tokens, px
   global.Mascot = Mascot; Mascot.SHAPES = Object.keys(SHAPES); Mascot.ACTS = ACTS; Mascot.SHADES = ['flat', 'gradient', 'soft', 'glossy', 'rim']; Mascot.COMPOSED = COMPOSED; Mascot.blob = blobBody; Mascot.BODIES = [...Object.keys(SHAPES), ...Object.keys(COMPOSED)]; Mascot.COLORS = { black: '#0a0a0a', blue: '#1E6DF6', olive: '#969640', cyan: '#00CCFF', orchid: '#CF72D9', lime: '#EEF679' };
   // the same six, adapted for a dark ground: black becomes an off-white body, the others are lifted a step
   Mascot.COLORS_DARK = { black: '#ECECEA', blue: '#5A92FF', olive: '#B4B45C', cyan: '#4DDCFF', orchid: '#DD93E4', lime: '#F1F78C' }; Mascot.EYES = Object.keys(EYES);

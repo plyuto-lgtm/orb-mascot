@@ -1,4 +1,5 @@
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Orb Mascot Catalog</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
@@ -180,7 +181,21 @@
   .tbl td code:hover{background:var(--surface)}
   .tbl td code.done{background:var(--accent);color:var(--accent-ink)}
   .tbl td:last-child{white-space:nowrap;color:var(--muted);font-variant-numeric:tabular-nums}
-  .impl{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .impl{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+  pre{max-width:100%;min-width:0}
+  .apiRef h3{margin:22px 0 8px}
+  .apiRef h3:first-child{margin-top:0}
+  .tbl td:nth-child(2){white-space:normal}
+  .tbl td.mono{white-space:nowrap}
+  @media (max-width:560px){                                                /* phones: each row stacks into a small card */
+    .tbl thead{display:none}
+    .tbl tr{display:block;padding:9px 0;border-bottom:1px solid var(--divider)}
+    .tbl td{display:inline;padding:0;border:0;white-space:normal;font-size:12px;color:var(--muted)}
+    .tbl td:first-child{display:block;white-space:normal;font-size:13px;color:var(--ink);margin-bottom:2px}
+    .tbl td:nth-child(2):not(:empty)::after,.tbl td:nth-child(3):not(:empty)::after{content:'  ';white-space:pre}
+    .tbl td:last-child{display:block;margin-top:2px;font-size:13px;color:var(--ink)}
+    .tbl td:last-child:empty{display:none}
+  }
   .impl h3{margin:0 0 8px}
   .impl a,.note a{color:inherit}
   @media (max-width:880px){.impl{grid-template-columns:1fr}}
@@ -221,6 +236,11 @@ m.start(); m.look(20, -5);</pre>
     </div>
     <p class="note">The swatches in this catalog are examples. <code>color</code> takes any hex value, or two hex values for a gradient with <code>gradientAngle</code>; the shader and eye contrast adapt to whatever you pass.</p>
     <p class="note">Package folder: <code>packages/orb-mascot</code> in the <a href="https://github.com/plyuto-lgtm/orb-mascot">repository</a>, with type definitions, a README covering every prop and ref method, and a no-build example. Open a body above for a snippet with its current settings.</p>
+  </section>
+  <section>
+    <h2>API reference</h2>
+    <div class="apiRef" id="apiRef"></div>
+    <p class="note">Click a name to copy it. Options are constructor keys and React props alike; methods are on the instance and on the React ref.</p>
   </section>
 </div>
 
@@ -299,11 +319,12 @@ m.start(); m.look(20, -5);</pre>
   <section>
     <h2>Scenario reference</h2>
     <div class="tblwrap"><table class="tbl" id="dScenTable"><thead><tr><th>Scenario</th><th>API</th><th>What happens on this body</th><th>Length</th></tr></thead><tbody></tbody></table></div>
-    <p class="note">Body-specific acts are addressed by position, <code>play('custom1')</code>, <code>play('custom2')</code>, so app code does not depend on a body's own names; the key in brackets still works as an alias. <code>mascot.acts()</code> lists them at runtime.</p>
+    <p class="note">One call for everything: <code>run(id)</code> returns a promise that resolves when the scenario ends, with <code>.dur</code> in ms. Body-specific acts are <code>custom1</code>, <code>custom2</code> by position, so app code does not depend on a body's own names; the key in brackets is an alias. <code>mascot.scenarios()</code> lists all of them at runtime.</p>
   </section>
   <section>
-    <h2>At avatar sizes</h2>
+    <h2>Size tokens</h2>
     <div class="sizes" id="dSizes"></div>
+    <p class="note">Pass a token or a number: <code>size="md"</code>, <code>size={32}</code>. Tokens live on <code>Mascot.SIZES</code>.</p>
   </section>
   <section>
     <h2>Config</h2>
@@ -330,41 +351,34 @@ m.start(); m.look(20, -5);</pre>
   // Every body gets the same baseline in the same order; each body supplies its own hint per baseline
   // scenario (what to watch for) and may append extras that only it has.
   const BASE = [
-    ['Head turn', 'turn',  'Looks to the yaw limit left, then right, then back to centre.'],
-    ['Nod',       'pitch', 'Looks to the pitch limit up, then down, then back to centre.'],
-    ['Quick turns', 'fast', 'Four fast alternating looks; shows how the springs settle.'],
-    ['Blink',     'blink', 'Double blink.'],
-    ['Poke',      'poke',  'Eyes pop, then blink.'],
-    ['Idle',      'idle',  'Holds centre for a moment so idle motion is visible.'],
-    ['Thinking',  'think', 'The eyes orbit each other like a spinner, three turns, then settle back.'],
-    ['Surprised', 'surprise', 'The eyes flash into stars and grow, the mouth shrinks to a short oh, the body gives a small start.'],
+    ...['turn', 'nod', 'quick', 'blink', 'poke', 'idle', 'think', 'surprise'].map(id => [Mascot.SCENARIOS[id].label, id, Mascot.SCENARIOS[id].hint]),
   ];
   const INFO = {
     bear:   { blurb: 'Round head, two ears on top.',
-      hints: { turn: 'The left ear swings inward, the right ear out and back.', pitch: 'Ears roll back when looking up, forward when looking down.', fast: 'Snappy, well-damped head spring.', poke: 'Ears settle back a touch.', idle: 'Ears rest still; no idle motion.' },
+      hints: { turn: 'The left ear swings inward, the right ear out and back.', nod: 'Ears roll back when looking up, forward when looking down.', quick: 'Snappy, well-damped head spring.', poke: 'Ears settle back a touch.', idle: 'Ears rest still; no idle motion.' },
       extras: [['Ear twitch', 'twitch', 'One ear wiggles once. Off by default in the library; enable with twitch: true.']] },
     lemon:  { blurb: 'A nub at the top and one at the bottom.',
-      hints: { turn: 'Both nubs swing around the sphere together.', pitch: 'The top nub rolls back over the head and the chin comes forward; looking down does the opposite.', fast: 'Medium spring; the nubs settle without wobble.', poke: 'Stretches a hair taller.', idle: 'Slow sway of both nubs.' } },
+      hints: { turn: 'Both nubs swing around the sphere together.', nod: 'The top nub rolls back over the head and the chin comes forward; looking down does the opposite.', quick: 'Medium spring; the nubs settle without wobble.', poke: 'Stretches a hair taller.', idle: 'Slow sway of both nubs.' } },
     ghost:  { blurb: 'Rounded head, three tail bumps.',
-      hints: { turn: 'Lazy head spring, so the tail trails the turn.', pitch: 'The tail swings under the chin when looking up.', fast: 'The wave grows on fast turns.', poke: 'Bumps lift a touch.', idle: 'Tail bumps wave in a rolling sine, out of phase.' } },
+      hints: { turn: 'Lazy head spring, so the tail trails the turn.', nod: 'The tail swings under the chin when looking up.', quick: 'The wave grows on fast turns.', poke: 'Bumps lift a touch.', idle: 'Tail bumps wave in a rolling sine, out of phase.' } },
     cloud:  { blurb: 'Two pills crossed into an X.',
-      hints: { turn: 'No fixed core: the whole X tilts with the head.', pitch: 'Pitch scissors the two pills against each other.', fast: 'The X rocks and settles.', poke: 'Puffs slightly.', idle: 'The pills breathe against each other.' } },
+      hints: { turn: 'No fixed core: the whole X tilts with the head.', nod: 'Pitch scissors the two pills against each other.', quick: 'The X rocks and settles.', poke: 'Puffs slightly.', idle: 'The pills breathe against each other.' } },
     drop:   { blurb: 'Round body, sprout on top.',
-      hints: { turn: 'The sprout swings around the sphere and lags the eyes.', pitch: 'The sprout leans back when looking up.', fast: 'Under-damped spring: the sprout overshoots and settles with one soft bounce.', poke: 'Sprout lifts and grows a little.', idle: 'Sprout rests; no idle motion.' } },
+      hints: { turn: 'The sprout swings around the sphere and lags the eyes.', nod: 'The sprout leans back when looking up.', quick: 'Under-damped spring: the sprout overshoots and settles with one soft bounce.', poke: 'Sprout lifts and grows a little.', idle: 'Sprout rests; no idle motion.' } },
     stack:  { blurb: 'Two wide ellipses with a soft waist.',
-      hints: { turn: 'Both halves turn together around a hidden core.', pitch: 'Lead and lag: looking up, the bottom half moves first; looking down, the top leads.', fast: 'Halves settle at slightly different rates.', poke: 'Halves thicken a touch.', idle: 'The halves breathe in opposite phase.' } },
+      hints: { turn: 'Both halves turn together around a hidden core.', nod: 'Lead and lag: looking up, the bottom half moves first; looking down, the top leads.', quick: 'Halves settle at slightly different rates.', poke: 'Halves thicken a touch.', idle: 'The halves breathe in opposite phase.' } },
     seacow: { blurb: 'Round head, feet at the bottom corners.',
-      hints: { turn: 'Feet turn with the head like the bear\'s ears.', pitch: 'Feet come forward when looking down.', fast: 'Snappy spring, like the bear.', poke: 'Feet settle in slightly.', idle: 'Faint shuffle of the feet.' } },
+      hints: { turn: 'Feet turn with the head like the bear\'s ears.', nod: 'Feet come forward when looking down.', quick: 'Snappy spring, like the bear.', poke: 'Feet settle in slightly.', idle: 'Faint shuffle of the feet.' } },
     flower: { blurb: 'A core ringed by eight petals.',
-      hints: { turn: 'Petals rotate with the head at a low fraction so the ring stays readable.', pitch: 'The ring tilts gently.', fast: 'Soft spring; petals barely overshoot.', poke: 'Petals swell a little.', idle: 'Petals breathe in a ripple around the circle.' } },
-    circle:   { blurb: 'The original orb.', hints: { turn: 'Eyes foreshorten and converge; the highlight stays put.', pitch: 'Eyes ride up and down the sphere.', idle: 'Breathing only.' } },
+      hints: { turn: 'Petals rotate with the head at a low fraction so the ring stays readable.', nod: 'The ring tilts gently.', quick: 'Soft spring; petals barely overshoot.', poke: 'Petals swell a little.', idle: 'Petals breathe in a ripple around the circle.' } },
+    circle:   { blurb: 'The original orb.', hints: { turn: 'Eyes foreshorten and converge; the highlight stays put.', nod: 'Eyes ride up and down the sphere.', idle: 'Breathing only.' } },
     squircle: { blurb: 'A rounded square.', hints: { turn: 'Same eye motion as the circle; the inner sphere fills the square.', idle: 'Breathing only.' } },
-    egg:      { blurb: 'Narrow top, full bottom.', hints: { pitch: 'Inner sphere is slightly smaller so the eyes stay clear of the narrow top.', turn: 'Eyes sweep the wide part.', idle: 'Breathing only.' } },
+    egg:      { blurb: 'Narrow top, full bottom.', hints: { nod: 'Inner sphere is slightly smaller so the eyes stay clear of the narrow top.', turn: 'Eyes sweep the wide part.', idle: 'Breathing only.' } },
     pebble:   { blurb: 'A slightly irregular outline.', hints: { turn: 'Fixed organic silhouette; the eyes ride a sphere inside it.', idle: 'Breathing only.' } },
   };
   const scenariosFor = name => {
     const info = INFO[name], acts = (Mascot.COMPOSED[name] || {}).acts || {};
-    const unique = [...(info.extras || []), ...Object.entries(acts).map(([key, act], i) => [act.label, 'act:custom' + (i + 1), act.hint, act.dur])];
+    const unique = [...(info.extras || []), ...Object.entries(acts).map(([key, act], i) => [act.label, 'custom' + (i + 1), act.hint, act.dur])];
     return { base: BASE.map(([label, demo, hint]) => [label, demo, (info.hints && info.hints[demo]) || hint]), unique };
   };
   // gaze values are fractions of the yaw / pitch limits
@@ -488,31 +502,12 @@ m.start(); m.look(20, -5);</pre>
   });
 
   // ---------- scenarios ----------
-  let demoTimers = [];
   function runScenario(kind, btn, hint) {
     const m = live; if (!m) return;
-    for (const t of demoTimers) clearTimeout(t); demoTimers = []; m.stopAct();
     for (const b of document.querySelectorAll('.scen [aria-pressed]')) b.removeAttribute('aria-pressed');
-    const at = (ms, fn) => demoTimers.push(setTimeout(fn, ms));
-    m.manual = true;                                                   // cursor follow and idle are ignored for the whole run
-    const seq = (steps, hold) => { steps.forEach(([y, p], i) => at(i * hold, () => m.look(y, p))); at(steps.length * hold, () => m.look(0, 0)); return steps.length * hold + 350; };
-    let dur = 1200;
-    switch (kind) {
-      case 'turn':  m.set({ mouth: 0.7 }); dur = seq([[-0.9 * settings.maxYaw, 0], [0.9 * settings.maxYaw, 0]], 1300); at(dur - 300, () => m.set({ mouth: null })); break;
-      case 'pitch': m.set({ mouth: 0.7 }); dur = seq([[0, 0.9 * settings.maxPitch], [0, -0.9 * settings.maxPitch]], 1300); at(dur - 300, () => m.set({ mouth: null })); break;
-      case 'fast':  m.set({ mouth: 0.15, mouthLen: 0.8 }); dur = seq([[0.9 * settings.maxYaw, 0], [-0.9 * settings.maxYaw, 0], [0.9 * settings.maxYaw, 0], [-0.9 * settings.maxYaw, 0]], 420);
-        [1, -1, 1, -1].forEach((d, i) => at(i * 420, () => m.set({ mouthSide: d, mouthTilt: 9 * d })));   // smirk and tilt toward each turn
-        at(dur - 300, () => m.set({ mouth: null, mouthSide: 0, mouthLen: 1, mouthTilt: 0 })); break;
-      case 'poke':  m.look(0, 0); m.poke(); dur = 900; break;
-      case 'blink': m.look(0, 0); m.set({ mouth: 0.8 }); m.blink(2); dur = 800; at(700, () => m.set({ mouth: null })); break;
-      case 'twitch': m.look(0, 0); m.twitch(1 + Math.floor(Math.random() * 2)); dur = 650; break;
-      case 'idle':  m.look(0, 0); dur = 2200; break;
-      case 'think': dur = m.think(); at(dur - 200, () => m.blink(1)); break;
-      case 'surprise': dur = m.surprise(); break;
-      default: if (kind.startsWith('act:')) dur = m.play(kind.slice(4));
-    }
-    btn.style.setProperty('--dur', dur + 'ms'); btn.setAttribute('aria-pressed', 'true');
-    at(dur, () => { btn.removeAttribute('aria-pressed'); m.manual = false; });
+    const p = m.run(kind);                                              // the library scenario; follow and idle pause for the run
+    btn.style.setProperty('--dur', p.dur + 'ms'); btn.setAttribute('aria-pressed', 'true');
+    clearTimeout(btn._t); btn._t = setTimeout(() => btn.removeAttribute('aria-pressed'), p.dur);
   }
 
   const setPre = (el, text) => { const b = el.querySelector('.copy'); el.textContent = text; if (b) el.append(b); };   // keeps the copy button
@@ -532,7 +527,6 @@ m.start(); m.look(20, -5);</pre>
   function openBody(name) {
     if (!Mascot.COMPOSED[name]) { closeBody(); return; }
     if (live) live.stop();
-    for (const t of demoTimers) clearTimeout(t); demoTimers = [];
     current = name; markCurrent();
     $('detail').hidden = false; $('backdrop').hidden = false; document.body.classList.add('modal-open'); $('detail').scrollTop = 0;
     const comp = Mascot.COMPOSED[name], body = name;
@@ -551,12 +545,11 @@ m.start(); m.look(20, -5);</pre>
     for (const sc of scen.unique) chip($('dScenUnique'), sc);
     $('uniqueBox').hidden = !scen.unique.length;
     { // reference table: every scenario with the call that triggers it
-      const API = { turn: 'look(yaw, 0)', pitch: 'look(0, pitch)', fast: 'look() x4', blink: 'blink(2)', poke: 'poke()', idle: 'idle: true', think: 'think()', surprise: 'surprise()', twitch: 'twitch()' };
-      const LEN = { turn: '2.6 s', pitch: '2.6 s', fast: '1.7 s', blink: '0.8 s', poke: '0.9 s', idle: '2.2 s', think: '3.0 s', surprise: '1.7 s', twitch: '0.7 s' };
       const tb = $('dScenTable').tBodies[0]; tb.innerHTML = '';
       const row = (label, api, hint, len) => { const tr = document.createElement('tr'); for (const [i, v] of [label, api, hint, len].entries()) { const td = document.createElement('td'); if (i === 1) { const c = document.createElement('code'); c.textContent = v; td.append(c); } else td.textContent = v; tr.append(td); } tb.append(tr); };
-      for (const [label, demo, hint] of scen.base) row(label, API[demo], hint, LEN[demo]);
-      for (const [label, demo, hint, dur] of scen.unique) { const key = demo.startsWith('act:') ? demo.slice(4) : demo; const alias = (Mascot.COMPOSED[name] || {}).acts ? Object.keys(Mascot.COMPOSED[name].acts)[+key.replace('custom', '') - 1] : null; row(label, demo.startsWith('act:') ? `play('${key}')` + (alias ? `  [${alias}]` : '') : API[key] || key, hint, dur ? dur.toFixed(1) + ' s' : LEN[key] || ''); }
+      const sec = ms => (ms / 1000).toFixed(1) + ' s';
+      for (const [label, id, hint] of scen.base) row(label, `run('${id}')`, hint, sec(Mascot.SCENARIOS[id].dur));
+      for (const [label, id, hint, dur] of scen.unique) { const alias = id.startsWith('custom') ? Object.keys(Mascot.COMPOSED[name].acts)[+id.slice(6) - 1] : null; row(label, `run('${id}')` + (alias ? `  [${alias}]` : ''), hint, dur ? dur.toFixed(1) + ' s' : sec(Mascot.SCENARIOS[id].dur)); }
     }
     const params = comp
       ? { type: 'composed', pieces: comp.c.length, core: comp.main === -1 ? 'none (all move)' : 'piece ' + (comp.main ?? 0), 'inner sphere': fmt(comp.sphereR) + ' R', 'head follow': fmt(comp.head ?? 0.35), 'spring k': fmt(comp.k ?? 50), 'damping d': fmt(comp.d ?? 13), 'lag rule': comp.lag ? 'yes' : 'no', 'idle motion': comp.anim ? 'yes' : 'no' }
@@ -567,9 +560,9 @@ m.start(); m.look(20, -5);</pre>
     live = new Mascot($('dLive'), { body }); live.start();
     openBodyStates(name);
     $('dSizes').innerHTML = '';
-    for (const px of [16, 24, 32, 48, 64, 96, 128]) {
+    for (const [tok, px] of Object.entries(Mascot.SIZES)) {
       const d = document.createElement('div'); const svg = svgEl(px + ' pixel'); svg.setAttribute('width', px); svg.setAttribute('height', px);
-      const l = document.createElement('small'); l.textContent = px + 'px'; d.append(svg, l); $('dSizes').append(d);
+      const l = document.createElement('small'); l.textContent = tok + ' ' + px; d.append(svg, l); $('dSizes').append(d);
       const m = new Mascot(svg, { body, lean: false }); m.snap(14, 4); m.__size = true; statics.push(m);
     }
     applySettings();
@@ -591,7 +584,6 @@ m.start(); m.look(20, -5);</pre>
   }
   function rebuildStates() { if (current) { const keep = live; openBodyStates(current); } }
   function closeBody() {
-    for (const t of demoTimers) clearTimeout(t); demoTimers = [];
     $('detail').hidden = true; $('backdrop').hidden = true; document.body.classList.remove('modal-open');
     current = null; markCurrent(); if (live) { live.stop(); live = null; } statics = [];
   }
@@ -636,6 +628,68 @@ m.start(); m.look(20, -5);</pre>
       flash('Saved');
     } catch (e) { try { await navigator.clipboard.writeText(text); flash('Copied SVG'); } catch (_) { flash('Not available'); } }
   });
+  // ---------- API reference: one source for the tables on the main page ----------
+  const API_REF = [
+    ['Options (constructor keys and React props)', ['Name', 'Type', 'Default', 'Meaning'], [
+      ['body', "name | pieces[]", "'circle'", 'Built-in body, or an array of [x, y, r] / [x, y, rx, ry, angle] pieces in fractions of the radius. Changing it recreates the mascot.'],
+      ['color', 'hex | [hex, hex]', "'#0a0a0a'", 'Any colour. Two colours make a gradient across the body.'],
+      ['gradientAngle', 'degrees', '45', 'Gradient axis: 0 left to right, 90 top to bottom.'],
+      ['shade', "'flat' | 'gradient'", "'flat'", "'gradient' adds the light and shadow that follow the gaze, derived from the colour."],
+      ['round', '0..1', '0.5', 'Fillet amount where pieces meet.'],
+      ['eye', "'round' | 'pill' | 'square' | 'wide' | 'tall'", "null", 'Eye preset; the default is the round eye.'],
+      ['eyeColor', 'hex | null', 'null', 'null picks white on dark bodies and ink on light ones.'],
+      ['mouth', 'boolean', 'true', 'Draw the mouth.'],
+      ['mouthCurve', '-1..1', '0.4', 'Frown to smile.'],
+      ['mouthStroke', 'number', '6', 'Stroke width, about 1px each at 240px.'],
+      ['mouthWidth', 'number', '1', 'Relative mouth length.'],
+      ['maxYaw', 'degrees', '20', 'Horizontal gaze limit.'],
+      ['maxPitch', 'degrees', '15', 'Vertical gaze limit.'],
+      ['follow', 'boolean', 'true', 'Eyes follow the cursor.'],
+      ['idle', 'boolean', 'true', 'Idle wander when nothing else is happening.'],
+      ['autoBlink', 'boolean', 'true', 'Blinks on its own.'],
+      ['lean', 'boolean', 'true', 'The body leans slightly with the gaze.'],
+      ['breathe', 'boolean', 'true', 'Slow breathing scale.'],
+      ['twitch', 'boolean', 'false', 'Bear only: occasional ear wiggle.'],
+      ['fit', 'boolean', 'true', 'Scale composed bodies to a common visual extent.'],
+    ]],
+    ['React-only props', ['Name', 'Type', 'Default', 'Meaning'], [
+      ['size', 'token | number | CSS length', '240', "Rendered size. Tokens: xs sm md lg xl 2xl 3xl hero (see below)."],
+      ['active', 'boolean', 'true', 'Run the animation loop. false freezes the current frame.'],
+      ['yaw, pitch', 'degrees', '', 'Controlled gaze. Set follow and idle to false alongside.'],
+      ['onReady', '(mascot) => void', '', 'Receives the instance after mount.'],
+      ['title', 'string', "'Mascot'", 'Accessible label on the svg.'],
+      ['ref', 'OrbHandle', '', 'The methods below.'],
+    ]],
+    ['Methods (instance and React ref)', ['Call', 'Returns', '', 'Meaning'], [
+      ["run(id)", 'Promise, .dur ms', '', "Any scenario by id: 'turn' 'nod' 'quick' 'blink' 'poke' 'idle' 'think' 'surprise' 'twitch' or 'custom1'... Resolves when it ends. Follow and idle pause for the run."],
+      ['scenarios()', '{ id, label, hint, dur }[]', '', 'Every scenario this body can run, for building UI.'],
+      ['look(yaw, pitch)', '', '', 'Aim the eyes, smoothed and clamped to the limits.'],
+      ['snap(yaw, pitch)', '', '', 'Aim instantly.'],
+      ['set({ eyeScale, squash, mouth, mouthSide, mouthLen, mouthTilt })', '', '', 'Animate the face directly; mouth: null returns to mouthCurve.'],
+      ['blink(n)', '', '', 'Blink n times.'],
+      ['poke()', '', '', 'The tap reaction; also fires on pointerdown.'],
+      ['think() / surprise()', 'ms', '', 'The two shared acts, also reachable through run().'],
+      ['play(id)', 'ms', '', "A body's own act by position, 'custom1'... (or its key). 0 if none."],
+      ['acts()', '{ id, key, label, hint, dur }[]', '', "This body's own acts."],
+      ['stopAct()', '', '', 'Fade the running act back to idle.'],
+      ['start() / stop()', '', '', 'The loop. The React component manages this through active.'],
+      ['toSVG({ size, id })', 'string', '', 'Standalone SVG with the outline baked to a plain path, for design tools.'],
+    ]],
+  ];
+  {
+    const host = $('apiRef');
+    const table = (title, head, rows) => {
+      const h = document.createElement('h3'); h.textContent = title; host.append(h);
+      const wrap = document.createElement('div'); wrap.className = 'tblwrap'; const t = document.createElement('table'); t.className = 'tbl';
+      const thead = t.createTHead().insertRow(); for (const c of head) { const th = document.createElement('th'); th.textContent = c; thead.append(th); }
+      const tb = t.createTBody();
+      for (const r of rows) { const tr = tb.insertRow(); r.forEach((v, i) => { const td = tr.insertCell(); if (i === 0) { const c = document.createElement('code'); c.textContent = v; td.append(c); td.className = 'mono'; } else if (i === 2 && v && head[2] === 'Default') { const c = document.createElement('code'); c.textContent = v; td.append(c); } else td.textContent = v; }); }
+      wrap.append(t); host.append(wrap);
+    };
+    for (const [title, head, rows] of API_REF) table(title, head, rows);
+    table('Scenario ids', ['Id', 'Label', 'Length', 'What happens'], [...Object.entries(Mascot.SCENARIOS).map(([id, s]) => [id, s.label, (s.dur / 1000).toFixed(1) + ' s', s.hint]), ['custom1, custom2', "the body's own acts", 'varies', 'Listed per body in its page; scenarios() returns them at runtime.']]);
+    table('Size tokens', ['Token', 'Pixels', '', 'Use'], [...Object.entries(Mascot.SIZES).map(([k, v]) => [k, String(v), '', v <= 24 ? 'inline icon, face barely reads' : v <= 48 ? 'avatar, list item' : v <= 128 ? 'card, header' : 'hero, empty state'])]);
+  }
   // ---------- copy to clipboard: code blocks and API names ----------
   const copyText = async (text, el, cls) => { try { await navigator.clipboard.writeText(text); } catch (_) { const ta = document.createElement('textarea'); ta.value = text; document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
     el.classList.add(cls); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove(cls), 1200); };
@@ -644,7 +698,7 @@ m.start(); m.look(20, -5);</pre>
     b.addEventListener('click', () => { const t = [...pre.childNodes].filter(n => n !== b).map(n => n.textContent).join(''); copyText(t, b, 'done'); b.textContent = 'Copied'; setTimeout(() => { b.textContent = 'Copy'; }, 1200); });
     pre.append(b);
   }
-  $('dScenTable').addEventListener('click', e => { const c = e.target.closest('code'); if (c) copyText(c.textContent.replace(/\s+\[.*\]$/, ''), c, 'done'); });   // the alias in brackets is not part of the call
+  document.addEventListener('click', e => { const c = e.target.closest('.tbl td:first-child code, .tbl td.mono code'); if (c) copyText(c.textContent.replace(/\s+\[.*\]$/, ''), c, 'done'); });   // the alias in brackets is not part of the call
   // ---------- routing: #bear ----------
   function route() { const name = decodeURIComponent(location.hash.slice(1)); if (name) openBody(name); else closeBody(); }
   window.addEventListener('hashchange', route);

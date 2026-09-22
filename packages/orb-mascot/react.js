@@ -44,6 +44,8 @@
       set: v => inst.current && inst.current.set(v),
       blink: n => inst.current && inst.current.blink(n),
       poke: () => inst.current && inst.current.poke(),
+      run: id => inst.current ? inst.current.run(id) : Object.assign(Promise.resolve(), { dur: 0 }),
+      scenarios: () => inst.current ? inst.current.scenarios() : [],
       play: name => inst.current ? inst.current.play(name) : 0,
       acts: () => inst.current ? inst.current.acts() : [],
       think: () => inst.current ? inst.current.think() : 0,
@@ -52,11 +54,11 @@
       toSVG: o => inst.current ? inst.current.toSVG(o) : '',
     }), []);
 
-    const px = typeof size === 'number' ? size + 'px' : size;
+    const px = typeof size === 'number' ? size + 'px' : (Mascot.SIZES && Mascot.SIZES[size] != null) ? Mascot.SIZES[size] + 'px' : size;   // token, number or CSS length
     const domProps = {};
     for (const k in rest) if (!OPTION_KEYS.includes(k)) domProps[k] = rest[k];
     return createElement('svg', Object.assign({ ref: svgRef, className, role: 'img', 'aria-label': title || 'Mascot', style: Object.assign({ width: px, height: px, display: 'block' }, style) }, domProps));
   });
 
-  return { Orb, Mascot };
+  return { Orb, Mascot, SIZES: Mascot.SIZES, SCENARIOS: Mascot.SCENARIOS };
 });
