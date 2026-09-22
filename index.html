@@ -224,7 +224,7 @@
         <pre>import { Orb } from 'orb-mascot/react';
 
 &lt;Orb body="bear" color="#1E6DF6" shade="gradient" size={160}
-     mouthCurve={0.4} ref={orb} onClick={() =&gt; orb.current.surprise()} /&gt;</pre>
+     ref={orb} onClick={() =&gt; orb.current.run('surprise')} /&gt;</pre>
       </div>
       <div>
         <h3>Without React</h3>
@@ -234,7 +234,7 @@ const m = new Mascot(svg, { body: 'bear', color: '#1E6DF6' });
 m.start(); m.look(20, -5);</pre>
       </div>
     </div>
-    <p class="note">The swatches in this catalog are examples. <code>color</code> takes any hex value, or two hex values for a gradient with <code>gradientAngle</code>; the shader and eye contrast adapt to whatever you pass.</p>
+    <p class="note">The swatches in this catalog are examples. <code>color</code> takes any hex value, or two hex values for a top-to-bottom gradient; the shader and eye contrast adapt to whatever you pass.</p>
     <p class="note">Package folder: <code>packages/orb-mascot</code> in the <a href="https://github.com/plyuto-lgtm/orb-mascot">repository</a>, with type definitions, a README covering every prop and ref method, and a no-build example. Open a body above for a snippet with its current settings.</p>
   </section>
   <section>
@@ -292,10 +292,8 @@ m.start(); m.look(20, -5);</pre>
           <i class="arrow"></i>
           <label class="hexin" title="To"><i id="g2dot"></i><span>#</span><input type="text" id="g2" value="DBDBDB" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Gradient end colour"></label>
         </div></div>
-        <div class="row" style="margin-top:10px"><span>Angle</span><div class="fs"><input type="range" id="gAngle" min="0" max="360" value="90" step="5" aria-label="Gradient angle"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
       </div></div>
-      <h3>Face</h3>
-      <div class="row"><span>Smile</span><div class="fs"><input type="range" id="smile" min="-1" max="1" value="0.4" step="0.05" aria-label="Mouth curve"><i class="fill"></i><i class="thumb"></i><b class="val"></b></div></div>
+      <h3>Mouth</h3>
       <div class="row"><span>Stroke</span><div class="toggles" id="strokePick" role="group" aria-label="Mouth stroke">
         <label><input type="radio" name="stroke" value="2">2px</label>
         <label><input type="radio" name="stroke" value="3">3px</label>
@@ -400,8 +398,8 @@ m.start(); m.look(20, -5);</pre>
   }
 
   // ---------- settings shared across bodies ----------
-  const settings = { maxYaw: 20, maxPitch: 15, mouth: true, smile: 0.4, stroke: 6, colorName: 'black', mode: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light', round: 0.5, wireframe: false, gradient: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true };
-  settings.g1 = '#1E6DF6'; settings.g2 = '#DBDBDB'; settings.gAngle = 90;
+  const settings = { maxYaw: 20, maxPitch: 15, stroke: 6, colorName: 'black', mode: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light', round: 0.5, wireframe: false, gradient: false, follow: true, idle: true, autoBlink: true, lean: true, breathe: true };
+  settings.g1 = '#1E6DF6'; settings.g2 = '#DBDBDB';
   const palette = () => settings.mode === 'dark' ? Mascot.COLORS_DARK : Mascot.COLORS;
   const colorHex = () => settings.colorName === 'custom' ? [settings.g1, settings.g2] : palette()[settings.colorName];
   const cardColor = () => settings.colorName === 'custom' ? [settings.g1, settings.g2] : palette()[settings.colorName];
@@ -414,10 +412,10 @@ m.start(); m.look(20, -5);</pre>
     const a = document.createElement('a'); a.className = 'card'; a.href = '#' + name; a.dataset.name = name;
     const svg = svgEl(label); const b = document.createElement('b'); b.textContent = label; const sm = document.createElement('small'); sm.textContent = sub;
     a.append(svg, b, sm); host.append(a);
-    const m = new Mascot(svg, { body: def, round: settings.round, color: cardColor(), gradientAngle: settings.gAngle }); m.snap(-16, 6); m.render(); m.cardHost = host; return m;
+    const m = new Mascot(svg, { body: def, color: cardColor() }); m.snap(-16, 6); m.render(); m.cardHost = host; return m;
   }
   for (const n of Object.keys(Mascot.COMPOSED)) cardBots.push(card($('gComposed'), n, cap(n), `body: '${n}'`, n));
-  const refreshCards = () => { for (const m of cardBots) { Object.assign(m.o, { color: cardColor(), gradientAngle: settings.gAngle, round: settings.round, shade: settings.gradient ? 'gradient' : 'flat', mouth: settings.mouth, mouthCurve: settings.smile, mouthStroke: settings.stroke }); m.render(); } };
+  const refreshCards = () => { for (const m of cardBots) { Object.assign(m.o, { color: cardColor(), shade: settings.gradient ? 'gradient' : 'flat', mouthStroke: settings.stroke }); m.render(); } };
 
   function chips(host, list, key, onPick) {
     for (const name of list) {
@@ -429,9 +427,9 @@ m.start(); m.look(20, -5);</pre>
   }
   // ---------- settings controls (inside the modal) ----------
   const applySettings = () => {
-    const opts = { round: settings.round, wireframe: settings.wireframe, shade: settings.gradient ? 'gradient' : 'flat', mouth: settings.mouth, mouthCurve: settings.smile, mouthStroke: settings.stroke, maxYaw: settings.maxYaw, maxPitch: settings.maxPitch };
-    if (live) Object.assign(live.o, opts, { color: colorHex(), gradientAngle: settings.gAngle, follow: settings.follow, idle: settings.idle, autoBlink: settings.autoBlink, lean: settings.lean, breathe: settings.breathe });
-    for (const m of statics) { Object.assign(m.o, opts, { color: cardColor(), gradientAngle: settings.gAngle }); m.render(); }
+    const opts = { wireframe: settings.wireframe, shade: settings.gradient ? 'gradient' : 'flat', mouthStroke: settings.stroke, maxYaw: settings.maxYaw, maxPitch: settings.maxPitch };
+    if (live) Object.assign(live.o, opts, { color: colorHex(), follow: settings.follow, idle: settings.idle, autoBlink: settings.autoBlink, lean: settings.lean, breathe: settings.breathe });
+    for (const m of statics) { Object.assign(m.o, opts, { color: cardColor() }); m.render(); }
     if (settings.colorName !== 'custom') $('customBox').hidden = true;
     $('customDot').style.setProperty('--g1', settings.g1); $('customDot').style.setProperty('--g2', settings.g2);
     $('g1dot').style.background = settings.g1; $('g2dot').style.background = settings.g2;
@@ -454,18 +452,14 @@ m.start(); m.look(20, -5);</pre>
     if (settings.colorName === 'custom' && !e.target.closest('#customBox')) { e.preventDefault(); $('customBox').hidden = !$('customBox').hidden; }
   });
   document.addEventListener('pointerdown', e => { if (!$('customBox').hidden && !e.target.closest('#customChip, #customBox')) $('customBox').hidden = true; });
-  const drawAngle = filledSlider($('gAngle'), v => v + '\u00b0');
   const drawSize = filledSlider($('size'), v => v + ' px');
   const limitInput = (id, key, lo, hi) => {
     const el = $(id), commit = () => { const v = Math.max(lo, Math.min(hi, Math.round(+el.value) || lo)); el.value = v; settings[key] = v; applySettings(); rebuildStates(); };
     el.addEventListener('change', commit); el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); commit(); el.blur(); } });
   };
   limitInput('maxYaw', 'maxYaw', 5, 60); limitInput('maxPitch', 'maxPitch', 5, 40);
-  const drawSmile = filledSlider($('smile'), v => v > 0 ? 'smile ' + Math.round(v * 100) + '%' : v < 0 ? 'frown ' + Math.round(-v * 100) + '%' : 'flat');
-  $('smile').addEventListener('input', () => { settings.smile = +$('smile').value; applySettings(); });
   for (const r of document.querySelectorAll('input[name=stroke]')) r.addEventListener('change', e => { settings.stroke = +e.target.value; applySettings(); });
   $('size').addEventListener('input', () => { $('stage').style.setProperty('--max', $('size').value + 'px'); $('guideLabel').textContent = $('size').value + (+$('size').value === 480 ? ' max' : ''); });
-  $('gAngle').addEventListener('input', () => { settings.gAngle = +$('gAngle').value; applySettings(); });
   for (const k of ['g1', 'g2']) {                                       // typed hex: applies as soon as it is a valid 3- or 6-digit code
     const inp = $(k), parse = () => { const v = inp.value.replace('#', '').trim(); return /^[0-9a-f]{6}$/i.test(v) ? '#' + v : /^[0-9a-f]{3}$/i.test(v) ? '#' + v.split('').map(c => c + c).join('') : null; };
     inp.addEventListener('input', () => { const hex = parse(); inp.parentElement.classList.toggle('bad', !hex); if (hex) { settings[k] = hex; applySettings(); } });
@@ -517,12 +511,14 @@ m.start(); m.look(20, -5);</pre>
   function writeConfig() {
     if (!current) return;
     const custom = settings.colorName === 'custom';
-    const colorLine = custom ? `color: ['${settings.g1}', '${settings.g2}'],\n  gradientAngle: ${settings.gAngle}` : `color: '${colorHex()}'${settings.gradient ? ',' : ''}   // ${settings.colorName}, ${settings.mode} palette`;
-    const mouthLine = (settings.mouth ? `,\n  mouthCurve: ${settings.smile}${settings.stroke !== 6 ? `, mouthStroke: ${settings.stroke}` : ''}` : ',\n  mouth: false') + `,\n  maxYaw: ${settings.maxYaw}, maxPitch: ${settings.maxPitch}`;
-    setPre($('dCfg'), `new Mascot(svg, {\n  body: ${bodyArg(current)},\n  ${colorLine}${settings.gradient ? ",\n  shade: 'gradient'   // shader" : ''}${mouthLine}\n})`);
-    const rColor = custom ? `color={['${settings.g1}', '${settings.g2}']} gradientAngle={${settings.gAngle}}` : `color="${colorHex()}"`;
-    const rMouth = settings.mouth ? `mouthCurve={${settings.smile}}${settings.stroke !== 6 ? ` mouthStroke={${settings.stroke}}` : ''}` : 'mouth={false}';
-    setPre($('dCfgReact'), `import { Orb } from 'orb-mascot/react';\n\n<Orb body="${current}" ${rColor}${settings.gradient ? ' shade="gradient"' : ''}\n     ${rMouth} maxYaw={${settings.maxYaw}} maxPitch={${settings.maxPitch}} size={${$('size').value}} />`);
+    const lines = [`body: ${bodyArg(current)}`, custom ? `color: ['${settings.g1}', '${settings.g2}']` : `color: '${colorHex()}'`];
+    if (settings.gradient) lines.push("shade: 'gradient'");
+    if (settings.stroke !== 6) lines.push(`mouthStroke: ${settings.stroke}`);
+    lines.push(`maxYaw: ${settings.maxYaw}, maxPitch: ${settings.maxPitch}`);
+    setPre($('dCfg'), `new Mascot(svg, {\n  ${lines.join(',\n  ')}\n})`);
+    const rColor = custom ? `color={['${settings.g1}', '${settings.g2}']}` : `color="${colorHex()}"`;
+    const rMouth = settings.stroke !== 6 ? `mouthStroke={${settings.stroke}} ` : '';
+    setPre($('dCfgReact'), `import { Orb } from 'orb-mascot/react';\n\n<Orb body="${current}" ${rColor}${settings.gradient ? ' shade="gradient"' : ''}\n     ${rMouth}maxYaw={${settings.maxYaw}} maxPitch={${settings.maxPitch}} size={${$('size').value}} />`);
   }
   function openBody(name) {
     if (!Mascot.COMPOSED[name]) { closeBody(); return; }
@@ -610,7 +606,7 @@ m.start(); m.look(20, -5);</pre>
   $('dExport').addEventListener('click', async () => {
     if (!current) return;
     const size = +$('size').value, svg = svgEl(current + ' mascot');
-    const m = new Mascot(svg, { body: current, color: colorHex(), gradientAngle: settings.gAngle, shade: settings.gradient ? 'gradient' : 'flat', round: settings.round, lean: false, wireframe: false, mouth: settings.mouth, mouthCurve: settings.smile, mouthStroke: settings.stroke });
+    const m = new Mascot(svg, { body: current, color: colorHex(), shade: settings.gradient ? 'gradient' : 'flat', lean: false, wireframe: false, mouthStroke: settings.stroke });
     m.snap(0, 0); m.render();
     const text = m.toSVG({ size, id: 'orb-' + current });                                          // goo baked to one path: no filters, opens as plain shapes in Figma and Illustrator
     const name = `orb-${current}.svg`, btn = $('dExport');
@@ -632,16 +628,9 @@ m.start(); m.look(20, -5);</pre>
   const API_REF = [
     ['Options (constructor keys and React props)', ['Name', 'Type', 'Default', 'Meaning'], [
       ['body', "name | pieces[]", "'circle'", 'Built-in body, or an array of [x, y, r] / [x, y, rx, ry, angle] pieces in fractions of the radius. Changing it recreates the mascot.'],
-      ['color', 'hex | [hex, hex]', "'#0a0a0a'", 'Any colour. Two colours make a gradient across the body.'],
-      ['gradientAngle', 'degrees', '45', 'Gradient axis: 0 left to right, 90 top to bottom.'],
+      ['color', 'hex | [hex, hex]', "'#0a0a0a'", 'Any colour. Two colours make a top-to-bottom gradient. Eye colour is picked automatically for contrast.'],
       ['shade', "'flat' | 'gradient'", "'flat'", "'gradient' adds the light and shadow that follow the gaze, derived from the colour."],
-      ['round', '0..1', '0.5', 'Fillet amount where pieces meet.'],
-      ['eye', "'round' | 'pill' | 'square' | 'wide' | 'tall'", "null", 'Eye preset; the default is the round eye.'],
-      ['eyeColor', 'hex | null', 'null', 'null picks white on dark bodies and ink on light ones.'],
-      ['mouth', 'boolean', 'true', 'Draw the mouth.'],
-      ['mouthCurve', '-1..1', '0.4', 'Frown to smile.'],
-      ['mouthStroke', 'number', '6', 'Stroke width, about 1px each at 240px.'],
-      ['mouthWidth', 'number', '1', 'Relative mouth length.'],
+      ['mouthStroke', 'number', '6', 'Mouth stroke width, about 1px each at 240px. The smile itself is fixed; scenarios and set() move it.'],
       ['maxYaw', 'degrees', '20', 'Horizontal gaze limit.'],
       ['maxPitch', 'degrees', '15', 'Vertical gaze limit.'],
       ['follow', 'boolean', 'true', 'Eyes follow the cursor.'],
@@ -665,7 +654,7 @@ m.start(); m.look(20, -5);</pre>
       ['scenarios()', '{ id, label, hint, dur }[]', '', 'Every scenario this body can run, for building UI.'],
       ['look(yaw, pitch)', '', '', 'Aim the eyes, smoothed and clamped to the limits.'],
       ['snap(yaw, pitch)', '', '', 'Aim instantly.'],
-      ['set({ eyeScale, squash, mouth, mouthSide, mouthLen, mouthTilt })', '', '', 'Animate the face directly; mouth: null returns to mouthCurve.'],
+      ['set({ eyeScale, squash, mouth, mouthSide, mouthLen, mouthTilt })', '', '', 'Animate the face directly; mouth is -1..1 (frown to smile), null returns to the default smile.'],
       ['blink(n)', '', '', 'Blink n times.'],
       ['poke()', '', '', 'The tap reaction; also fires on pointerdown.'],
       ['think() / surprise()', 'ms', '', 'The two shared acts, also reachable through run().'],

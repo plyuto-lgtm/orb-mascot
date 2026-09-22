@@ -1,44 +1,32 @@
 /** A composed body: pieces are [x, y, r] circles or [x, y, rx, ry, angle] ellipses, in fractions of the radius, centre 0 0, y down. */
 export type BodyPiece = [number, number, number] | [number, number, number, number, number];
 export type BodyName = 'circle' | 'squircle' | 'egg' | 'pebble' | 'bear' | 'lemon' | 'ghost' | 'cloud' | 'drop' | 'stack' | 'seacow' | 'flower';
-export type Shade = 'flat' | 'gradient' | 'soft' | 'glossy' | 'rim';
-export type EyePreset = 'round' | 'pill' | 'square' | 'wide' | 'tall';
+export type Shade = 'flat' | 'gradient';
 
 export interface MascotOptions {
   /** Built-in body name, or an array of pieces for a custom composed body. Default 'circle'. */
   body?: BodyName | BodyPiece[] | { c: BodyPiece[]; sphereR?: number; main?: number; head?: number; k?: number; d?: number };
-  /** Body colour as hex, or two hex colours for a gradient mapped on the head sphere. Default '#0a0a0a'. */
+  /** Body colour as hex, or two hex colours for a top-to-bottom gradient. Eye colour is chosen automatically for contrast. Default '#0a0a0a'. */
   color?: string | [string, string];
-  /** Gradient axis in degrees: 0 = left to right, 90 = top to bottom. Default 45. */
-  gradientAngle?: number;
   /** 'gradient' adds the light/shadow shader that follows the gaze. Default 'flat'. */
   shade?: Shade;
-  /** Fillet amount for composed bodies, 0..1. Default 0.5. */
-  round?: number;
-  /** Eye preset; overrides eyeW / eyeH / corner. */
-  eye?: EyePreset | null;
-  eyeW?: number; eyeH?: number; corner?: number; eyeLon?: number; eyeLat?: number;
-  /** null = automatic (white on dark bodies, ink on light ones). */
-  eyeColor?: string | null;
-  mouth?: boolean;
-  /** -1 frown .. 0 flat .. 1 smile. Default 0.4. */
-  mouthCurve?: number;
-  mouthWidth?: number;
-  /** Stroke width in viewBox units, about 1px each at a 240px render. Default 6. */
+  /** Mouth stroke width in viewBox units, about 1px each at a 240px render. Default 6. */
   mouthStroke?: number;
-  mouthDrop?: number;
   /** Gaze limits in degrees. Defaults 20 and 15. */
   maxYaw?: number; maxPitch?: number;
+  /** Automatic behaviour, all on by default. */
   follow?: boolean; idle?: boolean; autoBlink?: boolean; lean?: boolean; breathe?: boolean;
-  wireframe?: boolean; twitch?: boolean; fit?: boolean;
-  radius?: number; light?: number; contrast?: number; shaded?: boolean;
+  /** Bear only: occasional ear wiggle. Default false. */
+  twitch?: boolean;
+  /** Scale composed bodies to a common visual extent. Default true. */
+  fit?: boolean;
 }
 
 export type ScenarioId = 'turn' | 'nod' | 'quick' | 'blink' | 'poke' | 'idle' | 'think' | 'surprise' | 'twitch';
 
 export interface LiveValues {
   eyeScale?: number; squash?: number; blink?: number;
-  /** Mouth curve override; null returns to options.mouthCurve. */
+  /** Mouth curve override, -1 frown .. 1 smile; null returns to the default smile. */
   mouth?: number | null;
   mouthSide?: number; mouthLen?: number; mouthTilt?: number;
 }

@@ -7,9 +7,7 @@
   const useIso = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
   // props that are plain Mascot options: copied onto the instance whenever they change
-  const OPTION_KEYS = ['color', 'gradientAngle', 'shade', 'round', 'eye', 'eyeW', 'eyeH', 'corner', 'eyeLon', 'eyeLat', 'eyeColor',
-    'mouth', 'mouthCurve', 'mouthWidth', 'mouthStroke', 'mouthDrop', 'maxYaw', 'maxPitch',
-    'follow', 'idle', 'autoBlink', 'lean', 'breathe', 'wireframe', 'twitch', 'fit', 'light', 'contrast', 'shaded'];
+  const OPTION_KEYS = ['color', 'shade', 'mouthStroke', 'maxYaw', 'maxPitch', 'follow', 'idle', 'autoBlink', 'lean', 'breathe', 'twitch', 'fit'];
 
   const pickOptions = props => { const o = {}; for (const k of OPTION_KEYS) if (props[k] !== undefined) o[k] = props[k]; return o; };
 

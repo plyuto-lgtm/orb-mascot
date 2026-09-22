@@ -27,7 +27,6 @@ export function Assistant({ busy }: { busy: boolean }) {
       color="#1E6DF6"
       shade="gradient"
       size="lg"
-      mouthCurve={busy ? 0.1 : 0.4}
       onClick={() => orb.current?.run('surprise')}
     />
   );
@@ -111,7 +110,7 @@ useEffect(() => {
   if (state === 'loading') orb.current?.run('think');
   if (state === 'done') orb.current?.run('surprise');
   if (state === 'error') orb.current?.set({ mouth: -0.6 });     // a frown until the next state
-  if (state === 'idle') orb.current?.set({ mouth: null });      // back to mouthCurve
+  if (state === 'idle') orb.current?.set({ mouth: null });      // back to the default smile
 }, [state]);
 
 <Orb ref={orb} body="cloud" idle={state === 'idle'} follow={state !== 'loading'} />
@@ -125,16 +124,9 @@ automatic motion off: `<Orb yaw={12} pitch={-4} follow={false} idle={false} />`.
 | Prop | Type | Default | Meaning |
 |---|---|---|---|
 | `body` | name or pieces | `'circle'` | `bear lemon ghost cloud drop stack seacow flower`, or an array of `[x, y, r]` / `[x, y, rx, ry, angle]` pieces in fractions of the radius |
-| `color` | hex or `[hex, hex]` | `'#0a0a0a'` | any colour; two colours make a gradient |
-| `gradientAngle` | degrees | `45` | 0 left to right, 90 top to bottom |
+| `color` | hex or `[hex, hex]` | `'#0a0a0a'` | any colour; two colours make a top-to-bottom gradient; eye colour is automatic |
 | `shade` | `'flat'` `'gradient'` | `'flat'` | light and shadow that follow the gaze, derived from the colour |
-| `round` | 0..1 | `0.5` | fillet where pieces meet |
-| `eye` | `'round'` `'pill'` `'square'` `'wide'` `'tall'` | round | eye preset |
-| `eyeColor` | hex | auto | white on dark bodies, ink on light ones |
-| `mouth` | boolean | `true` | draw the mouth |
-| `mouthCurve` | -1..1 | `0.4` | frown to smile |
-| `mouthStroke` | number | `6` | stroke width, about 1px each at 240px |
-| `mouthWidth` | number | `1` | relative mouth length |
+| `mouthStroke` | number | `6` | mouth stroke width, about 1px each at 240px |
 | `maxYaw`, `maxPitch` | degrees | `20`, `15` | gaze limits |
 | `follow` | boolean | `true` | eyes follow the cursor |
 | `idle` | boolean | `true` | idle wander |
@@ -156,7 +148,7 @@ automatic motion off: `<Orb yaw={12} pitch={-4} follow={false} idle={false} />`.
 | `scenarios()` | list | what this body can run |
 | `look(yaw, pitch)` | | aim, smoothed and clamped |
 | `snap(yaw, pitch)` | | aim instantly |
-| `set({ eyeScale, squash, mouth, mouthSide, mouthLen, mouthTilt })` | | animate the face directly; `mouth: null` returns to `mouthCurve` |
+| `set({ eyeScale, squash, mouth, mouthSide, mouthLen, mouthTilt })` | | animate the face directly; `mouth` is -1..1, `null` returns to the default smile |
 | `blink(n)` | | blink n times |
 | `poke()` | | the tap reaction |
 | `play(id)` / `acts()` | ms / list | body acts only; `run` covers them too |
@@ -167,10 +159,18 @@ automatic motion off: `<Orb yaw={12} pitch={-4} follow={false} idle={false} />`.
 
 ## Colour
 
-`color` is any hex value, or a pair of hex values for a gradient across the body with
-`gradientAngle`. Eye contrast and the `shade="gradient"` light and shadow are derived from the
-colour you pass, so any brand colour works without tuning. The catalog's six swatches are only
-examples; they are on `Mascot.COLORS` and, for dark grounds, `Mascot.COLORS_DARK`.
+`color` is any hex value, or a pair of hex values for a top-to-bottom gradient across the body.
+Eye colour, eye contrast and the `shade="gradient"` light and shadow are derived from the colour
+you pass, so any brand colour works without tuning:
+
+```tsx
+<Orb color="#FF5A1F" />
+<Orb color={['#7C3AED', '#0EA5E9']} shade="gradient" />
+```
+
+The catalog's six swatches are only examples; they are on `Mascot.COLORS` and, for dark grounds,
+`Mascot.COLORS_DARK`. Everything else about the look is fixed by design: round eyes, the resting
+smile, the rounded joins between pieces. Scenarios and `set()` move the face at runtime.
 
 ## Server rendering
 

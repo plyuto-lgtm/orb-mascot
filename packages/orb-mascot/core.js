@@ -282,7 +282,7 @@
         shaded: true, wireframe: false, lean: true, breathe: true,
         follow: true, idle: true, autoBlink: true,
         color: '#0a0a0a',   // body colour, or an array of two hex colours for a custom gradient mapped on the head sphere
-        gradientAngle: 45,  // degrees for a custom gradient: 0 = left to right, 90 = top to bottom
+        gradientAngle: 90,  // custom gradient runs top to bottom (internal; not part of the public options)
         shade: 'flat',      // flat | gradient | soft | glossy | rim   (gradient: a lighter tint on the front of the sphere that moves with the gaze)
         light: -135,        // direction the light comes from, degrees: 0 right, -90 top, -135 top-left
         contrast: 1,        // shading strength multiplier
@@ -532,7 +532,7 @@
       { const ov = this._A && this._A.overlay; this.over.innerHTML = '';
         if (ov) for (const [x, y, r] of ov) this.over.append(el('circle', { cx: (100 + x * o.radius).toFixed(2), cy: (100 + y * o.radius).toFixed(2), r: (r * o.radius).toFixed(2), fill })); }
       if (custom) {                                                                                  // gradient axis anchored on the head sphere: it shifts with the gaze
-        const a = (o.gradientAngle == null ? 45 : o.gradientAngle) * D2R, lon = 62 * Math.cos(a), lat = -62 * Math.sin(a);
+        const a = (o.gradientAngle == null ? 90 : o.gradientAngle) * D2R, lon = 62 * Math.cos(a), lat = -62 * Math.sin(a);
         const f1 = this._frame(-lon, -lat), f2 = this._frame(lon, lat);
         for (const g of [this.lin, this.lightLin, this.shadowLin]) { g.setAttribute('x1', f1.m[4].toFixed(1)); g.setAttribute('y1', f1.m[5].toFixed(1)); g.setAttribute('x2', f2.m[4].toFixed(1)); g.setAttribute('y2', f2.m[5].toFixed(1)); }
       }

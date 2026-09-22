@@ -13,7 +13,7 @@ so they foreshorten and converge as it looks around. Blinks, follows the cursor,
 <svg id="bot" width="120" height="120"></svg>
 <script src="mascot.js"></script>
 <script>
-  const bot = new Mascot(document.getElementById('bot'), { body: 'bear', color: '#1E6DF6', eye: 'round' });
+  const bot = new Mascot(document.getElementById('bot'), { body: 'bear', color: '#1E6DF6' });
   bot.start();               // smoothing, idle wander, blinking, cursor follow
   bot.look(30, -10);         // yaw, pitch in degrees
   bot.blink(2);
@@ -22,7 +22,7 @@ so they foreshorten and converge as it looks around. Blinks, follows the cursor,
 ```
 
 Bodies: `circle squircle egg blob` (single outlines) and `bear lemon ghost cloud drop stack seacow flower`
-(unions of circles/ellipses, filleted by `round`). A body can also be an array of pieces:
+(unions of circles/ellipses with rounded joins). A body can also be an array of pieces:
 `[x, y, r]` or `[x, y, rx, ry, angle]` in fractions of the radius, centre `0 0`, y down.
 
 Open `index.html` from any static server to use the workbench.
