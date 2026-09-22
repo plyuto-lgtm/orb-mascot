@@ -4,6 +4,10 @@ export type BodyName = 'circle' | 'squircle' | 'egg' | 'pebble' | 'bear' | 'lemo
 export type Shade = 'flat' | 'gradient';
 
 export interface MascotOptions {
+  /** 'hero' (default) keeps every behaviour on. 'avatar' turns off cursor follow, idle wander, lean, breathe, the tap reaction and the shader: calm in a list, blinking stays. Explicit options override the preset. */
+  preset?: Preset;
+  /** Poke on pointerdown. Default true ('avatar' preset: false). */
+  tap?: boolean;
   /** Built-in body name, or an array of pieces for a custom composed body. Default 'circle'. */
   body?: BodyName | BodyPiece[] | { c: BodyPiece[]; sphereR?: number; main?: number; head?: number; k?: number; d?: number };
   /** Body colour as hex, or two hex colours for a top-to-bottom gradient. Eye colour is chosen automatically for contrast. Default '#0a0a0a'. */
@@ -23,6 +27,8 @@ export interface MascotOptions {
 }
 
 export type ScenarioId = 'turn' | 'nod' | 'quick' | 'blink' | 'poke' | 'idle' | 'think' | 'surprise' | 'twitch';
+export type Status = 'idle' | 'thinking' | 'speaking' | 'success' | 'error';
+export type Preset = 'hero' | 'avatar';
 
 export interface LiveValues {
   eyeScale?: number; squash?: number; blink?: number;
@@ -59,6 +65,9 @@ export default class Mascot {
   run(id: ScenarioId | string): Promise<void> & { dur: number };
   /** Every scenario this body can run: the shared ones plus its own acts. */
   scenarios(): { id: string; label: string; hint: string; dur: number }[];
+  /** Persistent state. 'thinking' and 'speaking' loop until the status changes; 'success' plays surprise then holds a smile; 'error' frowns with a short head shake. */
+  setStatus(s: Status): this;
+  readonly status: Status;
   act(def: ActDef): number;
   think(): number;
   surprise(): number;
@@ -75,6 +84,12 @@ export default class Mascot {
   static COMPOSED: Record<string, { acts?: Record<string, ActDef> }>;
   static ACTS: Record<string, Record<string, ActDef>>;
   static SHADES: Shade[];
+  static PRESETS: Record<Preset, Partial<MascotOptions>>;
+  static STATUSES: Status[];
+  /** A stable body and colour for an id (agent id, user id): same id, same look. */
+  static identity(id: string | number, opts?: { bodies?: BodyName[]; colors?: string[] }): { body: BodyName; color: string };
+  /** A baked, filter-free SVG string for a look, cached per distinct look. For lists. */
+  static staticSVG(opts?: MascotOptions, out?: { size?: number; id?: string; yaw?: number; pitch?: number }): string;
   /** Shared scenarios with label, hint and length in ms. */
   static SCENARIOS: Record<ScenarioId, { label: string; hint: string; dur: number }>;
   /** Size tokens in px: xs 16, sm 24, md 32, lg 48, xl 64, 2xl 96, 3xl 128, hero 240. */

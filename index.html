@@ -170,8 +170,12 @@
   .tbl{border-collapse:collapse;width:100%;font-size:13px}
   .tbl th{text-align:left;font-weight:600;color:var(--muted);font-size:12px;padding:6px 10px 8px 0;border-bottom:1px solid var(--line)}
   .tbl td{padding:8px 10px 8px 0;border-bottom:1px solid var(--divider);vertical-align:top}
-  .tbl td:first-child{white-space:nowrap;font-weight:500}
-  .tbl td:nth-child(2){white-space:nowrap}
+  .tbl{table-layout:fixed}
+  .tbl col:nth-child(1){width:19%}
+  .tbl col:nth-child(2){width:24%}
+  .tbl col:nth-child(3){width:13%}
+  .tbl td:first-child{font-weight:500}
+  .tbl td:nth-child(3){color:var(--muted);font-variant-numeric:tabular-nums}
   /* copy: every code block gets a button; API cells copy on click */
   pre{position:relative}
   pre .copy{position:absolute;top:8px;right:8px;font:500 11px var(--sans);padding:4px 8px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--muted);cursor:pointer;opacity:0;transition:opacity .12s}
@@ -180,13 +184,19 @@
   .tbl td code{cursor:pointer;border-radius:4px;padding:1px 4px;margin-left:-4px;transition:background .12s}
   .tbl td code:hover{background:var(--surface)}
   .tbl td code.done{background:var(--accent);color:var(--accent-ink)}
-  .tbl td:last-child{white-space:nowrap;color:var(--muted);font-variant-numeric:tabular-nums}
+  .tbl td code{overflow-wrap:anywhere}
   .impl{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+  .roster{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:start}
+  .roster ul{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .roster li{display:flex;align-items:center;gap:12px;padding:8px 12px;border-top:1px solid var(--divider);cursor:pointer;font-size:14px}
+  .roster li:first-child{border-top:0}
+  .roster li[aria-selected]{background:var(--surface)}
+  .roster li small{margin-left:auto;font:12px var(--mono);color:var(--muted)}
+  .roster .live{display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px;border:1px solid var(--line);border-radius:12px;min-width:200px}
+  .roster .live b{font-size:14px}
+  @media (max-width:640px){.roster{grid-template-columns:1fr}.roster .live{min-width:0}}
   pre{max-width:100%;min-width:0}
-  .apiRef h3{margin:22px 0 8px}
-  .apiRef h3:first-child{margin-top:0}
-  .tbl td:nth-child(2){white-space:normal}
-  .tbl td.mono{white-space:nowrap}
+  .tbl td.mono{white-space:normal}
   @media (max-width:560px){                                                /* phones: each row stacks into a small card */
     .tbl thead{display:none}
     .tbl tr{display:block;padding:9px 0;border-bottom:1px solid var(--divider)}
@@ -235,12 +245,13 @@ m.start(); m.look(20, -5);</pre>
       </div>
     </div>
     <p class="note">The swatches in this catalog are examples. <code>color</code> takes any hex value, or two hex values for a top-to-bottom gradient; the shader and eye contrast adapt to whatever you pass.</p>
+    <p class="note"><a href="api.html"><b>API reference</b></a>: every option, method, scenario id and size token, on its own page.</p>
     <p class="note">Package folder: <code>packages/orb-mascot</code> in the <a href="https://github.com/plyuto-lgtm/orb-mascot">repository</a>, with type definitions, a README covering every prop and ref method, and a no-build example. Open a body above for a snippet with its current settings.</p>
   </section>
   <section>
-    <h2>API reference</h2>
-    <div class="apiRef" id="apiRef"></div>
-    <p class="note">Click a name to copy it. Options are constructor keys and React props alike; methods are on the instance and on the React ref.</p>
+    <h2>Agent avatars</h2>
+    <div class="roster" id="roster"></div>
+    <p class="note">A roster the way an app would show it: <code>identity</code> picks each agent's body and colour from its id, <code>preset="avatar"</code> keeps them calm, the rows are <code>static</code> baked svgs, and only the selected agent is live with a <code>status</code>. Click an agent, then a status.</p>
   </section>
 </div>
 
@@ -316,7 +327,7 @@ m.start(); m.look(20, -5);</pre>
   </section>
   <section>
     <h2>Scenario reference</h2>
-    <div class="tblwrap"><table class="tbl" id="dScenTable"><thead><tr><th>Scenario</th><th>API</th><th>What happens on this body</th><th>Length</th></tr></thead><tbody></tbody></table></div>
+    <div class="tblwrap"><table class="tbl" id="dScenTable"><colgroup><col><col><col><col></colgroup><thead><tr><th>Name</th><th>Call</th><th>Length</th><th>What happens on this body</th></tr></thead><tbody></tbody></table></div>
     <p class="note">One call for everything: <code>run(id)</code> returns a promise that resolves when the scenario ends, with <code>.dur</code> in ms. Body-specific acts are <code>custom1</code>, <code>custom2</code> by position, so app code does not depend on a body's own names; the key in brackets is an alias. <code>mascot.scenarios()</code> lists all of them at runtime.</p>
   </section>
   <section>
@@ -542,7 +553,7 @@ m.start(); m.look(20, -5);</pre>
     $('uniqueBox').hidden = !scen.unique.length;
     { // reference table: every scenario with the call that triggers it
       const tb = $('dScenTable').tBodies[0]; tb.innerHTML = '';
-      const row = (label, api, hint, len) => { const tr = document.createElement('tr'); for (const [i, v] of [label, api, hint, len].entries()) { const td = document.createElement('td'); if (i === 1) { const c = document.createElement('code'); c.textContent = v; td.append(c); } else td.textContent = v; tr.append(td); } tb.append(tr); };
+      const row = (label, api, hint, len) => { const tr = document.createElement('tr'); for (const [i, v] of [label, api, len, hint].entries()) { const td = document.createElement('td'); if (i === 1) { const c = document.createElement('code'); c.textContent = v; td.append(c); td.className = 'mono'; } else td.textContent = v; tr.append(td); } tb.append(tr); };
       const sec = ms => (ms / 1000).toFixed(1) + ' s';
       for (const [label, id, hint] of scen.base) row(label, `run('${id}')`, hint, sec(Mascot.SCENARIOS[id].dur));
       for (const [label, id, hint, dur] of scen.unique) { const alias = id.startsWith('custom') ? Object.keys(Mascot.COMPOSED[name].acts)[+id.slice(6) - 1] : null; row(label, `run('${id}')` + (alias ? `  [${alias}]` : ''), hint, dur ? dur.toFixed(1) + ' s' : sec(Mascot.SCENARIOS[id].dur)); }
@@ -624,60 +635,27 @@ m.start(); m.look(20, -5);</pre>
       flash('Saved');
     } catch (e) { try { await navigator.clipboard.writeText(text); flash('Copied SVG'); } catch (_) { flash('Not available'); } }
   });
-  // ---------- API reference: one source for the tables on the main page ----------
-  const API_REF = [
-    ['Options (constructor keys and React props)', ['Name', 'Type', 'Default', 'Meaning'], [
-      ['body', "name | pieces[]", "'circle'", 'Built-in body, or an array of [x, y, r] / [x, y, rx, ry, angle] pieces in fractions of the radius. Changing it recreates the mascot.'],
-      ['color', 'hex | [hex, hex]', "'#0a0a0a'", 'Any colour. Two colours make a top-to-bottom gradient. Eye colour is picked automatically for contrast.'],
-      ['shade', "'flat' | 'gradient'", "'flat'", "'gradient' adds the light and shadow that follow the gaze, derived from the colour."],
-      ['mouthStroke', 'number', '6', 'Mouth stroke width, about 1px each at 240px. The smile itself is fixed; scenarios and set() move it.'],
-      ['maxYaw', 'degrees', '20', 'Horizontal gaze limit.'],
-      ['maxPitch', 'degrees', '15', 'Vertical gaze limit.'],
-      ['follow', 'boolean', 'true', 'Eyes follow the cursor.'],
-      ['idle', 'boolean', 'true', 'Idle wander when nothing else is happening.'],
-      ['autoBlink', 'boolean', 'true', 'Blinks on its own.'],
-      ['lean', 'boolean', 'true', 'The body leans slightly with the gaze.'],
-      ['breathe', 'boolean', 'true', 'Slow breathing scale.'],
-      ['twitch', 'boolean', 'false', 'Bear only: occasional ear wiggle.'],
-      ['fit', 'boolean', 'true', 'Scale composed bodies to a common visual extent.'],
-    ]],
-    ['React-only props', ['Name', 'Type', 'Default', 'Meaning'], [
-      ['size', 'token | number | CSS length', '240', "Rendered size. Tokens: xs sm md lg xl 2xl 3xl hero (see below)."],
-      ['active', 'boolean', 'true', 'Run the animation loop. false freezes the current frame.'],
-      ['yaw, pitch', 'degrees', '', 'Controlled gaze. Set follow and idle to false alongside.'],
-      ['onReady', '(mascot) => void', '', 'Receives the instance after mount.'],
-      ['title', 'string', "'Mascot'", 'Accessible label on the svg.'],
-      ['ref', 'OrbHandle', '', 'The methods below.'],
-    ]],
-    ['Methods (instance and React ref)', ['Call', 'Returns', '', 'Meaning'], [
-      ["run(id)", 'Promise, .dur ms', '', "Any scenario by id: 'turn' 'nod' 'quick' 'blink' 'poke' 'idle' 'think' 'surprise' 'twitch' or 'custom1'... Resolves when it ends. Follow and idle pause for the run."],
-      ['scenarios()', '{ id, label, hint, dur }[]', '', 'Every scenario this body can run, for building UI.'],
-      ['look(yaw, pitch)', '', '', 'Aim the eyes, smoothed and clamped to the limits.'],
-      ['snap(yaw, pitch)', '', '', 'Aim instantly.'],
-      ['set({ eyeScale, squash, mouth, mouthSide, mouthLen, mouthTilt })', '', '', 'Animate the face directly; mouth is -1..1 (frown to smile), null returns to the default smile.'],
-      ['blink(n)', '', '', 'Blink n times.'],
-      ['poke()', '', '', 'The tap reaction; also fires on pointerdown.'],
-      ['think() / surprise()', 'ms', '', 'The two shared acts, also reachable through run().'],
-      ['play(id)', 'ms', '', "A body's own act by position, 'custom1'... (or its key). 0 if none."],
-      ['acts()', '{ id, key, label, hint, dur }[]', '', "This body's own acts."],
-      ['stopAct()', '', '', 'Fade the running act back to idle.'],
-      ['start() / stop()', '', '', 'The loop. The React component manages this through active.'],
-      ['toSVG({ size, id })', 'string', '', 'Standalone SVG with the outline baked to a plain path, for design tools.'],
-    ]],
-  ];
+  // ---------- agent roster demo: static rows, one live selected avatar with a status ----------
   {
-    const host = $('apiRef');
-    const table = (title, head, rows) => {
-      const h = document.createElement('h3'); h.textContent = title; host.append(h);
-      const wrap = document.createElement('div'); wrap.className = 'tblwrap'; const t = document.createElement('table'); t.className = 'tbl';
-      const thead = t.createTHead().insertRow(); for (const c of head) { const th = document.createElement('th'); th.textContent = c; thead.append(th); }
-      const tb = t.createTBody();
-      for (const r of rows) { const tr = tb.insertRow(); r.forEach((v, i) => { const td = tr.insertCell(); if (i === 0) { const c = document.createElement('code'); c.textContent = v; td.append(c); td.className = 'mono'; } else if (i === 2 && v && head[2] === 'Default') { const c = document.createElement('code'); c.textContent = v; td.append(c); } else td.textContent = v; }); }
-      wrap.append(t); host.append(wrap);
+    const AGENTS = ['Atlas', 'Birch', 'Cinder', 'Dune', 'Ember', 'Fable'], host = $('roster');
+    const ul = document.createElement('ul'), live = document.createElement('div'); live.className = 'live'; host.append(ul, live);
+    let liveBot = null, sel = AGENTS[0];
+    const draw = () => {
+      ul.innerHTML = '';
+      for (const name of AGENTS) {
+        const id = Mascot.identity(name), li = document.createElement('li'); if (name === sel) li.setAttribute('aria-selected', 'true');
+        const av = document.createElement('span'); av.style.cssText = 'display:inline-block;width:32px;height:32px;line-height:0'; av.innerHTML = Mascot.staticSVG({ body: id.body, color: id.color, preset: 'avatar' }, { size: 32, id: 'rs-' + name }).replace(/^<\?xml[^>]*>\s*/, '');
+        const nm = document.createElement('span'); nm.textContent = name; const sm = document.createElement('small'); sm.textContent = id.body;
+        li.append(av, nm, sm); li.addEventListener('click', () => { sel = name; draw(); }); ul.append(li);
+      }
+      const id = Mascot.identity(sel); if (liveBot) liveBot.stop(); live.innerHTML = '';
+      const svg = svgEl(sel + ', live'); svg.setAttribute('width', 96); svg.setAttribute('height', 96); const b = document.createElement('b'); b.textContent = sel;
+      const bar = document.createElement('div'); bar.className = 'toggles';
+      for (const st of Mascot.STATUSES) { const l = document.createElement('label'); const i = document.createElement('input'); i.type = 'radio'; i.name = 'rosterStatus'; i.value = st; i.checked = st === 'idle'; l.append(i, st); l.addEventListener('change', () => liveBot.setStatus(st)); bar.append(l); }
+      live.append(svg, b, bar);
+      liveBot = new Mascot(svg, { body: id.body, color: id.color, preset: 'avatar', shade: 'gradient' }); liveBot.start();
     };
-    for (const [title, head, rows] of API_REF) table(title, head, rows);
-    table('Scenario ids', ['Id', 'Label', 'Length', 'What happens'], [...Object.entries(Mascot.SCENARIOS).map(([id, s]) => [id, s.label, (s.dur / 1000).toFixed(1) + ' s', s.hint]), ['custom1, custom2', "the body's own acts", 'varies', 'Listed per body in its page; scenarios() returns them at runtime.']]);
-    table('Size tokens', ['Token', 'Pixels', '', 'Use'], [...Object.entries(Mascot.SIZES).map(([k, v]) => [k, String(v), '', v <= 24 ? 'inline icon, face barely reads' : v <= 48 ? 'avatar, list item' : v <= 128 ? 'card, header' : 'hero, empty state'])]);
+    draw();
   }
   // ---------- copy to clipboard: code blocks and API names ----------
   const copyText = async (text, el, cls) => { try { await navigator.clipboard.writeText(text); } catch (_) { const ta = document.createElement('textarea'); ta.value = text; document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove(); }

@@ -1,0 +1,191 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orb Mascot API</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --bg:#f5f5f2; --surface:#ebebe6; --surface-2:#e1e1db; --ink:#141416; --muted:#6c6c72; --line:#d6d6cf;
+    --accent:#2f5bff; --accent-ink:#ffffff; --card:#e9e9e4; --divider:rgba(0,0,0,.05);
+    --sans:"Instrument Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+    --bg:#111113; --surface:#19191c; --surface-2:#232327; --ink:#ececea; --muted:#8f8f96; --line:#2c2c31; --accent:#6f8cff; --accent-ink:#0b0b0d; --card:#1c1c20; --divider:rgba(255,255,255,.06); } }
+  :root[data-theme="dark"]{ --bg:#111113; --surface:#19191c; --surface-2:#232327; --ink:#ececea; --muted:#8f8f96; --line:#2c2c31; --accent:#6f8cff; --accent-ink:#0b0b0d; --card:#1c1c20; --divider:rgba(255,255,255,.06); }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans);-webkit-font-smoothing:antialiased;padding-inline:clamp(16px,4vw,48px);padding-block:28px 72px}
+  .wrap{max-width:1120px;margin:0 auto}
+  header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 24px;margin-bottom:28px}
+  h1{font-size:20px;font-weight:600;letter-spacing:-.01em;margin:0}
+  h2{font-size:13px;font-weight:600;color:var(--muted);margin:0 0 14px}
+  h3{font-size:14px;color:var(--ink);font-weight:600;margin:12px 0 0}
+  .note{color:var(--muted);font-size:13px;max-width:65ch;margin:10px 0 0}
+  code{font:12.5px var(--mono)}
+  [hidden]{display:none!important}
+  .mode{display:flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface)}
+  .mode label{font-size:12px;font-weight:500;padding:4px 10px;border-radius:999px;color:var(--muted);cursor:pointer;user-select:none}
+  .mode label:has(:checked){background:var(--ink);color:var(--bg)}
+  .mode input{position:absolute;opacity:0;width:0;height:0}
+  pre{background:var(--surface);border-radius:12px;padding:16px 18px;font:12px/1.55 var(--mono);overflow-x:auto;margin:0}
+  .tblwrap{overflow-x:auto}
+  .tbl{border-collapse:collapse;width:100%;font-size:13px}
+  .tbl th{text-align:left;font-weight:600;color:var(--muted);font-size:12px;padding:6px 10px 8px 0;border-bottom:1px solid var(--line)}
+  .tbl td{padding:8px 10px 8px 0;border-bottom:1px solid var(--divider);vertical-align:top}
+  .tbl{table-layout:fixed}
+  .tbl col:nth-child(1){width:19%}
+  .tbl col:nth-child(2){width:24%}
+  .tbl col:nth-child(3){width:13%}
+  .tbl td:first-child{font-weight:500}
+  .tbl td:nth-child(3){color:var(--muted);font-variant-numeric:tabular-nums}
+  pre{position:relative}
+  pre .copy{position:absolute;top:8px;right:8px;font:500 11px var(--sans);padding:4px 8px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--muted);cursor:pointer;opacity:0;transition:opacity .12s}
+  pre:hover .copy,pre .copy:focus-visible,pre .copy.done{opacity:1}
+  pre .copy.done{color:var(--accent);border-color:var(--accent)}
+  .tbl td code{cursor:pointer;border-radius:4px;padding:1px 4px;margin-left:-4px;transition:background .12s}
+  .tbl td code:hover{background:var(--surface)}
+  .tbl td code.done{background:var(--accent);color:var(--accent-ink)}
+  .tbl td code{overflow-wrap:anywhere}
+  .impl{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+  pre{max-width:100%;min-width:0}
+  .tbl td.mono{white-space:normal}
+  @media (max-width:560px){                                                /* phones: each row stacks into a small card */
+    .tbl thead{display:none}
+    .tbl tr{display:block;padding:9px 0;border-bottom:1px solid var(--divider)}
+    .tbl td{display:inline;padding:0;border:0;white-space:normal;font-size:12px;color:var(--muted)}
+    .tbl td:first-child{display:block;white-space:normal;font-size:13px;color:var(--ink);margin-bottom:2px}
+    .tbl td:nth-child(2):not(:empty)::after,.tbl td:nth-child(3):not(:empty)::after{content:'  ';white-space:pre}
+    .tbl td:last-child{display:block;margin-top:2px;font-size:13px;color:var(--ink)}
+    .tbl td:last-child:empty{display:none}
+  }
+  .apiRef h2{margin:36px 0 10px}
+  .apiRef h2:first-child{margin-top:0}
+  header a{color:var(--muted);text-decoration:none;font-size:13px}
+  header a:hover{color:var(--ink)}
+  .crumbs{display:flex;align-items:center;gap:10px}
+  .crumbs h1{font-size:20px}
+  .impl{margin:0 0 8px}
+  @media (max-width:880px){.impl{grid-template-columns:1fr}}
+</style>
+<div class="wrap">
+  <header>
+    <div class="crumbs"><a href="index.html">Catalog</a><span style="color:var(--muted)">/</span><h1>API reference</h1></div>
+    <div class="mode" role="group" aria-label="Site mode" style="position:static">
+      <label><input type="radio" name="modeTop" value="light">Light</label>
+      <label><input type="radio" name="modeTop" value="dark">Dark</label>
+    </div>
+  </header>
+  <section style="margin-top:0">
+    <div class="impl">
+      <div>
+        <h3>React</h3>
+        <pre>import { Orb } from 'orb-mascot/react';
+
+&lt;Orb identity={agent.id} preset="avatar" size="lg" status={agent.status} /&gt;
+&lt;Orb body="bear" color="#1E6DF6" shade="gradient" ref={orb}
+     onClick={() =&gt; orb.current.run('surprise')} /&gt;</pre>
+      </div>
+      <div>
+        <h3>Without React</h3>
+        <pre>import Mascot from 'orb-mascot';   // or &lt;script src="mascot.js"&gt;
+
+const m = new Mascot(svg, { body: 'bear', color: '#1E6DF6' });
+m.start(); await m.run('think');</pre>
+      </div>
+    </div>
+    <p class="note">Click a name to copy it. Options are constructor keys and React props alike; methods are on the instance and on the React ref. Package: <code>packages/orb-mascot</code> in the <a href="https://github.com/plyuto-lgtm/orb-mascot" style="color:inherit">repository</a>.</p>
+  </section>
+  <section class="apiRef" id="apiRef"></section>
+</div>
+<script src="mascot.js"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  // theme: follows the system, the toggle overrides for this page
+  const mode = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.documentElement.dataset.theme = mode;
+  for (const r of document.querySelectorAll('input[name=modeTop]')) { r.checked = r.value === mode; r.addEventListener('change', e => { document.documentElement.dataset.theme = e.target.value; }); }
+  // ---------- API reference: one source for the tables on the main page ----------
+  const API_REF = [
+    ['Options (constructor keys and React props)', ['Name', 'Type', 'Default', 'Meaning'], [
+      ['preset', "'hero' | 'avatar'", "'hero'", "'avatar' turns off cursor follow, idle wander, lean, breathe, the tap reaction and the shader. Blinking stays. Explicit options override it."],
+      ['tap', 'boolean', 'true', 'Poke on pointerdown. Off in the avatar preset.'],
+      ['body', "name | pieces[]", "'circle'", 'Built-in body, or an array of [x, y, r] / [x, y, rx, ry, angle] pieces in fractions of the radius. Changing it recreates the mascot.'],
+      ['color', 'hex | [hex, hex]', "'#0a0a0a'", 'Any colour. Two colours make a top-to-bottom gradient. Eye colour is picked automatically for contrast.'],
+      ['shade', "'flat' | 'gradient'", "'flat'", "'gradient' adds the light and shadow that follow the gaze, derived from the colour."],
+      ['mouthStroke', 'number', '6', 'Mouth stroke width, about 1px each at 240px. The smile itself is fixed; scenarios and set() move it.'],
+      ['maxYaw', 'degrees', '20', 'Horizontal gaze limit.'],
+      ['maxPitch', 'degrees', '15', 'Vertical gaze limit.'],
+      ['follow', 'boolean', 'true', 'Eyes follow the cursor.'],
+      ['idle', 'boolean', 'true', 'Idle wander when nothing else is happening.'],
+      ['autoBlink', 'boolean', 'true', 'Blinks on its own.'],
+      ['lean', 'boolean', 'true', 'The body leans slightly with the gaze.'],
+      ['breathe', 'boolean', 'true', 'Slow breathing scale.'],
+      ['twitch', 'boolean', 'false', 'Bear only: occasional ear wiggle.'],
+      ['fit', 'boolean', 'true', 'Scale composed bodies to a common visual extent.'],
+    ]],
+    ['React-only props', ['Name', 'Type', 'Default', 'Meaning'], [
+      ['identity', 'string | number', '', 'Any stable id. Picks body and colour deterministically, so the same agent always looks the same. body and color override it.'],
+      ['status', "'idle' | 'thinking' | 'speaking' | 'success' | 'error'", "'idle'", 'Persistent state. Thinking and speaking loop until it changes; success plays surprise and holds a smile; error frowns with a short shake.'],
+      ['static', 'boolean', 'false', 'One baked, filter-free svg and no loop. For lists of many avatars; one bake per distinct look, cached.'],
+      ['size', 'token | number | CSS length', "240, avatar preset 'md'", "Rendered size. Tokens: xs sm md lg xl 2xl 3xl hero (see below)."],
+      ['active', 'boolean', 'true', 'Run the animation loop. false freezes the current frame.'],
+      ['yaw, pitch', 'degrees', '', 'Controlled gaze. Set follow and idle to false alongside.'],
+      ['onReady', '(mascot) => void', '', 'Receives the instance after mount.'],
+      ['title', 'string', "'Mascot'", 'Accessible label on the svg.'],
+      ['ref', 'OrbHandle', '', 'The methods below.'],
+    ]],
+    ['Methods (instance and React ref)', ['Name', 'Arguments', 'Returns', 'Meaning'], [
+      ['setStatus', 's', 'this', "Persistent state: 'idle' 'thinking' 'speaking' 'success' 'error'. The React status prop calls this."],
+      ['run', 'id', 'Promise, .dur ms', "Any scenario by id: 'turn' 'nod' 'quick' 'blink' 'poke' 'idle' 'think' 'surprise' 'twitch' or 'custom1'... Resolves when it ends. Follow and idle pause for the run."],
+      ['scenarios', '', '{ id, label, hint, dur }[]', 'Every scenario this body can run, for building UI.'],
+      ['look', 'yaw, pitch', '', 'Aim the eyes, smoothed and clamped to the limits.'],
+      ['snap', 'yaw, pitch', '', 'Aim instantly.'],
+      ['set', '{ eyeScale, squash, mouth, mouthSide, mouthLen, mouthTilt }', '', 'Animate the face directly; mouth is -1..1 (frown to smile), null returns to the default smile.'],
+      ['blink', 'n', '', 'Blink n times.'],
+      ['poke', '', '', 'The tap reaction; also fires on pointerdown.'],
+      ['think, surprise', '', 'ms', 'The two shared acts, also reachable through run().'],
+      ['play', 'id', 'ms', "A body's own act by position, 'custom1'... (or its key). 0 if none."],
+      ['acts', '', '{ id, key, label, hint, dur }[]', "This body's own acts."],
+      ['stopAct', '', '', 'Fade the running act back to idle.'],
+      ['start, stop', '', '', 'The loop. The React component manages this through active.'],
+      ['toSVG', '{ size, id }', 'string', 'Standalone SVG with the outline baked to a plain path, for design tools.'],
+      ['Mascot.identity', 'id', '{ body, color }', 'A stable look for an id.'],
+      ['Mascot.staticSVG', 'opts, { size }', 'string', 'Baked svg for a look, cached. What the React static prop renders.'],
+    ]],
+  ];
+  {
+    const host = $('apiRef');
+    const table = (title, head, rows) => {
+      const h = document.createElement('h2'); h.textContent = title; host.append(h);
+      const wrap = document.createElement('div'); wrap.className = 'tblwrap'; const t = document.createElement('table'); t.className = 'tbl'; const cg = document.createElement('colgroup'); for (let i = 0; i < 4; i++) cg.append(document.createElement('col')); t.append(cg);
+      const thead = t.createTHead().insertRow(); for (const c of head) { const th = document.createElement('th'); th.textContent = c; thead.append(th); }
+      const tb = t.createTBody();
+      for (const r of rows) { const tr = tb.insertRow(); r.forEach((v, i) => { const td = tr.insertCell(); const asCode = i === 0 || (v && ((i === 1 && head[1] === 'Arguments') || (i === 2 && head[2] === 'Default'))); if (asCode) { const c = document.createElement('code'); c.textContent = v; td.append(c); if (i === 0) td.className = 'mono'; } else td.textContent = v; }); }
+      wrap.append(t); host.append(wrap);
+    };
+    for (const [title, head, rows] of API_REF) table(title, head, rows);
+    table('Scenario ids', ['Name', 'Label', 'Length', 'Meaning'], [...Object.entries(Mascot.SCENARIOS).map(([id, s]) => [id, s.label, (s.dur / 1000).toFixed(1) + ' s', s.hint]), ['custom1, custom2', "the body's own acts", 'varies', 'Listed per body in its page; scenarios() returns them at runtime.']]);
+    table('Size tokens', ['Name', 'Pixels', 'Face', 'Meaning'], [...Object.entries(Mascot.SIZES).map(([k, v]) => [k, String(v), v <= 24 ? 'hint only' : 'readable', v <= 24 ? 'Inline icon.' : v <= 48 ? 'Avatar, list item.' : v <= 128 ? 'Card, header.' : 'Hero, empty state.'])]);
+  }
+
+  // body-specific acts: the custom ids per body
+  {
+    const rows = Object.keys(Mascot.COMPOSED).map(b => { const a = Object.values(Mascot.COMPOSED[b].acts || {}); return [b, a[0] ? a[0].label : '', a[1] ? a[1].label : '', a.map((x, i) => 'custom' + (i + 1) + ': ' + x.hint).join(' ')]; });
+    const host = $('apiRef'), h = document.createElement('h2'); h.textContent = 'Body acts by position'; host.append(h);
+    const wrap = document.createElement('div'); wrap.className = 'tblwrap'; const t = document.createElement('table'); t.className = 'tbl'; const cg = document.createElement('colgroup'); for (let i = 0; i < 4; i++) cg.append(document.createElement('col')); t.append(cg);
+    const thead = t.createTHead().insertRow(); for (const c of ['Body', 'custom1', 'custom2', 'Meaning']) { const th = document.createElement('th'); th.textContent = c; thead.append(th); }
+    const tb = t.createTBody(); for (const r of rows) { const tr = tb.insertRow(); r.forEach((v, i) => { const td = tr.insertCell(); if (i === 0) { const c = document.createElement('code'); c.textContent = v; td.append(c); td.className = 'mono'; } else td.textContent = v; }); }
+    wrap.append(t); host.append(wrap);
+  }
+  // copy: code blocks and names
+  const copyText = async (text, el, cls) => { try { await navigator.clipboard.writeText(text); } catch (_) { const ta = document.createElement('textarea'); ta.value = text; document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+    el.classList.add(cls); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove(cls), 1200); };
+  for (const pre of document.querySelectorAll('pre')) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'copy'; b.textContent = 'Copy'; b.setAttribute('aria-label', 'Copy code');
+    b.addEventListener('click', () => { const t = [...pre.childNodes].filter(n => n !== b).map(n => n.textContent).join(''); copyText(t, b, 'done'); b.textContent = 'Copied'; setTimeout(() => { b.textContent = 'Copy'; }, 1200); });
+    pre.append(b);
+  }
+  document.addEventListener('click', e => { const c = e.target.closest('.tbl td:first-child code, .tbl td.mono code'); if (c) copyText(c.textContent, c, 'done'); });
+})();
+</script>

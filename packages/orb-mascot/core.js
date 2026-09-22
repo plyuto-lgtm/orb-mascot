@@ -265,10 +265,16 @@
   function polar(fn, n = 96) { let d=''; for (let i=0;i<n;i++){ const [x,y]=fn(i/n*Math.PI*2); d+=(i?'L':'M')+(100+x).toFixed(2)+' '+(100+y).toFixed(2); } return d+'Z'; }
   const EYES = { round:{eyeW:22,eyeH:22,corner:1}, pill:{eyeW:18,eyeH:30,corner:1}, square:{eyeW:22,eyeH:22,corner:0.35}, wide:{eyeW:28,eyeH:18,corner:1}, tall:{eyeW:14,eyeH:34,corner:1} };
 
+  const PRESETS = {
+    hero: {},
+    avatar: { follow: false, idle: false, lean: false, breathe: false, tap: false, shade: 'flat' },   // calm in a list; blinking stays
+  };
   class Mascot {
     constructor(svg, opts = {}) {
       this.svg = svg;
       this.o = Object.assign({
+        preset: 'hero',     // 'hero' (default) | 'avatar': small, calm, no cursor tricks; see PRESETS
+        tap: true,          // poke on pointerdown
         radius: 96,      // sphere radius in viewBox units (centre 100,100; viewBox -24 -24 248 248 leaves room for ears and puffs)
         eyeLon: 16,      // degrees each eye sits from the centre meridian
         eyeLat: 4,       // degrees above the equator
@@ -294,7 +300,8 @@
         mouthDrop: 22,      // degrees below the eye line
         twitch: false,      // bear only: occasional single ear wiggle
         fit: true,          // scale composed bodies to a common visual extent
-      }, opts);
+      }, PRESETS[opts.preset] || {}, opts);
+      this._status = 'idle';
       // live values
       this.yaw = 0; this.pitch = 0; this.tYaw = 0; this.tPitch = 0;
       this.blinkAmt = 0; this.eyeScale = 1; this.squash = 1; this.mouth = null; this.tMouth = null;   // null = follow o.mouthCurve
@@ -666,13 +673,33 @@
       return B;
     }
     // run an ad-hoc act definition {dur, run} on any body
-    act(def) { this._fade = null; this._act = { def, t0: performance.now() }; this.manual = true; this.look(0, 0); return def.dur * 1000; }
+    act(def) { this._fade = null; this._act = { def, t0: performance.now() }; if (!def.free) { this.manual = true; this.look(0, 0); } return def.dur * 1000; }
     // surprised: eyes morph into stars and grow, the mouth pulls into a short 'oh', the body gives a small start
     surprise() { return this.act({ dur: 1.7, run: (t, A) => { const inA = E.back(seg(t, 0, 0.28)), out = 1 - E.io(seg(t, 1.2, 1.6)), k = Math.min(inA, out);
       A.eyeStar = clamp01(k); A.eyeScale = 1 + 0.2 * k; A.mouthCurve = 0.4 + 0.5 * k; A.mouthLen = 1 - 0.25 * k; A.dy = -5 * pulse(t, 0, 0.35); A.sy = 1 + 0.03 * pulse(t, 0, 0.35); } }); }
     // thinking: the two eyes orbit their midpoint like a spinner, three turns, easing in and out
     think() { return this.act({ dur: 3.0, run: (t, A) => { const u = seg(t, 0, 2.9), w = S(Math.PI * u); A.eyeOrbit = 1080 * E.io(u); A.eyeScale = 1 + 0.18 * w; A.orbitScale = 1 + 0.28 * w; A.mouthTrim = 1 - E.io(seg(t, 0, 0.9)) + E.io(seg(t, 2.2, 2.95)); } }); }
     twitch(i = 1) { this._twitch = { i, t0: performance.now(), p: 0 }; }   // one ear wiggle on a body whose anim uses it (bear)
+
+    // ---------- status: a persistent state for avatars, set once and left alone ----------
+    // 'idle' | 'thinking' | 'speaking' | 'success' | 'error'. Thinking and speaking loop until the status changes.
+    get status() { return this._status; }
+    setStatus(s) {
+      if (s === this._status) return this; const prev = this._status; this._status = s;
+      const T = this._runT || (this._runT = []); for (const t of T) clearTimeout(t); T.length = 0;
+      if (prev === 'thinking' && this._A) { const r = ((this._A.eyeOrbit % 360) + 540) % 360 - 180; this._A.eyeOrbit = r; }   // spin out the short way
+      this.stopAct(); this.manual = false; this.set({ mouth: null, squash: 1, eyeScale: 1, mouthLen: 1, mouthSide: 0, mouthTilt: 0 });
+      switch (s) {
+        case 'thinking': this.act({ dur: Infinity, run: (t, A) => { const w = E.io(clamp01(t / 0.6)); A.eyeOrbit = 300 * t * w; A.eyeScale = 1 + 0.18 * w; A.orbitScale = 1 + 0.28 * w; A.mouthTrim = 1 - w; } }); break;
+        case 'speaking': this.act({ dur: Infinity, free: true, run: (t, A) => { const w = E.io(clamp01(t / 0.25)), f = 0.5 * S(t * 41) + 0.3 * S(t * 26 + 1) + 0.2 * S(t * 58 + 2);   // three sines: talk-like, never repeats visibly
+          A.mouthLen = 1 - w * (0.22 + 0.18 * f); A.mouthCurve = 0.4 - w * (0.15 - 0.25 * f); A.eyeScale = 1 + 0.03 * w * f; } }); break;
+        case 'success': this.run('surprise').then(() => { if (this._status === 'success') this.set({ mouth: 0.9 }); }); break;
+        case 'error': this.set({ mouth: -0.6, squash: 0.82 }); this.manual = true; [[-7, 0], [7, 0], [-4, 0], [0, 0]].forEach(([y, p], i) => T.push(setTimeout(() => this.look(y, p), 90 * i)));
+          T.push(setTimeout(() => { this.manual = false; }, 420)); break;
+        default: break;   // idle: everything already reset above
+      }
+      return this;
+    }
 
     // ---------- scenarios: every catalog scenario as one call ----------
     // run('turn' | 'nod' | 'quick' | 'blink' | 'poke' | 'idle' | 'think' | 'surprise' | 'twitch' | 'custom1' ...)
@@ -714,7 +741,7 @@
       // skip work while scrolled out of view
       this._offscreen = false;
       if (global.IntersectionObserver) { this._io = new IntersectionObserver(es => { this._offscreen = !es[0].isIntersecting; }); this._io.observe(this.svg); }
-      this.svg.addEventListener('pointerdown', () => this.poke());
+      this.svg.addEventListener('pointerdown', () => { if (this.o.tap) this.poke(); });
       const loop = now => {
         if (!this._running) return;
         if (this._offscreen) { this._last = now; requestAnimationFrame(loop); return; }   // out of view: skip the work (hidden tabs are throttled by the browser already)
@@ -788,6 +815,22 @@
     twitch:   { label: 'Ear twitch',  dur: 650,  hint: 'One ear wiggles once (bear).' },
   };
   Mascot.SCENARIOS = SCENARIOS;
+  Mascot.PRESETS = PRESETS;
+  Mascot.STATUSES = ['idle', 'thinking', 'speaking', 'success', 'error'];
+  // a stable look for an id: the same agent always gets the same body and colour
+  Mascot.identity = (id, opts = {}) => {
+    const bodies = opts.bodies || Object.keys(COMPOSED), colors = opts.colors || Object.values(Mascot.COLORS);
+    let h = 2166136261; for (const ch of String(id)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
+    return { body: bodies[h % bodies.length], color: colors[(h >>> 8) % colors.length] };
+  };
+  // a baked, filter-free SVG string for lists: one bake per distinct look, cached
+  const staticCache = new Map();
+  Mascot.staticSVG = (opts = {}, out = {}) => {
+    const key = JSON.stringify([opts, out.size || 240, out.yaw || 0, out.pitch || 0]);
+    if (staticCache.has(key)) return staticCache.get(key);
+    const svg = document.createElementNS(NS, 'svg'), m = new Mascot(svg, Object.assign({ lean: false }, opts)); m.snap(out.yaw || 0, out.pitch || 0); m.render();
+    const text = m.toSVG({ size: out.size || 240, id: out.id || 'orb-' + staticCache.size }); staticCache.set(key, text); return text;
+  };
   Mascot.SIZES = { xs: 16, sm: 24, md: 32, lg: 48, xl: 64, '2xl': 96, '3xl': 128, hero: 240 };   // size tokens, px
   global.Mascot = Mascot; Mascot.SHAPES = Object.keys(SHAPES); Mascot.ACTS = ACTS; Mascot.SHADES = ['flat', 'gradient', 'soft', 'glossy', 'rim']; Mascot.COMPOSED = COMPOSED; Mascot.blob = blobBody; Mascot.BODIES = [...Object.keys(SHAPES), ...Object.keys(COMPOSED)]; Mascot.COLORS = { black: '#0a0a0a', blue: '#1E6DF6', olive: '#969640', cyan: '#00CCFF', orchid: '#CF72D9', lime: '#EEF679' };
   // the same six, adapted for a dark ground: black becomes an off-white body, the others are lifted a step

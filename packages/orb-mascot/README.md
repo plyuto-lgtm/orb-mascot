@@ -36,6 +36,31 @@ export function Assistant({ busy }: { busy: boolean }) {
 Every option is a prop and updates the running mascot in place. Changing `body` recreates it.
 Anything that is not an option (`className`, `style`, `onClick`, ...) goes to the `<svg>`.
 
+## Agent avatars
+
+For a roster of agents, three props do the work:
+
+```tsx
+// a list: one baked svg per distinct look, no animation, cheap at any count
+{agents.map(a => <Orb key={a.id} identity={a.id} preset="avatar" static />)}
+
+// the selected agent: live, calm, driven by a status
+<Orb identity={agent.id} preset="avatar" size="xl" status={agent.status} />
+```
+
+- `identity` maps any stable id to a body and colour, so the same agent always looks the same and
+  nothing needs storing. `body` and `color` override it when a look is chosen by hand.
+- `preset="avatar"` turns off cursor follow, idle wander, lean, breathe, the tap reaction and the
+  shader. Blinking stays. Default size becomes `md`. Any explicit prop still wins.
+- `status` is a persistent state: `idle`, `thinking` (eyes spin until it changes), `speaking`
+  (the mouth talks until it changes, cursor follow keeps working), `success` (surprise, then a
+  held smile), `error` (a frown with a short head shake). Set it from your data and forget it.
+- `static` renders one baked, filter-free svg and no loop. One bake per distinct look, cached, so a
+  hundred rows cost a hundred small inline svgs and nothing else.
+
+`identity()` and `staticSVG()` are also exported for use outside React (a Node script that emits a
+sprite sheet, say).
+
 ## Sizes
 
 `size` takes a token, a number in px, or any CSS length.
@@ -134,7 +159,12 @@ automatic motion off: `<Orb yaw={12} pitch={-4} follow={false} idle={false} />`.
 | `lean` | boolean | `true` | body leans with the gaze |
 | `breathe` | boolean | `true` | slow breathing |
 | `twitch` | boolean | `false` | bear: occasional ear wiggle |
-| `size` | token, number, CSS length | `240` | see Sizes |
+| `preset` | `'hero'` `'avatar'` | `'hero'` | avatar: calm defaults for lists, see Agent avatars |
+| `tap` | boolean | `true` | poke on pointerdown (off in the avatar preset) |
+| `identity` | string or number | | stable look from an id |
+| `status` | `'idle'` `'thinking'` `'speaking'` `'success'` `'error'` | `'idle'` | persistent state |
+| `static` | boolean | `false` | baked svg, no loop |
+| `size` | token, number, CSS length | `240`, avatar `'md'` | see Sizes |
 | `active` | boolean | `true` | run the loop; `false` freezes the frame |
 | `yaw`, `pitch` | degrees | | controlled gaze |
 | `onReady` | `(mascot) => void` | | receives the instance after mount |
@@ -144,6 +174,7 @@ automatic motion off: `<Orb yaw={12} pitch={-4} follow={false} idle={false} />`.
 
 | Method | Returns | Meaning |
 |---|---|---|
+| `setStatus(s)` | | the status prop, imperatively |
 | `run(id)` | promise with `.dur` | any scenario, see above |
 | `scenarios()` | list | what this body can run |
 | `look(yaw, pitch)` | | aim, smoothed and clamped |
