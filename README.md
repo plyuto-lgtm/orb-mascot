@@ -6,6 +6,7 @@ so they foreshorten and converge as it looks around. Blinks, follows the cursor,
 - `mascot.js` — standalone library, no dependencies. UMD: a global `Mascot` from a script tag, or `import Mascot from './mascot.js'` through a bundler.
 - `index.html` — catalog: live demo, settings, scenarios, export.
 - `api.html` — API reference: every option, method, scenario id and size token.
+- `framer/BearOrb.tsx` — the Bear as one self-contained, filter-free Framer code component.
 - `packages/orb-mascot` — the same core plus a React component (`orb-mascot/react`), type definitions and a README for using it in an app.
 
 ## Use

@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>BearOrb test harness</title>
+<style>
+  body{margin:0;font:14px/1.5 system-ui,sans-serif;background:#f5f5f2;color:#141416;padding:24px}
+  .row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+  .box{width:240px;height:240px;background:#ebebe6;border-radius:12px}
+  .sm{width:64px;height:64px}
+  pre{font:12px ui-monospace,monospace;white-space:pre-wrap}
+</style>
+<p>Dev harness: compiles <code>BearOrb.tsx</code> in the browser with a stand-in for the <code>framer</code> module. Not part of the component.</p>
+<div class="row"><div class="box" id="a"></div><div class="box" id="b"></div><div class="box sm" id="c"></div><div class="box" id="ref"><svg id="refsvg" width="240" height="240"></svg></div></div>
+<pre id="out"></pre>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+<script src="../mascot.js"></script>
+<script>
+(async () => {
+  const src = await (await fetch('BearOrb.tsx?' + Date.now())).text();
+  const framer = { addPropertyControls: (c, p) => { c.__controls = p; }, ControlType: new Proxy({}, { get: (_, k) => k }), RenderTarget: { current: () => 'preview', canvas: 'canvas' } };
+  // load: returns the module's exports; `params` swaps the shape constants, `expose` appends test hooks
+  window.loadBear = (params) => {
+    let code = src;
+    if (params) code = code.replace(/const FILLET = [^\n]*/, `const FILLET = ${params[0]}, EAR_TRIM = ${params[1]}, NECK = ${params[2]}`);
+    code += '\nexport const __t = { bodyD, NO_ACT, newEars, REST };';
+    const js = Babel.transform(code, { filename: 'BearOrb.tsx', presets: ['typescript', ['react', { runtime: 'classic' }]], plugins: ['transform-modules-commonjs'] }).code;
+    const exports = {}; new Function('require', 'exports', 'React', js)(n => n === 'react' ? React : framer, exports, React); return exports;
+  };
+  const mod = window.loadBear();
+  window.Bear = mod.default; window.bearT = mod.__t;
+  const h = React.createElement, P = {};
+  ReactDOM.createRoot(document.getElementById('a')).render(h(mod.default, P));
+  ReactDOM.createRoot(document.getElementById('b')).render(h(mod.default, Object.assign({}, P, { color: '#1E6DF6', every: 3 })));
+  ReactDOM.createRoot(document.getElementById('c')).render(h(mod.default, Object.assign({}, P, { color: '#CF72D9', play: false })));
+  // reference: the catalog's bear at rest, same framing
+  const ref = new Mascot(document.getElementById('refsvg'), { body: 'bear', lean: false }); ref.snap(0, 0); ref.render(); document.getElementById('refsvg').setAttribute('viewBox', '0 0 200 200'); window.refBear = ref;
+  document.getElementById('out').textContent = 'loaded: ' + Object.keys(mod.default.__controls).length + ' property controls';
+})().catch(e => { document.getElementById('out').textContent = 'ERROR: ' + e.message + '\n' + e.stack; });
+</script>
