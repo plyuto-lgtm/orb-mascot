@@ -98,8 +98,8 @@ function bodyPath(ears: number[]) {
 }
 
 // ---------- pose -> attribute strings ----------
-type Act = { eyeScale: number; eyeSquash: number; sy: number; curve: number | null; len: number | null; up: number; grow: number; phase: number }
-const NO_ACT: Act = { eyeScale: 1, eyeSquash: 1, sy: 1, curve: null, len: null, up: 0, grow: 1, phase: 0 }
+type Act = { eyeScale: number; eyeSquash: number; sy: number; dy: number; star: number; curve: number | null; len: number | null; up: number; grow: number; phase: number }
+const NO_ACT: Act = { eyeScale: 1, eyeSquash: 1, sy: 1, dy: 0, star: 0, curve: null, len: null, up: 0, grow: 1, phase: 0 }
 const EAR_BUF = [0, 0, 0, 0, 0, 0]
 
 function bodyD(hy: number, hp: number, poke: number, A: Act) {
@@ -124,6 +124,22 @@ function mouthTf(yaw: number, pitch: number, tilt: number) {
     return `matrix(${r3(m[0])} ${r3(m[1])} ${r3(m[2])} ${r3(m[3])} ${r1(m[4])} ${r1(m[5])})` + (tilt ? ` rotate(${r1(tilt)})` : "")
 }
 
+function starD(star: number) {
+    let px = 0, py = 0, fx = 0, fy = 0, d = ""
+    for (let i = 0; i <= 10; i++) {
+        const a = -Math.PI / 2 + (i % 10) * Math.PI / 5, rr = EYE_R * (1 + star * ((i % 10) % 2 ? -0.55 : 0.28)), x = Math.cos(a) * rr, y = Math.sin(a) * rr
+        if (i === 0) { fx = x; fy = y } else d += `Q${r1(px)} ${r1(py)} ${r1((px + x) / 2)} ${r1((py + y) / 2)}`
+        px = x; py = y
+    }
+    // start on the midpoint of the last edge so the outline closes smoothly through the first vertex
+    const lx = Math.cos(-Math.PI / 2 + 9 * Math.PI / 5) * EYE_R * (1 - star * 0.55), ly = Math.sin(-Math.PI / 2 + 9 * Math.PI / 5) * EYE_R * (1 - star * 0.55)
+    return `M${r1((lx + fx) / 2)} ${r1((ly + fy) / 2)}` + d + "Z"
+}
+function starTf(side: number, yaw: number, pitch: number, scale: number) {
+    const m = frame(side * EYE_LON, EYE_LAT, yaw, pitch)
+    return `translate(${r1(m[4])} ${r1(m[5])}) scale(${r3(scale)})`                // stars stay upright and round
+}
+
 // the resting pose, also what the server and the Framer canvas render
 const REST = {
     d: bodyD(0, 0, 0, NO_ACT),
@@ -134,7 +150,8 @@ const REST = {
 }
 
 // ---------- scripted moments ----------
-const NEW_EARS = 3250, QUICK_TURNS = 2030, FADE = 380
+const NEW_EARS = 3250, QUICK_TURNS = 2030, SURPRISE = 1700, FADE = 380
+const ACT_MS = [0, NEW_EARS, SURPRISE]                 // act ids: 1 new ears, 2 surprised
 // New ears: the ears pull up and off and fade, then fresh ones grow back out of the head
 function newEars(t: number, A: Act) {
     A.eyeScale = 1 + 0.2 * pulse(t, 0, 0.4)
@@ -149,13 +166,24 @@ function newEars(t: number, A: Act) {
     }
 }
 
+// Surprised: the eyes flash into stars and grow, the mouth shrinks to a short oh, the body gives a small start
+function surprised(t: number, A: Act) {
+    const k = Math.min(easeBack(seg(t, 0, 0.28)), 1 - easeIO(seg(t, 1.2, 1.6))), p = pulse(t, 0, 0.35)
+    A.star = clamp01(k); A.eyeScale = 1 + 0.2 * k
+    A.curve = 0.4 + 0.5 * k; A.len = 1 - 0.25 * k
+    A.dy = -5 * p; A.sy = 1 + 0.03 * p
+}
+const ACTS = [newEars, newEars, surprised]
+
 type Props = {
     color: string; faceColor: string
     follow: boolean; idle: boolean; blink: boolean; breathe: boolean; lean: boolean; tap: boolean
     play: boolean; newEars: boolean; quickTurns: boolean; every: number
+    hoverTarget: string
     style?: CSSProperties
 }
 const DEFAULTS = {
+    hoverTarget: "",
     color: "#0A0A0A", faceColor: "#FFFFFF",
     follow: true, idle: true, blink: true, breathe: true, lean: true, tap: true,
     play: true, newEars: true, quickTurns: true, every: 7,
@@ -172,13 +200,14 @@ export default function BearOrb(input: Partial<Props>) {
     const { color, faceColor, style } = props
     const svgRef = useRef<SVGSVGElement>(null), rootRef = useRef<SVGGElement>(null), bodyRef = useRef<SVGGElement>(null)
     const pathRef = useRef<SVGPathElement>(null), eyeLRef = useRef<SVGCircleElement>(null), eyeRRef = useRef<SVGCircleElement>(null), mouthRef = useRef<SVGPathElement>(null)
+    const starLRef = useRef<SVGPathElement>(null), starRRef = useRef<SVGPathElement>(null)
     const opts = useRef(props); opts.current = props          // live options: toggles apply without restarting the loop
 
     useEffect(() => {
         const svg = svgRef.current
         if (!svg || RenderTarget.current() === RenderTarget.canvas) return          // static on the canvas
         if (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches) return
-        const root = rootRef.current!, body = bodyRef.current!, path = pathRef.current!, eyeL = eyeLRef.current!, eyeR = eyeRRef.current!, mouth = mouthRef.current!
+        const root = rootRef.current!, body = bodyRef.current!, path = pathRef.current!, eyeL = eyeLRef.current!, eyeR = eyeRRef.current!, mouth = mouthRef.current!, starL = starLRef.current!, starR = starRRef.current!
 
         // everything that changes lives here, never in React state
         const s = {
@@ -186,19 +215,26 @@ export default function BearOrb(input: Partial<Props>) {
             eyeScale: 1, tEyeScale: 1, squash: 1, tSquash: 1,
             mouth: SMILE, tMouth: SMILE, side: 0, tSide: 0, len: 1, tLen: 1, tilt: 0, tTilt: 0,
             blink: 0, blinkT0: 0, blinkN: 0, poke: 0, pokeS: 0,
-            manual: false, actT0: 0, fadeT0: 0, last: 0,
+            manual: false, act: 0, actT0: 0, fadeT0: 0, last: 0,
             nextIdle: 0, nextBlink: 0, nextAct: 0,
             px: 0, py: 0, pT: -1e9, rcx: 0, rcy: 0, rw: 240, rT: -1e9,
         }
         const A: Act = { ...NO_ACT }, FA: Act = { ...NO_ACT }       // current act frame, and the frame a finished act fades out from
         let tl: { at: number; fn: () => void }[] = []                 // timed steps of the running scenario
-        const cache = { d: REST.d, l: REST.eyeL, r: REST.eyeR, md: REST.mouthD, mt: REST.mouthTf, b: "", o: "", sw: "" }
+        const cache = { d: REST.d, l: REST.eyeL, r: REST.eyeR, md: REST.mouthD, mt: REST.mouthTf, b: "", o: "", sw: "", sd: "", sl: "", sr: "", sv: "hidden" }
         const put = (el: Element, name: string, key: keyof typeof cache, v: string) => { if (cache[key] !== v) { cache[key] = v; el.setAttribute(name, v) } }
         const look = (y: number, p: number) => { s.tYaw = Math.max(-MAX_YAW, Math.min(MAX_YAW, y)); s.tPitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, p)) }
         const startBlink = (now: number, n: number) => { if (!s.blinkN) { s.blinkN = n; s.blinkT0 = now } }
         const schedule = (now: number) => { s.nextAct = now + opts.current.every * 1000 * (0.6 + 0.8 * Math.random()) }
 
-        const playNewEars = (now: number) => { tl = []; s.manual = true; look(0, 0); s.actT0 = now; s.fadeT0 = 0 }
+        const playAct = (id: number, now: number) => { tl = []; s.manual = true; look(0, 0); s.act = id; s.actT0 = now; s.fadeT0 = 0 }
+        const playNewEars = (now: number) => playAct(1, now)
+        // Surprised cuts into quick turns and idle; it waits out New ears rather than snapping the ears back
+        const surprise = (now: number) => {
+            if (!raf || s.act) return
+            s.tMouth = SMILE; s.tSide = 0; s.tLen = 1; s.tTilt = 0; s.tEyeScale = 1; s.tSquash = 1
+            playAct(2, now)
+        }
         const playQuickTurns = (now: number) => {
             s.manual = true; s.tMouth = 0.15; s.tLen = 0.8
             const y = 0.9 * MAX_YAW; tl = []
@@ -208,7 +244,7 @@ export default function BearOrb(input: Partial<Props>) {
             tl.push({ at: now + QUICK_TURNS, fn: () => { s.manual = false; schedule(now + QUICK_TURNS) } })
         }
         const poke = (now: number) => {
-            if (s.actT0 || s.manual) return
+            if (s.act || s.manual) return
             s.poke = 1; s.tEyeScale = 1.22; s.tSquash = 1.1; s.tMouth = 0.5; s.tLen = 0.55
             tl = [{ at: now + 420, fn: () => { s.tEyeScale = 1; s.tSquash = 1; s.tMouth = SMILE; s.tLen = 1; startBlink(now + 420, 1) } }]
         }
@@ -231,13 +267,13 @@ export default function BearOrb(input: Partial<Props>) {
                     look(home ? 0 : (Math.random() * 2 - 1) * MAX_YAW * 0.55, home ? 0 : (Math.random() * 2 - 1) * MAX_PITCH * 0.4)
                     s.nextIdle = now + 1200 + Math.random() * 2600
                 }
-                if (o.play && !s.actT0 && now > s.nextAct) {
+                if (o.play && !s.act && now > s.nextAct) {
                     const pool: ((n: number) => void)[] = []
                     if (o.newEars) pool.push(playNewEars); if (o.quickTurns) pool.push(playQuickTurns)
                     if (pool.length) pool[(Math.random() * pool.length) | 0](now); else schedule(now)
                 }
             }
-            if (o.blink && now > s.nextBlink && !s.actT0) { startBlink(now, Math.random() < 0.2 ? 2 : 1); s.nextBlink = now + 2000 + Math.random() * 4000 }
+            if (o.blink && now > s.nextBlink && !s.act) { startBlink(now, Math.random() < 0.2 ? 2 : 1); s.nextBlink = now + 2000 + Math.random() * 4000 }
 
             // blink: 90 ms close, 40 hold, 150 open, 110 between a double
             if (s.blinkN) {
@@ -258,12 +294,12 @@ export default function BearOrb(input: Partial<Props>) {
 
             // the act frame, or the fade out of the one that just ended
             Object.assign(A, NO_ACT)
-            if (s.actT0) {
-                const t = now - s.actT0
-                if (t >= NEW_EARS) { newEars(NEW_EARS / 1000, FA); s.actT0 = 0; s.fadeT0 = now; s.manual = false; schedule(now) }
-                else newEars(t / 1000, A)
+            if (s.act) {
+                const t = now - s.actT0, ms = ACT_MS[s.act], run = ACTS[s.act]
+                if (t >= ms) { Object.assign(FA, NO_ACT); run(ms / 1000, FA); s.act = 0; s.fadeT0 = now; s.manual = false; schedule(now) }
+                else run(t / 1000, A)
             }
-            if (!s.actT0 && s.fadeT0) {
+            if (!s.act && s.fadeT0) {
                 const f = (now - s.fadeT0) / FADE
                 if (f >= 1) s.fadeT0 = 0
                 else { const e = 1 - easeIO(f); A.curve = s.mouth + ((FA.curve ?? s.mouth) - s.mouth) * e; A.len = s.len + ((FA.len ?? s.len) - s.len) * e; A.eyeScale = 1 + (FA.eyeScale - 1) * e; A.eyeSquash = 1 + (FA.eyeSquash - 1) * e; A.sy = 1 + (FA.sy - 1) * e }
@@ -274,11 +310,18 @@ export default function BearOrb(input: Partial<Props>) {
             const sx = s.eyeScale * A.eyeScale, sy = s.eyeScale * s.squash * (1 - s.blink * 0.94) * A.eyeSquash
             put(eyeL, "transform", "l", eyeTf(-1, s.yaw, s.pitch, sx, sy, s.blink))
             put(eyeR, "transform", "r", eyeTf(1, s.yaw, s.pitch, sx, sy, s.blink))
+            if (A.star > 0.001) {                                                    // star eyes replace the circles for the moment
+                const us = sx * (1 + 0.38 * A.star)
+                put(starL, "d", "sd", starD(A.star)); starR.setAttribute("d", cache.sd)
+                put(starL, "transform", "sl", starTf(-1, s.yaw, s.pitch, us)); put(starR, "transform", "sr", starTf(1, s.yaw, s.pitch, us))
+            }
+            const sv = A.star > 0.001 ? "visible" : "hidden"
+            if (cache.sv !== sv) { cache.sv = sv; const ev = sv === "visible" ? "hidden" : "visible"; starL.setAttribute("visibility", sv); starR.setAttribute("visibility", sv); eyeL.setAttribute("visibility", ev); eyeR.setAttribute("visibility", ev) }
             put(mouth, "d", "md", mouthD(A.curve ?? s.mouth, A.len ?? s.len, s.side, sx))
             put(mouth, "transform", "mt", mouthTf(s.yaw, s.pitch, s.tilt))
             put(mouth, "stroke-width", "sw", "" + r1(MOUTH_STROKE * s.eyeScale))
             const lx = o.lean ? (s.yaw / MAX_YAW) * 3 : 0, ly = o.lean ? (-s.pitch / MAX_PITCH) * 2 : 0, py = CY + R
-            put(body, "transform", "b", `matrix(1 0 0 ${r3(A.sy)} ${r1(lx)} ${r1(ly + py * (1 - A.sy))})`)
+            put(body, "transform", "b", `matrix(1 0 0 ${r3(A.sy)} ${r1(lx)} ${r1(ly + A.dy + py * (1 - A.sy))})`)
             const br = o.breathe ? 1 + 0.012 * Math.sin((now / 3200) * TAU) : 1
             put(root, "transform", "o", `matrix(${r3(br)} 0 0 ${r3(br)} ${r1(CX * (1 - br))} ${r1(CY * (1 - br))})`)
 
@@ -290,13 +333,29 @@ export default function BearOrb(input: Partial<Props>) {
         const onMove = (e: PointerEvent) => { s.px = e.clientX; s.py = e.clientY; s.pT = performance.now() }
         const onDown = () => { if (opts.current.tap) poke(performance.now()) }
         const onVis = () => (document.hidden ? stop() : start())
+        // hover target: a Framer layer name, or a CSS selector when it starts with # . or [
+        const selector = () => {
+            const t = (opts.current.hoverTarget || "").trim(); if (!t) return ""
+            if (/^[#.\[]/.test(t)) return t
+            return `[data-framer-name="${t.replace(/["\\]/g, "\\$&")}"]`
+        }
+        const onOver = (e: PointerEvent) => {
+            const q = selector(), target = e.target as Element | null; if (!q || !target || !target.closest) return
+            let hit: Element | null = null
+            try { hit = target.closest(q) } catch { return }                         // a selector typed half way is not an error
+            if (!hit || (e.relatedTarget instanceof Node && hit.contains(e.relatedTarget))) return   // only on entering, not moving within
+            surprise(performance.now())
+        }
+        const onEvent = () => surprise(performance.now())
         const io = typeof IntersectionObserver === "function" ? new IntersectionObserver(es => { visible = es[es.length - 1].isIntersecting; visible ? start() : stop() }) : null
         io?.observe(svg)
         window.addEventListener("pointermove", onMove, { passive: true })
         svg.addEventListener("pointerdown", onDown)
         document.addEventListener("visibilitychange", onVis)
+        document.addEventListener("pointerover", onOver, { passive: true })
+        window.addEventListener("bearorb:surprise", onEvent)                          // for code overrides and custom triggers
         start()
-        return () => { stop(); io?.disconnect(); window.removeEventListener("pointermove", onMove); svg.removeEventListener("pointerdown", onDown); document.removeEventListener("visibilitychange", onVis) }
+        return () => { stop(); io?.disconnect(); window.removeEventListener("pointermove", onMove); svg.removeEventListener("pointerdown", onDown); document.removeEventListener("visibilitychange", onVis); document.removeEventListener("pointerover", onOver); window.removeEventListener("bearorb:surprise", onEvent) }
     }, [])
 
     return (
@@ -307,6 +366,8 @@ export default function BearOrb(input: Partial<Props>) {
                     <path ref={pathRef} d={REST.d} fill={color} />
                     <circle ref={eyeLRef} r={EYE_R} fill={faceColor} transform={REST.eyeL} />
                     <circle ref={eyeRRef} r={EYE_R} fill={faceColor} transform={REST.eyeR} />
+                    <path ref={starLRef} fill={faceColor} visibility="hidden" />
+                    <path ref={starRRef} fill={faceColor} visibility="hidden" />
                     <path ref={mouthRef} d={REST.mouthD} transform={REST.mouthTf} fill="none" stroke={faceColor} strokeWidth={MOUTH_STROKE} strokeLinecap="round" />
                 </g>
             </g>
@@ -321,6 +382,7 @@ addPropertyControls(BearOrb, {
     newEars: { type: ControlType.Boolean, title: "New ears", defaultValue: DEFAULTS.newEars, hidden: (p: Props) => !p.play },
     quickTurns: { type: ControlType.Boolean, title: "Quick turns", defaultValue: DEFAULTS.quickTurns, hidden: (p: Props) => !p.play },
     every: { type: ControlType.Number, title: "Every", min: 3, max: 60, step: 1, unit: "s", displayStepper: true, defaultValue: DEFAULTS.every, hidden: (p: Props) => !p.play },
+    hoverTarget: { type: ControlType.String, title: "Surprise on", placeholder: "Layer name", defaultValue: DEFAULTS.hoverTarget, description: "Hovering this layer plays Surprised. Type the layer's name as it appears in the Layers panel, or a CSS selector starting with # . or [" },
     follow: { type: ControlType.Boolean, title: "Follow cursor", defaultValue: DEFAULTS.follow },
     idle: { type: ControlType.Boolean, title: "Idle wander", defaultValue: DEFAULTS.idle },
     blink: { type: ControlType.Boolean, title: "Blink", defaultValue: DEFAULTS.blink },

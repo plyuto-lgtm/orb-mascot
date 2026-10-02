@@ -12,6 +12,7 @@
 </style>
 <p>Dev harness: compiles <code>BearOrb.tsx</code> in the browser with a stand-in for the <code>framer</code> module. Not part of the component.</p>
 <div class="row"><div class="box" id="a"></div><div class="box" id="b"></div><div class="box sm" id="c"></div><div class="box" id="ref"><svg id="refsvg" width="240" height="240"></svg></div></div>
+<p><button data-framer-name="Button" id="cta" style="font:500 14px system-ui;padding:10px 16px;border-radius:10px;border:0;background:#141416;color:#fff;cursor:pointer">Hover me (layer name "Button")</button></p>
 <pre id="out"></pre>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
@@ -25,14 +26,14 @@
   window.loadBear = (params) => {
     let code = src;
     if (params) code = code.replace(/const FILLET = [^\n]*/, `const FILLET = ${params[0]}, EAR_TRIM = ${params[1]}, NECK = ${params[2]}`);
-    code += '\nexport const __t = { bodyD, NO_ACT, newEars, REST };';
+    code += '\nexport const __t = { bodyD, NO_ACT, newEars, surprised, starD, REST };';
     const js = Babel.transform(code, { filename: 'BearOrb.tsx', presets: ['typescript', ['react', { runtime: 'classic' }]], plugins: ['transform-modules-commonjs'] }).code;
     const exports = {}; new Function('require', 'exports', 'React', js)(n => n === 'react' ? React : framer, exports, React); return exports;
   };
   const mod = window.loadBear();
   window.Bear = mod.default; window.bearT = mod.__t;
   const h = React.createElement, P = {};
-  ReactDOM.createRoot(document.getElementById('a')).render(h(mod.default, P));
+  ReactDOM.createRoot(document.getElementById('a')).render(h(mod.default, Object.assign({}, P, { hoverTarget: 'Button' })));
   ReactDOM.createRoot(document.getElementById('b')).render(h(mod.default, Object.assign({}, P, { color: '#1E6DF6', every: 3 })));
   ReactDOM.createRoot(document.getElementById('c')).render(h(mod.default, Object.assign({}, P, { color: '#CF72D9', play: false })));
   // reference: the catalog's bear at rest, same framing
