@@ -7,6 +7,7 @@ so they foreshorten and converge as it looks around. Blinks, follows the cursor,
 - `index.html` — catalog: live demo, settings, scenarios, export.
 - `api.html` — API reference: every option, method, scenario id and size token.
 - `framer/BearOrb.tsx` — the Bear as one self-contained, filter-free Framer code component.
+- `framer/OrbSlider.tsx` — Bear, Lemon, Cloud and Seacow as a morphing slider, one Framer code component.
 - `packages/orb-mascot` — the same core plus a React component (`orb-mascot/react`), type definitions and a README for using it in an app.
 
 ## Use

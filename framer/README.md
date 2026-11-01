@@ -1,4 +1,58 @@
-# Bear Orb for Framer
+# Orb mascots for Framer
+
+Two self-contained code components: **BearOrb** (the bear alone) and **OrbSlider** (Bear, Lemon,
+Cloud and Seacow in one slider). Neither imports the `orb-mascot` library.
+
+# Orb Slider
+
+`OrbSlider.tsx` shows one mascot at a time and morphs between them: the outline melts from one
+shape into the next while the colour blends and the eyes blink through the middle of the change.
+
+## Add it
+
+In Framer open Assets, Code, create a code file named `OrbSlider`, paste the file, and drag it onto
+the canvas or into a Frame. It sizes like BearOrb: any Frame shape, with Align and Safe area.
+
+## Changing slide
+
+- **Arrows and dots** inside the component (Arrows & dots, on by default; Arrows color).
+- **Swipe or drag** sideways on the mascot (Swipe). A short drag or a tap is a poke instead.
+- **Arrow keys** when the slider has focus.
+- **Autoplay** every few seconds; it pauses while the pointer is over the slider and for 4 s after
+  any manual change.
+- **Your own buttons**: add `OrbSliderOverrides.tsx` as a code file and apply `NextOrb`, `PrevOrb`,
+  `ShowBear`, `ShowLemon`, `ShowCloud` or `ShowSeacow` to any layer. Or dispatch the events yourself:
+  `orbslider:next`, `orbslider:prev`, `orbslider:go` (detail: `"cloud"` or an index).
+- **On change** appears under Interactions, so a slide change can drive other layers. The component
+  also dispatches a bubbling `orbslider:change` event with `{ index, id }`.
+
+## Controls
+
+| Control | Default | Meaning |
+|---|---|---|
+| Start at | Bear | first slide |
+| Bear, Lemon, Cloud, Seacow | blue, lime, cyan, orchid | each mascot's own colour; eyes switch to dark on light colours automatically |
+| Arrows & dots | on | built-in navigation; the mascot is inset so they never cover it |
+| Arrows color | `#141416` | |
+| Swipe | on | |
+| Autoplay, Next every | off, 5 s | |
+| Animations, Every | Random, 7 s | Quick turns on every mascot, New ears too on the bear |
+| Surprise on | empty | layer name or CSS selector whose hover plays Surprised (or apply `SurpriseOrbOnHover`) |
+| Follow cursor, Idle wander, Blink, Breathe, Lean, Tap reaction | on | |
+| Align, Safe area | Center, on | as in BearOrb |
+
+## How it stays light
+
+Each body is a smooth union of circles and ellipses written as a distance field on a 65 x 65 grid,
+traced into one path each frame. That is what lets Cloud's crossed ellipses and the bear's ears share
+one method, and what makes the morph trivial: the two fields are blended. The joins were fitted to the
+catalog's outlines and match them to about 1.4% of body area. A frame costs about 0.2 ms of script;
+the outline is only retraced when the pieces actually moved. No React renders per frame, no filters,
+and the loop stops off screen, in hidden tabs, on the canvas and under reduced motion.
+
+`slider-test.html` is the development harness.
+
+# Bear Orb
 
 `BearOrb.tsx` is the catalog's Bear as a single self-contained Framer code component. It does not
 import the `orb-mascot` library; everything it needs is in the one file.
