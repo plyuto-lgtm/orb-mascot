@@ -7,8 +7,23 @@ import the `orb-mascot` library; everything it needs is in the one file.
 
 1. In Framer open **Assets**, then **Code**, and create a new code file named `BearOrb`.
 2. Replace the file's contents with `BearOrb.tsx` and save.
-3. Drag **BearOrb** from the Assets panel onto the canvas. Size it like any frame; it stays square
-   inside whatever box you give it.
+3. Drag **BearOrb** from the Assets panel onto the canvas, or into a Frame.
+
+## Inside a Frame
+
+The component fills its box and keeps the bear's proportions, so any Frame shape works.
+
+- **Size.** Fixed, Fill and Relative sizing all work. If only the width is set (Fit or Auto height),
+  the height follows as a square. New instances start at 240 x 240.
+- **Align.** When the Frame is not square, the bear sits at the centre by default. Set **Align** to
+  Top, Bottom, Left or Right to pin it to one side, for example Bottom in a tall card.
+- **Safe area.** On by default. It leaves room for every pose: the ears lifting off in New ears,
+  the start in Surprised, breathing, lean, and the full gaze range. I measured the extremes over all
+  of them, so a Frame with **Clip Content** never cuts the bear. Turn it off to have the bear fill the
+  Frame edge to edge (4% larger); then leave Clip Content off on the Frame, or the ears can be
+  clipped during New ears.
+- **Cursor follow** measures where the bear actually is on screen, so it aims correctly whatever
+  the alignment or Frame shape.
 
 ## What it does
 
@@ -58,6 +73,8 @@ Behaviour worth knowing:
 | Quick turns | on | include it in the random pick |
 | Every | 7 s | average gap between moments; each gap varies from 0.6x to 1.4x |
 | Surprise on | empty | layer name or CSS selector whose hover plays Surprised |
+| Align | Center | where the bear sits in a non-square Frame |
+| Safe area | on | room for every pose, so a clipping Frame never cuts it |
 | Follow cursor | on | eyes track the pointer |
 | Idle wander | on | glances around when the pointer is still |
 | Blink | on | |

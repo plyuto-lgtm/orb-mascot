@@ -175,23 +175,32 @@ function surprised(t: number, A: Act) {
 }
 const ACTS = [newEars, newEars, surprised]
 
+// Frame fit. The bear keeps its proportions in any Frame shape and is aligned inside it.
+// The safe area adds room for every pose (ears lifting off, the surprised start, breathing, lean) so a Frame
+// with Clip Content never cuts the bear; without it the bear fills the Frame edge to edge.
+const SAFE_VIEWBOX = "-4 -8 208 208"          // measured: every pose stays within x 4..196, y -2..194
+const ALIGN: Record<string, string> = { center: "xMidYMid meet", top: "xMidYMin meet", bottom: "xMidYMax meet", left: "xMinYMid meet", right: "xMaxYMid meet" }
+
 type Props = {
     color: string; faceColor: string
     follow: boolean; idle: boolean; blink: boolean; breathe: boolean; lean: boolean; tap: boolean
     play: boolean; newEars: boolean; quickTurns: boolean; every: number
     hoverTarget: string
+    align: "center" | "top" | "bottom" | "left" | "right"
+    safeArea: boolean
     style?: CSSProperties
 }
 const DEFAULTS = {
     hoverTarget: "",
+    align: "center" as Props["align"], safeArea: true,
     color: "#0A0A0A", faceColor: "#FFFFFF",
     follow: true, idle: true, blink: true, breathe: true, lean: true, tap: true,
     play: true, newEars: true, quickTurns: true, every: 7,
 }
 
 /**
- * @framerSupportedLayoutWidth any
- * @framerSupportedLayoutHeight any
+ * @framerSupportedLayoutWidth any-prefer-fixed
+ * @framerSupportedLayoutHeight any-prefer-fixed
  * @framerIntrinsicWidth 240
  * @framerIntrinsicHeight 240
  */
@@ -258,7 +267,12 @@ export default function BearOrb(input: Partial<Props>) {
             // where to look
             if (!s.manual) {
                 if (o.follow && now - s.pT < 4000) {
-                    if (now - s.rT > 300) { const b = svg.getBoundingClientRect(); s.rcx = b.left + b.width / 2; s.rcy = b.top + b.height / 2; s.rw = b.width; s.rT = now }
+                    if (now - s.rT > 300) {                                    // where the bear's centre is on screen, whatever the Frame's shape
+                        const m = svg.getScreenCTM()
+                        if (m) { s.rcx = m.a * CX + m.e; s.rcy = m.d * CY + m.f; s.rw = m.a * 200 }
+                        else { const b = svg.getBoundingClientRect(); s.rcx = b.left + b.width / 2; s.rcy = b.top + b.height / 2; s.rw = Math.min(b.width, b.height) }
+                        s.rT = now
+                    }
                     const k = Math.max(120, s.rw * 0.9)
                     look(MAX_YAW * (2 / Math.PI) * Math.atan((s.px - s.rcx) / k), -MAX_PITCH * (2 / Math.PI) * Math.atan((s.py - s.rcy) / k))
                     s.nextIdle = now + 1200
@@ -359,8 +373,9 @@ export default function BearOrb(input: Partial<Props>) {
     }, [])
 
     return (
-        <svg ref={svgRef} viewBox="0 0 200 200" role="img" aria-label="Bear mascot"
-            style={{ width: "100%", height: "100%", display: "block", overflow: "visible", ...style }}>
+        <svg ref={svgRef} viewBox={props.safeArea ? SAFE_VIEWBOX : "0 0 200 200"} preserveAspectRatio={ALIGN[props.align] || ALIGN.center}
+            role="img" aria-label="Bear mascot"
+            style={{ width: "100%", height: "100%", aspectRatio: "1 / 1", display: "block", overflow: "visible", ...style }}>
             <g ref={rootRef}>
                 <g ref={bodyRef}>
                     <path ref={pathRef} d={REST.d} fill={color} />
@@ -382,6 +397,8 @@ addPropertyControls(BearOrb, {
     newEars: { type: ControlType.Boolean, title: "New ears", defaultValue: DEFAULTS.newEars, hidden: (p: Props) => !p.play },
     quickTurns: { type: ControlType.Boolean, title: "Quick turns", defaultValue: DEFAULTS.quickTurns, hidden: (p: Props) => !p.play },
     every: { type: ControlType.Number, title: "Every", min: 3, max: 60, step: 1, unit: "s", displayStepper: true, defaultValue: DEFAULTS.every, hidden: (p: Props) => !p.play },
+    align: { type: ControlType.Enum, title: "Align", options: ["center", "top", "bottom", "left", "right"], optionTitles: ["Center", "Top", "Bottom", "Left", "Right"], defaultValue: DEFAULTS.align, description: "Where the bear sits when the Frame is not square." },
+    safeArea: { type: ControlType.Boolean, title: "Safe area", defaultValue: DEFAULTS.safeArea, description: "Leave room for every pose so a clipping Frame never cuts the ears. Off: the bear fills the Frame edge to edge." },
     hoverTarget: { type: ControlType.String, title: "Surprise on", placeholder: "Layer name", defaultValue: DEFAULTS.hoverTarget, description: "Hovering this layer plays Surprised. Type the layer's name as it appears in the Layers panel, or a CSS selector starting with # . or [" },
     follow: { type: ControlType.Boolean, title: "Follow cursor", defaultValue: DEFAULTS.follow },
     idle: { type: ControlType.Boolean, title: "Idle wander", defaultValue: DEFAULTS.idle },

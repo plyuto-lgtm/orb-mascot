@@ -13,6 +13,8 @@
 <p>Dev harness: compiles <code>BearOrb.tsx</code> in the browser with a stand-in for the <code>framer</code> module. Not part of the component.</p>
 <div class="row"><div class="box" id="a"></div><div class="box" id="b"></div><div class="box sm" id="c"></div><div class="box" id="ref"><svg id="refsvg" width="240" height="240"></svg></div></div>
 <p><button data-framer-name="Button" id="cta" style="font:500 14px system-ui;padding:10px 16px;border-radius:10px;border:0;background:#141416;color:#fff;cursor:pointer">Hover me (layer name "Button")</button></p>
+<h3 style="font:600 13px system-ui;margin:20px 0 8px">In Frames (dashed outline = Frame, grey fill = Clip Content on)</h3>
+<div class="row" id="frames" style="align-items:flex-end"></div>
 <pre id="out"></pre>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
@@ -36,6 +38,21 @@
   ReactDOM.createRoot(document.getElementById('a')).render(h(mod.default, Object.assign({}, P, { hoverTarget: 'Button' })));
   ReactDOM.createRoot(document.getElementById('b')).render(h(mod.default, Object.assign({}, P, { color: '#1E6DF6', every: 3 })));
   ReactDOM.createRoot(document.getElementById('c')).render(h(mod.default, Object.assign({}, P, { color: '#CF72D9', play: false })));
+  // the component inside Frames of different shapes
+  const FR = [
+    ['square 200, clip', 'width:200px;height:200px;overflow:hidden;background:#e4e4de', { color: '#1E6DF6', every: 3 }],
+    ['wide 320x140, center', 'width:320px;height:140px;overflow:hidden;background:#e4e4de', { every: 4 }],
+    ['wide 320x140, left', 'width:320px;height:140px;overflow:hidden;background:#e4e4de', { align: 'left', color: '#CF72D9' }],
+    ['tall 140x240, bottom', 'width:140px;height:240px;overflow:hidden;background:#e4e4de', { align: 'bottom', color: '#969640' }],
+    ['width only 120 (fit height)', 'width:120px', { color: '#00CCFF' }],
+    ['square 200, safe area off', 'width:200px;height:200px', { safeArea: false }],
+  ];
+  for (const [label, css, props] of FR) {
+    const cell = document.createElement('div'); cell.style.cssText = 'display:flex;flex-direction:column;gap:6px;font:11px ui-monospace,monospace';
+    const frameEl = document.createElement('div'); frameEl.style.cssText = css + ';outline:1px dashed #8f8f96'; frameEl.dataset.label = label;
+    const cap = document.createElement('span'); cap.textContent = label; cell.append(frameEl, cap); document.getElementById('frames').append(cell);
+    ReactDOM.createRoot(frameEl).render(h(mod.default, props));
+  }
   // reference: the catalog's bear at rest, same framing
   const ref = new Mascot(document.getElementById('refsvg'), { body: 'bear', lean: false }); ref.snap(0, 0); ref.render(); document.getElementById('refsvg').setAttribute('viewBox', '0 0 200 200'); window.refBear = ref;
   document.getElementById('out').textContent = 'loaded: ' + Object.keys(mod.default.__controls).length + ' property controls';
