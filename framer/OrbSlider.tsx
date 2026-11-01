@@ -237,6 +237,15 @@ const SAFE_VIEWBOX = "-4 -8 208 208"
 const ALIGN: Record<string, string> = { center: "xMidYMid meet", top: "xMidYMin meet", bottom: "xMidYMax meet", left: "xMinYMid meet", right: "xMaxYMid meet" }
 const IDS = DEFS.map(D => D.id)
 
+// Orb size: "fill" scales the mascot to the space it has; "fixed" keeps it at `orbSize` px (never larger than the space).
+const STAGE_ALIGN: Record<string, CSSProperties> = {
+    center: { alignItems: "center", justifyContent: "center" }, top: { alignItems: "flex-start", justifyContent: "center" },
+    bottom: { alignItems: "flex-end", justifyContent: "center" }, left: { alignItems: "center", justifyContent: "flex-start" },
+    right: { alignItems: "center", justifyContent: "flex-end" },
+}
+const orbBox = (p: { sizing: string; orbSize: number }): CSSProperties =>
+    p.sizing === "fixed" ? { width: `min(${p.orbSize}px, 100%)`, height: `min(${p.orbSize}px, 100%)`, flex: "none" } : { width: "100%", height: "100%" }
+
 type Props = {
     start: string
     bearColor: string; lemonColor: string; cloudColor: string; seacowColor: string
@@ -245,6 +254,7 @@ type Props = {
     play: boolean; every: number; hoverTarget: string
     follow: boolean; idle: boolean; blink: boolean; breathe: boolean; lean: boolean; tap: boolean
     align: "center" | "top" | "bottom" | "left" | "right"; safeArea: boolean
+    sizing: "fill" | "fixed"; orbSize: number
     onChange?: () => void
     style?: CSSProperties
 }
@@ -256,6 +266,7 @@ const DEFAULTS = {
     play: true, every: 7, hoverTarget: "",
     follow: true, idle: true, blink: true, breathe: true, lean: true, tap: true,
     align: "center" as Props["align"], safeArea: true,
+    sizing: "fill" as Props["sizing"], orbSize: 160,
 }
 const colorOf = (p: Props, b: number) => [p.bearColor, p.lemonColor, p.cloudColor, p.seacowColor][b]
 
@@ -544,10 +555,10 @@ export default function OrbSlider(input: Partial<Props>) {
     return (
         <div ref={wrapRef} role="group" aria-roledescription="carousel" aria-label="Mascots" tabIndex={0}
             style={{ position: "relative", width: "100%", height: "100%", aspectRatio: "1 / 1", outline: "none", ...props.style }}>
+            <div style={{ position: "absolute", inset: props.controls ? "0 36px 24px 36px" : 0, display: "flex", pointerEvents: "none", ...(STAGE_ALIGN[props.align] || STAGE_ALIGN.center) }}>
             <svg ref={svgRef} viewBox={props.safeArea ? SAFE_VIEWBOX : "0 0 200 200"} preserveAspectRatio={ALIGN[props.align] || ALIGN.center}
                 role="img" aria-label={`${DEFS[startIdx].name}, ${startIdx + 1} of ${DEFS.length}`}
-                style={{ position: "absolute", inset: props.controls ? "0 36px 24px 36px" : 0, width: props.controls ? "calc(100% - 72px)" : "100%", height: props.controls ? "calc(100% - 24px)" : "100%",
-                    display: "block", overflow: "visible", touchAction: props.swipe ? "pan-y" : "auto", cursor: props.swipe ? "grab" : "default" }}>
+                style={{ ...orbBox(props), display: "block", overflow: "visible", pointerEvents: "auto", touchAction: props.swipe ? "pan-y" : "auto", cursor: props.swipe ? "grab" : "default" }}>
                 <g ref={rootRef}>
                     <g ref={bodyRef}>
                         <path ref={pathRef} d={rest.d} fill={css(startRgb)} />
@@ -559,6 +570,7 @@ export default function OrbSlider(input: Partial<Props>) {
                     </g>
                 </g>
             </svg>
+            </div>
             {props.controls && (<>
                 {arrow(-1)}{arrow(1)}
                 <div role="tablist" aria-label="Choose a mascot" style={{ position: "absolute", left: 0, right: 0, bottom: 2, display: "flex", justifyContent: "center", gap: 2 }}>
@@ -594,6 +606,8 @@ addPropertyControls(OrbSlider, {
     breathe: { type: ControlType.Boolean, title: "Breathe", defaultValue: DEFAULTS.breathe },
     lean: { type: ControlType.Boolean, title: "Lean", defaultValue: DEFAULTS.lean },
     tap: { type: ControlType.Boolean, title: "Tap reaction", defaultValue: DEFAULTS.tap },
+    sizing: { type: ControlType.Enum, title: "Orb size", options: ["fill", "fixed"], optionTitles: ["Fill", "Fixed"], displaySegmentedControl: true, defaultValue: DEFAULTS.sizing, description: "Fill: as large as the component allows. Fixed: a set size in pixels." },
+    orbSize: { type: ControlType.Number, title: "Size", min: 16, max: 1200, step: 1, unit: "px", displayStepper: true, defaultValue: DEFAULTS.orbSize, hidden: (p: Props) => p.sizing !== "fixed" },
     align: { type: ControlType.Enum, title: "Align", options: ["center", "top", "bottom", "left", "right"], optionTitles: ["Center", "Top", "Bottom", "Left", "Right"], defaultValue: DEFAULTS.align },
     safeArea: { type: ControlType.Boolean, title: "Safe area", defaultValue: DEFAULTS.safeArea, description: "Room for every pose, so a clipping Frame never cuts the mascot." },
     onChange: { type: ControlType.EventHandler },

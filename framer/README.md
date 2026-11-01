@@ -39,6 +39,7 @@ the canvas or into a Frame. It sizes like BearOrb: any Frame shape, with Align a
 | Animations, Every | Random, 7 s | Quick turns on every mascot, New ears too on the bear |
 | Surprise on | empty | layer name or CSS selector whose hover plays Surprised (or apply `SurpriseOrbOnHover`) |
 | Follow cursor, Idle wander, Blink, Breathe, Lean, Tap reaction | on | |
+| Orb size, Size | Fill, 160 px | Fill: as large as the component allows. Fixed: a set pixel size, never larger than the space |
 | Align, Safe area | Center, on | as in BearOrb |
 
 ## How it stays light
@@ -127,6 +128,7 @@ Behaviour worth knowing:
 | Quick turns | on | include it in the random pick |
 | Every | 7 s | average gap between moments; each gap varies from 0.6x to 1.4x |
 | Surprise on | empty | layer name or CSS selector whose hover plays Surprised |
+| Orb size, Size | Fill, 160 px | Fill: the bear fills the component. Fixed: a set pixel size inside it, placed by Align |
 | Align | Center | where the bear sits in a non-square Frame |
 | Safe area | on | room for every pose, so a clipping Frame never cuts it |
 | Follow cursor | on | eyes track the pointer |

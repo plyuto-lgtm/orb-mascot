@@ -181,18 +181,29 @@ const ACTS = [newEars, newEars, surprised]
 const SAFE_VIEWBOX = "-4 -8 208 208"          // measured: every pose stays within x 4..196, y -2..194
 const ALIGN: Record<string, string> = { center: "xMidYMid meet", top: "xMidYMin meet", bottom: "xMidYMax meet", left: "xMinYMid meet", right: "xMaxYMid meet" }
 
+// Orb size: "fill" scales the mascot to the space it has; "fixed" keeps it at `orbSize` px (never larger than the space).
+const STAGE_ALIGN: Record<string, CSSProperties> = {
+    center: { alignItems: "center", justifyContent: "center" }, top: { alignItems: "flex-start", justifyContent: "center" },
+    bottom: { alignItems: "flex-end", justifyContent: "center" }, left: { alignItems: "center", justifyContent: "flex-start" },
+    right: { alignItems: "center", justifyContent: "flex-end" },
+}
+const orbBox = (p: { sizing: string; orbSize: number }): CSSProperties =>
+    p.sizing === "fixed" ? { width: `min(${p.orbSize}px, 100%)`, height: `min(${p.orbSize}px, 100%)`, flex: "none" } : { width: "100%", height: "100%" }
+
 type Props = {
     color: string; faceColor: string
     follow: boolean; idle: boolean; blink: boolean; breathe: boolean; lean: boolean; tap: boolean
     play: boolean; newEars: boolean; quickTurns: boolean; every: number
     hoverTarget: string
     align: "center" | "top" | "bottom" | "left" | "right"
+    sizing: "fill" | "fixed"; orbSize: number
     safeArea: boolean
     style?: CSSProperties
 }
 const DEFAULTS = {
     hoverTarget: "",
     align: "center" as Props["align"], safeArea: true,
+    sizing: "fill" as Props["sizing"], orbSize: 160,
     color: "#0A0A0A", faceColor: "#FFFFFF",
     follow: true, idle: true, blink: true, breathe: true, lean: true, tap: true,
     play: true, newEars: true, quickTurns: true, every: 7,
@@ -373,9 +384,10 @@ export default function BearOrb(input: Partial<Props>) {
     }, [])
 
     return (
+        <div style={{ width: "100%", height: "100%", aspectRatio: "1 / 1", display: "flex", ...(STAGE_ALIGN[props.align] || STAGE_ALIGN.center), ...style }}>
         <svg ref={svgRef} viewBox={props.safeArea ? SAFE_VIEWBOX : "0 0 200 200"} preserveAspectRatio={ALIGN[props.align] || ALIGN.center}
             role="img" aria-label="Bear mascot"
-            style={{ width: "100%", height: "100%", aspectRatio: "1 / 1", display: "block", overflow: "visible", ...style }}>
+            style={{ ...orbBox(props), display: "block", overflow: "visible" }}>
             <g ref={rootRef}>
                 <g ref={bodyRef}>
                     <path ref={pathRef} d={REST.d} fill={color} />
@@ -387,6 +399,7 @@ export default function BearOrb(input: Partial<Props>) {
                 </g>
             </g>
         </svg>
+        </div>
     )
 }
 
@@ -397,6 +410,8 @@ addPropertyControls(BearOrb, {
     newEars: { type: ControlType.Boolean, title: "New ears", defaultValue: DEFAULTS.newEars, hidden: (p: Props) => !p.play },
     quickTurns: { type: ControlType.Boolean, title: "Quick turns", defaultValue: DEFAULTS.quickTurns, hidden: (p: Props) => !p.play },
     every: { type: ControlType.Number, title: "Every", min: 3, max: 60, step: 1, unit: "s", displayStepper: true, defaultValue: DEFAULTS.every, hidden: (p: Props) => !p.play },
+    sizing: { type: ControlType.Enum, title: "Orb size", options: ["fill", "fixed"], optionTitles: ["Fill", "Fixed"], displaySegmentedControl: true, defaultValue: DEFAULTS.sizing, description: "Fill: as large as the component allows. Fixed: a set size in pixels." },
+    orbSize: { type: ControlType.Number, title: "Size", min: 16, max: 1200, step: 1, unit: "px", displayStepper: true, defaultValue: DEFAULTS.orbSize, hidden: (p: Props) => p.sizing !== "fixed" },
     align: { type: ControlType.Enum, title: "Align", options: ["center", "top", "bottom", "left", "right"], optionTitles: ["Center", "Top", "Bottom", "Left", "Right"], defaultValue: DEFAULTS.align, description: "Where the bear sits when the Frame is not square." },
     safeArea: { type: ControlType.Boolean, title: "Safe area", defaultValue: DEFAULTS.safeArea, description: "Leave room for every pose so a clipping Frame never cuts the ears. Off: the bear fills the Frame edge to edge." },
     hoverTarget: { type: ControlType.String, title: "Surprise on", placeholder: "Layer name", defaultValue: DEFAULTS.hoverTarget, description: "Hovering this layer plays Surprised. Type the layer's name as it appears in the Layers panel, or a CSS selector starting with # . or [" },
