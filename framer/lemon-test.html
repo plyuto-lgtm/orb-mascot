@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>LemonOrb test harness</title>
+<style>body{margin:0;font:14px/1.5 system-ui,sans-serif;background:#f5f5f2;color:#141416;padding:24px}.row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}.box{width:240px;height:240px;background:#ebebe6;border-radius:12px}pre{font:12px ui-monospace,monospace;white-space:pre-wrap}</style>
+<p>Dev harness: compiles <code>LemonOrb.tsx</code> next to <code>BearOrb.tsx</code> with a stand-in for the <code>framer</code> module. Not part of the components.</p>
+<div class="row"><div class="box" id="lemon"></div><div class="box" id="bear"></div><div class="box"><svg id="ref" width="240" height="240"></svg></div></div>
+<p><button data-framer-name="Button" style="font:500 14px system-ui;padding:10px 16px;border-radius:10px;border:0;background:#141416;color:#fff">Hover me (layer "Button")</button></p>
+<pre id="out"></pre>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+<script src="../mascot.js"></script>
+<script>
+(async () => {
+  const framer = { addPropertyControls: (c, p) => { c.__controls = p; }, ControlType: new Proxy({}, { get: (_, k) => k }), RenderTarget: { current: () => 'preview', canvas: 'canvas' } };
+  const load = async (file, expose) => { let code = await (await fetch(file + '?' + Date.now())).text(); if (expose) code += '\nexport const __t = ' + expose + ';'; const js = Babel.transform(code, { filename: file, presets: ['typescript', ['react', { runtime: 'classic' }]], plugins: ['transform-modules-commonjs'] }).code; const ex = {}; new Function('require', 'exports', 'React', js)(n => n === 'react' ? React : framer, ex, React); return ex; };
+  window.loadLemon = () => load('LemonOrb.tsx', '{ piecesFor, fillField, contourPath, NO_ACT, REST, bell, propeller }');
+  const L = await window.loadLemon(), B = await load('BearOrb.tsx');
+  window.Lemon = L.default; window.lemonT = L.__t;
+  ReactDOM.createRoot(document.getElementById('lemon')).render(React.createElement(L.default, { hoverTarget: 'Button', every: 3 }));
+  ReactDOM.createRoot(document.getElementById('bear')).render(React.createElement(B.default, { hoverTarget: 'Button', color: '#1E6DF6' }));
+  const ref = new Mascot(document.getElementById('ref'), { body: 'lemon', lean: false, color: '#EEF679' }); ref.snap(0, 0); ref.render(); document.getElementById('ref').setAttribute('viewBox', '-4 -8 208 208'); window.refLemon = ref;
+  document.getElementById('out').textContent = 'loaded: Lemon ' + Object.keys(L.default.__controls).length + ' controls, Bear ' + Object.keys(B.default.__controls).length;
+})().catch(e => { document.getElementById('out').textContent = 'ERROR: ' + e.message + '\n' + e.stack; });
+</script>

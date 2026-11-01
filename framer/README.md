@@ -54,6 +54,25 @@ and the loop stops off screen, in hidden tabs, on the canvas and under reduced m
 
 `slider-test.html` is the development harness.
 
+# Lemon Orb
+
+`LemonOrb.tsx` is the catalog's Lemon as its own component, the sibling of BearOrb, with the same
+controls: Body and Face colours, Follow cursor, Idle wander, Blink, Breathe, Lean, Tap reaction,
+Surprise on (hover a layer), Orb size, Align and Safe area. Add it the same way, as a code file named
+`LemonOrb`.
+
+Its random animations are the lemon's own, each with its own switch:
+
+- **Bell**: swings from its top nub like an old alarm-clock bell, ringing down to rest (3.0 s).
+- **Propeller**: the eyes bump, then the nubs orbit the core two full turns while the body shrinks with
+  the speed of the spin (2.9 s).
+- **Quick turns**: four fast alternating looks (2.0 s).
+
+The outline uses the slider's distance-field method and matches the catalog lemon to about 1.4% of its
+area. Its safe area is slightly larger than the bear's because Bell swings wide; every act was measured
+inside it. Surprised can also be triggered with `window.dispatchEvent(new CustomEvent("lemonorb:surprise"))`.
+`lemon-test.html` is the development harness.
+
 # Bear Orb
 
 `BearOrb.tsx` is the catalog's Bear as a single self-contained Framer code component. It does not
