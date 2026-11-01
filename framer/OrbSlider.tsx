@@ -12,6 +12,7 @@ const R = 96, CX = 100, CY = 100
 const MAX_YAW = 20, MAX_PITCH = 15
 const EYE_LON = 16, EYE_LAT = 4, EYE_R = 11
 const MOUTH_DROP = 22, MOUTH_HW = 14, MOUTH_STROKE = 7.8, SMILE = 0.4
+const AUTO_PUSH = 300, AUTO_DRAG = 90   // autoplay's synthetic swipe: how long and how far the orb is pushed before the morph
 const MORPH_MS = 720, FADE = 380, NEW_EARS = 3250, QUICK_TURNS = 2030, SURPRISE = 1700
 const D2R = Math.PI / 180, TAU = Math.PI * 2, S = Math.sin
 const r1 = (v: number) => Math.round(v * 10) / 10
@@ -284,7 +285,7 @@ export default function OrbSlider(input: Partial<Props>) {
     const pathRef = useRef<SVGPathElement>(null), eyeLRef = useRef<SVGCircleElement>(null), eyeRRef = useRef<SVGCircleElement>(null)
     const starLRef = useRef<SVGPathElement>(null), starRRef = useRef<SVGPathElement>(null), mouthRef = useRef<SVGPathElement>(null)
     const opts = useRef(props); opts.current = props
-    const api = useRef({ go: (_i: number, _dir?: number) => {}, gen: 0 })
+    const api = useRef({ go: (_i: number, _dir?: number) => {}, step: (_dir: number) => {}, gen: 0 })
     api.current.gen++                                            // a re-render may rewrite colours: the loop repaints them
     const rest = REST[startIdx], startRgb = rgbOf(colorOf(props, startIdx)), startFace = css(faceOf(startRgb))
 
@@ -308,7 +309,7 @@ export default function OrbSlider(input: Partial<Props>) {
             manual: false, act: 0, actT0: 0, fadeT0: 0, last: 0,
             nextIdle: 0, nextBlink: 0, nextAct: 0, nextSlide: 0, hold: 0,
             px: 0, py: 0, pT: -1e9, rcx: 0, rcy: 0, rw: 240, rT: -1e9, hover: false,
-            drag: 0, dragOn: false, dragX0: 0, dragT0: 0, dragMoved: 0, scale: 1,
+            drag: 0, dragOn: false, dragX0: 0, dragT0: 0, dragMoved: 0, dragPx: 0, onOrb: false, autoT0: 0, scale: 1,
             lastPieces: "", gen: -1,
         }
         const A: Act = { ...NO_ACT }, FA: Act = { ...NO_ACT }
@@ -352,6 +353,7 @@ export default function OrbSlider(input: Partial<Props>) {
             if (!raf) paintStatic()
         }
         api.current.go = go
+        api.current.step = (dir: number) => go(s.cur + dir, dir)            // arrows use the live position, never a stale render
 
         // reduced motion and the canvas: no loop, the resting pose of the current slide
         const paintStatic = () => {
@@ -389,7 +391,14 @@ export default function OrbSlider(input: Partial<Props>) {
                     if (s.cur === 0 && Math.random() < 0.5) playAct(1, now); else playQuickTurns(now)
                 }
             }
-            if (o.autoplay && !s.dragOn && !s.hover && now > s.hold && now > s.nextSlide && !s.act) go(s.cur + 1, 1)
+            // autoplay plays a swipe: the orb is pushed aside as if dragged, then released into the morph, exactly like a hand swipe
+            if (o.autoplay && !s.dragOn && !s.autoT0 && !s.hover && !s.morphT0 && now > s.hold && now > s.nextSlide && !s.act) { stopAct(); s.manual = true; look(-MAX_YAW * 0.5, 0); s.autoT0 = now }
+            if (s.autoT0) {
+                const u = (now - s.autoT0) / AUTO_PUSH
+                if (s.dragOn || s.hover) { s.autoT0 = 0; s.manual = false; s.nextSlide = now + o.autoplayEvery * 1000 }     // a hand takes over
+                else if (u >= 1) { s.autoT0 = 0; s.manual = false; go(s.cur + 1, 1) }
+                else s.drag = -AUTO_DRAG * easeIn(u)
+            }
             if (o.blink && now > s.nextBlink && !s.act) { startBlink(now, Math.random() < 0.2 ? 2 : 1); s.nextBlink = now + 2000 + Math.random() * 4000 }
             if (s.blinkN) {
                 const t = now - s.blinkT0, total = 280 * s.blinkN + 110 * (s.blinkN - 1)
@@ -406,7 +415,7 @@ export default function OrbSlider(input: Partial<Props>) {
             s.mouth += (s.tMouth - s.mouth) * k2; s.side += (s.tSide - s.side) * k2; s.len += (s.tLen - s.len) * k2; s.tilt += (s.tTilt - s.tilt) * k2
             s.poke *= Math.exp(-dt / 420); if (s.poke < 0.002) s.poke = 0
             s.pokeS += (s.poke - s.pokeS) * (1 - Math.exp(-dt / 90))
-            if (!s.dragOn) s.drag += (0 - s.drag) * (1 - Math.exp(-dt / 140))
+            if (!s.dragOn && !s.autoT0) s.drag += (0 - s.drag) * (1 - Math.exp(-dt / 140))
 
             // act frame
             Object.assign(A, NO_ACT)
@@ -485,19 +494,25 @@ export default function OrbSlider(input: Partial<Props>) {
         const toUnits = () => { const m = svg.getScreenCTM(); return m ? 1 / m.a : 1 }
         const onMove = (e: PointerEvent) => {
             s.px = e.clientX; s.py = e.clientY; s.pT = performance.now()
-            if (s.dragOn) { const dx = (e.clientX - s.dragX0) * toUnits(); s.drag = dx; s.dragMoved = Math.max(s.dragMoved, Math.abs(dx)) }
+            if (s.dragOn) {
+                const px = e.clientX - s.dragX0; s.dragMoved = Math.max(s.dragMoved, Math.abs(px))
+                s.drag = Math.max(-70, Math.min(70, px * toUnits()))                 // the orb follows the finger, within reason
+            }
         }
+        // the whole component is the swipe area; the orb keeps its own size. Taps poke only when they land on the orb.
         const onDown = (e: PointerEvent) => {
-            if (opts.current.swipe && e.isPrimary) { s.dragOn = true; s.dragX0 = e.clientX; s.dragT0 = performance.now(); s.dragMoved = 0; s.drag = 0; try { svg.setPointerCapture(e.pointerId) } catch {} }
-            else if (opts.current.tap) poke(performance.now())
+            if (!e.isPrimary || (e.target as Element).closest?.("button")) return
+            const onOrb = svg.contains(e.target as Node)
+            if (opts.current.swipe) { s.dragOn = true; s.onOrb = onOrb; s.dragX0 = e.clientX; s.dragT0 = performance.now(); s.dragMoved = 0; s.drag = 0; try { wrap.setPointerCapture(e.pointerId) } catch {} }
+            else if (onOrb && opts.current.tap) poke(performance.now())
         }
         const onUp = (e: PointerEvent) => {
             if (!s.dragOn) return
             s.dragOn = false
-            const dx = (e.clientX - s.dragX0) * toUnits(), v = dx / Math.max(1, performance.now() - s.dragT0)
-            if (s.dragMoved < 4) { if (opts.current.tap) poke(performance.now()); return }
-            if (dx < -40 || v < -0.45) go(s.cur + 1, 1)
-            else if (dx > 40 || v > 0.45) go(s.cur - 1, -1)
+            const px = e.clientX - s.dragX0, v = px / Math.max(1, performance.now() - s.dragT0), need = Math.max(30, wrap.getBoundingClientRect().width * 0.12)   // in screen pixels, so the orb's size does not change the feel
+            if (s.dragMoved < 6) { if (s.onOrb && opts.current.tap) poke(performance.now()); return }
+            if (px < -need || v < -0.5) go(s.cur + 1, 1)
+            else if (px > need || v > 0.5) go(s.cur - 1, -1)
         }
         const onKey = (e: KeyboardEvent) => {
             if (e.key === "ArrowRight") { go(s.cur + 1, 1); e.preventDefault() }
@@ -524,8 +539,8 @@ export default function OrbSlider(input: Partial<Props>) {
         const io = typeof IntersectionObserver === "function" ? new IntersectionObserver(es => { visible = es[es.length - 1].isIntersecting; visible ? start() : stop() }) : null
         io?.observe(svg)
         window.addEventListener("pointermove", onMove, { passive: true })
-        svg.addEventListener("pointerdown", onDown)
-        svg.addEventListener("pointerup", onUp); svg.addEventListener("pointercancel", onUp)
+        wrap.addEventListener("pointerdown", onDown)
+        wrap.addEventListener("pointerup", onUp); wrap.addEventListener("pointercancel", onUp)
         wrap.addEventListener("keydown", onKey); wrap.addEventListener("pointerenter", onEnter); wrap.addEventListener("pointerleave", onLeave)
         document.addEventListener("visibilitychange", onVis)
         document.addEventListener("pointerover", onOver, { passive: true })
@@ -536,7 +551,7 @@ export default function OrbSlider(input: Partial<Props>) {
         return () => {
             stop(); io?.disconnect()
             window.removeEventListener("pointermove", onMove)
-            svg.removeEventListener("pointerdown", onDown); svg.removeEventListener("pointerup", onUp); svg.removeEventListener("pointercancel", onUp)
+            wrap.removeEventListener("pointerdown", onDown); wrap.removeEventListener("pointerup", onUp); wrap.removeEventListener("pointercancel", onUp)
             wrap.removeEventListener("keydown", onKey); wrap.removeEventListener("pointerenter", onEnter); wrap.removeEventListener("pointerleave", onLeave)
             document.removeEventListener("visibilitychange", onVis); document.removeEventListener("pointerover", onOver)
             window.removeEventListener("orbslider:next", onNext); window.removeEventListener("orbslider:prev", onPrev)
@@ -546,7 +561,7 @@ export default function OrbSlider(input: Partial<Props>) {
 
     const ui = props.uiColor
     const arrow = (dir: number) => (
-        <button type="button" aria-label={dir > 0 ? "Next mascot" : "Previous mascot"} onClick={() => api.current.go(index + dir, dir)}
+        <button type="button" aria-label={dir > 0 ? "Next mascot" : "Previous mascot"} onClick={() => api.current.step(dir)}
             style={{ position: "absolute", top: "50%", [dir > 0 ? "right" : "left"]: 4, transform: "translateY(-50%)", width: 32, height: 32, padding: 0, border: 0, borderRadius: 16,
                 background: "transparent", color: ui, opacity: 0.55, cursor: "pointer", display: "grid", placeItems: "center" } as CSSProperties}>
             <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d={dir > 0 ? "M6 3l5 5-5 5" : "M10 3L5 8l5 5"} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -554,11 +569,12 @@ export default function OrbSlider(input: Partial<Props>) {
     )
     return (
         <div ref={wrapRef} role="group" aria-roledescription="carousel" aria-label="Mascots" tabIndex={0}
-            style={{ position: "relative", width: "100%", height: "100%", aspectRatio: "1 / 1", outline: "none", ...props.style }}>
+            style={{ position: "relative", width: "100%", height: "100%", aspectRatio: "1 / 1", outline: "none", userSelect: "none",
+                touchAction: props.swipe ? "pan-y" : "auto", cursor: props.swipe ? "grab" : "default", ...props.style }}>
             <div style={{ position: "absolute", inset: props.controls ? "0 36px 24px 36px" : 0, display: "flex", pointerEvents: "none", ...(STAGE_ALIGN[props.align] || STAGE_ALIGN.center) }}>
             <svg ref={svgRef} viewBox={props.safeArea ? SAFE_VIEWBOX : "0 0 200 200"} preserveAspectRatio={ALIGN[props.align] || ALIGN.center}
                 role="img" aria-label={`${DEFS[startIdx].name}, ${startIdx + 1} of ${DEFS.length}`}
-                style={{ ...orbBox(props), display: "block", overflow: "visible", pointerEvents: "auto", touchAction: props.swipe ? "pan-y" : "auto", cursor: props.swipe ? "grab" : "default" }}>
+                style={{ ...orbBox(props), display: "block", overflow: "visible", pointerEvents: "auto" }}>
                 <g ref={rootRef}>
                     <g ref={bodyRef}>
                         <path ref={pathRef} d={rest.d} fill={css(startRgb)} />
