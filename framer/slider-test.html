@@ -32,8 +32,8 @@
   };
   const mod = window.loadSlider(); window.Slider = mod.default; window.sliderT = mod.__t;
   const h = React.createElement;
-  ReactDOM.createRoot(document.getElementById('a')).render(h(mod.default, { hoverTarget: 'Button' }));
-  ReactDOM.createRoot(document.getElementById('b')).render(h(mod.default, { start: 'cloud', autoplay: true, autoplayEvery: 3, align: 'left' }));
+  if (location.hash !== '#nolive') ReactDOM.createRoot(document.getElementById('a')).render(h(mod.default, { hoverTarget: 'Button' }));
+  if (location.hash !== '#nolive') ReactDOM.createRoot(document.getElementById('b')).render(h(mod.default, { start: 'cloud', autoplay: true, autoplayEvery: 3, align: 'left' }));
   // catalog references at rest
   window.refs = {};
   for (const id of ['bear', 'lemon', 'cloud', 'seacow']) { const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('width', 140); svg.setAttribute('height', 140); document.getElementById('refs').append(svg); const m = new Mascot(svg, { body: id, lean: false }); m.snap(0, 0); m.render(); svg.setAttribute('viewBox', '-4 -8 208 208'); window.refs[id] = m; }

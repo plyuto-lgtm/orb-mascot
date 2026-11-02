@@ -1,7 +1,8 @@
 # Orb mascots for Framer
 
-Two self-contained code components: **BearOrb** (the bear alone) and **OrbSlider** (Bear, Lemon,
-Cloud and Seacow in one slider). Neither imports the `orb-mascot` library.
+Self-contained code components: **OrbSlider** (Bear, Lemon, Cloud, Seacow, Ghost and Flower in one
+slider) and the single orbs **BearOrb**, **LemonOrb**, **GhostOrb** and **CloudOrb**. None imports the
+`orb-mascot` library.
 
 # Orb Slider
 
@@ -30,7 +31,7 @@ the canvas or into a Frame. It sizes like BearOrb: any Frame shape, with Align a
   sideways movement. **Motion: Swipe** plays it like a hand swipe: pushed aside to the Swipe travel
   limit, then released into the morph. It pauses while the pointer is over the slider and for 4 s after any manual change.
 - **Your own buttons**: add `OrbSliderOverrides.tsx` as a code file and apply `NextOrb`, `PrevOrb`,
-  `ShowBear`, `ShowLemon`, `ShowCloud` or `ShowSeacow` to any layer. Or dispatch the events yourself:
+  `ShowBear`, `ShowLemon`, `ShowCloud`, `ShowSeacow`, `ShowGhost` or `ShowFlower` to any layer. Or dispatch the events yourself:
   `orbslider:next`, `orbslider:prev`, `orbslider:go` (detail: `"cloud"` or an index).
 - **On change** appears under Interactions, so a slide change can drive other layers. The component
   also dispatches a bubbling `orbslider:change` event with `{ index, id }`.
@@ -47,7 +48,7 @@ the canvas or into a Frame. It sizes like BearOrb: any Frame shape, with Align a
 | Controls color | `#141416` | arrows and pagination |
 | Swipe, Swipe travel | on, 80 px | how far the orb slides while swiping or on autoplay |
 | Autoplay, Motion, Next every | off, Morph, 5 s | Morph changes in place; Swipe pushes the mascot aside first |
-| Animations, Every | Random, 7 s | each mascot plays all of its own acts at random, plus Quick turns: Bear New ears; Lemon Bell, Propeller; Cloud Quarter turns, Hop; Seacow Wave, Cover eyes |
+| Animations, Every | Random, 7 s | each mascot plays all of its own acts at random, plus Quick turns: Bear New ears; Lemon Bell, Propeller; Cloud Quarter turns, Hop; Seacow Wave, Cover eyes; Ghost Tuck in, Piano; Flower Spin, Inflate |
 | Surprise on | empty | layer name or CSS selector whose hover plays Surprised (or apply `SurpriseOrbOnHover`) |
 | Follow cursor, Idle wander, Blink, Breathe, Lean, Tap reaction | on | |
 | Orb size, Size | Fill, 160 px | Fill: as large as the component allows. Fixed: a set pixel size, never larger than the space |
@@ -82,6 +83,19 @@ The outline uses the slider's distance-field method and matches the catalog lemo
 area. Its safe area is slightly larger than the bear's because Bell swings wide; every act was measured
 inside it. Surprised can also be triggered with `window.dispatchEvent(new CustomEvent("lemonorb:surprise"))`.
 `lemon-test.html` is the development harness.
+
+# Ghost Orb and Cloud Orb
+
+`GhostOrb.tsx` and `CloudOrb.tsx` are standalone like LemonOrb, with the same controls. Add each as a code
+file with that name.
+
+- **Ghost** (orchid, dark face): Tuck in draws the tail up and snaps it back out (2.5 s); Piano presses the
+  tail bumps like keys (3.3 s). Plus Quick turns. Outline within about 1.1% of the catalog.
+- **Cloud** (cyan, dark face): Quarter turns spins the X in four springy steps (3.5 s); Hop is two soft
+  hops (2.05 s). Plus Quick turns. Outline within about 1.4% of the catalog.
+
+Surprised can be triggered with the `ghostorb:surprise` and `cloudorb:surprise` window events.
+`orb-test.html` is the development harness.
 
 # Bear Orb
 

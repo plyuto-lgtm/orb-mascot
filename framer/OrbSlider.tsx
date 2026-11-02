@@ -1,4 +1,4 @@
-// Orb Slider: Bear, Lemon, Cloud and Seacow in one Framer code component, each with its own colour.
+// Orb Slider: Bear, Lemon, Cloud, Seacow, Ghost and Flower in one Framer code component, each with its own colour.
 // Changing slide morphs the body from one shape into the next. One <path> for the body (traced each frame
 // from a distance field: no SVG filters or masks), two eyes, a mouth, two hidden star shapes.
 // A single requestAnimationFrame loop writes attributes through refs and stops off screen, in a hidden tab,
@@ -31,7 +31,7 @@ type Piece = number[]
 type Def = {
     id: string; name: string; c: Piece[]; sphereR: number; surf: { cx?: number; cy?: number; rx?: number; ry?: number }
     main: number; head: number; k: number; d: number; fitTarget?: number
-    anim: (c: Piece[], t: number, poke: number, hy: number, hp: number) => Piece[]
+    anim: (c: Piece[], t: number, poke: number, hy: number, hp: number, vel: number) => Piece[]
 }
 const DEFS: Def[] = [
     { id: "bear", name: "Bear", c: [[0, 0.05, 0.9], [-0.6, -0.62, 0.32], [0.6, -0.62, 0.32]], sphereR: 0.88, surf: { cy: 0.05 }, main: 0, head: 0.35, k: 60, d: 14,
@@ -43,9 +43,15 @@ const DEFS: Def[] = [
           return [p[0], p[1], p[2] * (1 + b + puff), p[3] * (1 + puff - b), p[4] + hy * 0.35 + (i ? 1 : -1) * hp * 0.15] }) },
     { id: "seacow", name: "Seacow", c: [[0, -0.06, 0.86], [-0.62, 0.6, 0.32], [0.62, 0.6, 0.32]], sphereR: 0.86, surf: { cy: -0.06 }, main: 0, head: 0.35, k: 60, d: 14,
       anim: (c, t, poke) => c.map((p, i) => (i === 0 ? p : [p[0] + S((t * TAU) / 2.9 + i * 2) * 0.006, p[1] - poke * 0.02, p[2] * (1 - poke * 0.03)])) },
+    { id: "ghost", name: "Ghost", c: [[0, -0.12, 0.84], [-0.48, 0.62, 0.3], [0, 0.7, 0.3], [0.48, 0.62, 0.3]], sphereR: 0.84, surf: { cy: -0.12 }, main: 0, head: 0.32, k: 30, d: 10,
+      anim: (c, t, poke, _hy, _hp, vel) => c.map((p, i) => { if (i === 0) return p
+          const amp = 0.025 + Math.min(0.03, Math.abs(vel) / 2500)         // the tail waves, harder when the head moves
+          return [p[0], p[1] + S((t * TAU) / 1.7 + i * 1.2) * amp + poke * 0.012, p[2] * (1 + poke * 0.02)] }) },
+    { id: "flower", name: "Flower", c: [[0, 0, 0.8], ...Array.from({ length: 8 }, (_, i) => { const a = (i * Math.PI) / 4 + Math.PI / 8; return [0.62 * Math.cos(a), 0.62 * Math.sin(a), 0.33] })], sphereR: 0.86, surf: {}, main: 0, head: 0.25, k: 40, d: 12,
+      anim: (c, t, poke) => c.map((p, i) => (i === 0 ? p : [p[0], p[1], p[2] * (1 + S((t * TAU) / 3 + i * 0.8) * 0.02 + poke * 0.03)])) },
 ]
 // how pieces melt together: join softness and edge offset, fitted per body to the catalog's blurred outline
-const SHAPE: number[][] = [[0.12, 0], [0.09, 0], [0.15, -0.003], [0.15, 0]]   // matches the catalog to ~1.4% of body area
+const SHAPE: number[][] = [[0.12, 0], [0.09, 0], [0.15, -0.003], [0.15, 0], [0.18, -0.003], [0.1, -0.004]]   // matches the catalog to ~1.4% of body area
 // every body is scaled to the same visual extent, as in the catalog
 const extentOf = (cs: Piece[]) => Math.max(...cs.map(p => {
     if (p.length > 3) { const a = (p[4] || 0) * D2R, c = Math.cos(a), s = Math.sin(a); return Math.max(Math.abs(p[0]) + Math.hypot(p[2] * c, p[3] * s), Math.abs(p[1]) + Math.hypot(p[2] * s, p[3] * c)) }
@@ -87,7 +93,7 @@ function headProject(p: Piece, hy: number, hp: number): Piece {
 const GN = 64, GL = 1.24, GS = (2 * GL) / GN, GP = GN + 1, NE = 2 * GN * GP
 const G = new Float32Array(GP * GP)                              // field, negative inside
 const NEXT = new Int32Array(NE).fill(-1), EX = new Float32Array(NE), EY = new Float32Array(NE), SEEN = new Uint8Array(NE), USED = new Int32Array(NE)
-const PREP = new Float64Array(7 * 6), PX = new Float32Array(4096), PY = new Float32Array(4096)
+const PREP = new Float64Array(7 * 10), PX = new Float32Array(4096), PY = new Float32Array(4096)
 
 function fillField(cs: Piece[], soft: number, grow: number, out: Float32Array) {
     let n = 0
@@ -166,9 +172,9 @@ function contourPath(field: Float32Array) {
 // orbit swings the eyes (and mouth) around their midpoint; look holds the gaze; pieces edits the body before fitting;
 // overlay draws circles in the body colour over the face (the seacow's flippers covering its eyes).
 type Act = { eyeScale: number; eyeSquash: number; rot: number; pivotY: number; sx: number; sy: number; dy: number; star: number
-    curve: number | null; len: number | null; side: number; tilt: number; orbit: number; look: number[] | null
+    curve: number | null; len: number | null; side: number; tilt: number; orbit: number; merge: number; trim: number; softMul: number; look: number[] | null
     pieces: ((cs: Piece[]) => Piece[]) | null; overlay: number[][] | null; up: number; grow: number; phase: number }
-const NO_ACT: Act = { eyeScale: 1, eyeSquash: 1, rot: 0, pivotY: 1, sx: 1, sy: 1, dy: 0, star: 0, curve: null, len: null, side: 0, tilt: 0, orbit: 0, look: null, pieces: null, overlay: null, up: 0, grow: 1, phase: 0 }
+const NO_ACT: Act = { eyeScale: 1, eyeSquash: 1, rot: 0, pivotY: 1, sx: 1, sy: 1, dy: 0, star: 0, curve: null, len: null, side: 0, tilt: 0, orbit: 0, merge: 0, trim: 1, softMul: 1, look: null, pieces: null, overlay: null, up: 0, grow: 1, phase: 0 }
 const easeOut = (t: number) => 1 - Math.pow(1 - t, 3)
 const rotPiece = (p: Piece, deg: number): Piece => { const a = deg * D2R, c = Math.cos(a), sn = Math.sin(a), q = p.slice(); q[0] = p[0] * c - p[1] * sn; q[1] = p[0] * sn + p[1] * c; if (q.length > 3) q[4] = (p[4] || 0) + deg; return q }
 function newEars(t: number, A: Act) {                                  // bear: the ears pull up and off, then grow back
@@ -232,14 +238,42 @@ function coverEyes(t: number, A: Act) {
     if (u > 0) A.overlay = [[L[0], L[1], r], [Rr[0], Rr[1], r]]
     A.look = [0, 0]; A.curve = 0.4 - 0.4 * u + (t > 2.8 ? 0.5 * pulse(t, 2.8, 3.4) : 0)
 }
-// act ids: 1 New ears, 2 Surprised, 3 Bell, 4 Propeller, 5 Quarter turns, 6 Hop, 7 Wave, 8 Cover eyes
-const ACT_RUN = [null, newEars, surprised, bell, propeller, quarterTurns, hop, wave, coverEyes]
-const ACT_MS = [0, NEW_EARS, SURPRISE, 3000, 2900, 3500, 2050, 3100, 3250]
-const BODY_ACTS = [[1], [3, 4], [5, 6], [7, 8]]                       // each mascot's own acts; Quick turns is shared by all
+// Ghost, Tuck in: draws its tail up into the body, the skirt flattens while it holds, then the bumps snap back out
+function tuckIn(t: number, A: Act) {
+    const sOf = (d: number) => { const tt = t - d; return tt < 0.9 ? easeIO(seg(tt, 0, 0.9)) : tt < 1.5 ? 1 : 1 - easeBack(seg(tt, 1.5, 2.3)) }
+    const delay = [0, 0.08, 0, 0.08], held = Math.max(0, sOf(0))
+    A.pieces = cs => cs.map((p, i) => { if (!i) return p; const sv = sOf(delay[i]), sp = Math.max(0, sv); return [p[0] * (1 - 0.3 * sp), p[1] - 0.55 * sv, p[2] * (1 - 0.45 * sp)] })
+    A.sy = 1 - 0.07 * held; A.sx = 1 + 0.05 * held; A.eyeSquash = 1 - 0.35 * held
+    A.curve = 0.4 - 0.9 * held + (t > 1.5 ? 0.6 * pulse(t, 1.5, 2.5) : 0)
+}
+// Ghost, Piano: presses its tail bumps one after another like piano keys; the idle keys shrink and lean away
+function piano(t: number, A: Act) {
+    const order = [1, 2, 3, 2, 1, 2, 3, 3, 2], step = 0.36, k = Math.min(order.length - 1, Math.floor(t / step)), u = (t % step) / step, pr = t < order.length * step ? S(Math.PI * u) : 0, key = order[k]
+    A.pieces = cs => { const kx = cs[key][0]; return cs.map((p, i) => { if (!i) return p; if (i === key) return [p[0], p[1] + 0.09 * pr, p[2] * (1 - 0.12 * pr)]; const away = Math.sign(p[0] - kx) || (i < key ? -1 : 1); return [p[0] + away * 0.06 * pr, p[1] - 0.03 * pr, p[2] * (1 - 0.15 * pr)] }) }
+    A.look = [0, -14]; A.dy = 1.5 * pr; A.curve = 0.5 + 0.35 * pr; A.len = 0.7 + 0.2 * pr; A.tilt = (key - 2) * 7 * pr
+}
+// a spring from 0 to 1 that starts at rest and overshoots slightly: a = damping, w = frequency
+const spr0 = (u: number, a: number, w: number) => 1 - Math.exp(-a * u) * (Math.cos(w * u) + (a / w) * Math.sin(w * u))
+// Flower, Spin: eyes merge into one circle, a springy half turn with sharper petals, eyes part as it settles
+function spin(t: number, A: Act) {
+    const k = spr0(seg(t, 0, 2.7), 4.5, 6), kc = clamp01(k), ss = (x: number) => x * x * x * (x * (x * 6 - 15) + 10), m = Math.min(ss(clamp01(kc / 0.5)), 1 - ss(clamp01((kc - 0.65) / 0.35)))
+    A.pieces = cs => cs.map((p, i) => (i ? rotPiece(p, 180 * k) : p))
+    A.softMul = 1 - 0.6 * m; A.merge = m; A.eyeScale = 1 + 0.6 * m; A.trim = 1 - m; A.curve = 0.4 + 0.6 * (1 - m) * clamp01((kc - 0.6) / 0.4)
+}
+// Flower, Inflate: swells into one big circle with a soft spring, holds, then shrinks past its size and springs back
+function inflate(t: number, A: Act) {
+    const p = t < 1.0 ? spr0(seg(t, 0, 1.0), 5, 5.5) : t < 1.5 ? 1 : 1 - spr0(seg(t, 1.5, 3.1), 4, 6.5)
+    A.pieces = cs => cs.map((q, i) => (i ? [q[0], q[1], q[2] * (1 + 0.1 * p)] : [q[0], q[1], q[2] * (1 + 0.22 * p)]))
+    A.eyeScale = 1 + 0.3 * p; A.curve = 0.4 + 0.6 * Math.max(0, p); A.len = 1 + 0.35 * Math.max(0, p)
+}
+// act ids: 1 New ears, 2 Surprised, 3 Bell, 4 Propeller, 5 Quarter turns, 6 Hop, 7 Wave, 8 Cover eyes, 9 Tuck in, 10 Piano, 11 Spin, 12 Inflate
+const ACT_RUN = [null, newEars, surprised, bell, propeller, quarterTurns, hop, wave, coverEyes, tuckIn, piano, spin, inflate]
+const ACT_MS = [0, NEW_EARS, SURPRISE, 3000, 2900, 3500, 2050, 3100, 3250, 2500, 3300, 2800, 3150]
+const BODY_ACTS = [[1], [3, 4], [5, 6], [7, 8], [9, 10], [11, 12]]                       // each mascot's own acts; Quick turns is shared by all
 
-function piecesFor(b: number, t: number, poke: number, hy: number, hp: number, A: Act): Piece[] {
+function piecesFor(b: number, t: number, poke: number, hy: number, hp: number, A: Act, vel = 0): Piece[] {
     const D = DEFS[b], f = FIT[b]
-    let cs = D.anim(D.c, t, poke, hy, hp)
+    let cs = D.anim(D.c, t, poke, hy, hp, vel)
     if (A.pieces) cs = A.pieces(cs)
     if (b === 0 && A.phase) cs = cs.map((p, i) => {
         if (!i) return p
@@ -258,11 +292,15 @@ function orbitOffset(x: number, y: number, yaw: number, pitch: number, su: Array
     const a = deg * D2R, c = Math.cos(a), s = Math.sin(a), dx = x - mx, dy = y - my
     return [dx * c - dy * s - dx, dx * s + dy * c - dy]
 }
-function eyeTf(side: number, yaw: number, pitch: number, sx: number, sy: number, blink: number, su: ArrayLike<number>, orbit = 0) {
+function eyeTf(side: number, yaw: number, pitch: number, sx: number, sy: number, blink: number, su: ArrayLike<number>, orbit = 0, merge = 0) {
     const m = frame(side * EYE_LON, EYE_LAT, yaw, pitch, su), ty = blink * EYE_R * 2 * 0.08
     const a = m[0], b = m[1], c = m[2], d = m[3]
     let x = m[4] + c * ty, y = m[5] + d * ty
     if (orbit) { const o = orbitOffset(m[4], m[5], yaw, pitch, su, orbit); x += o[0]; y += o[1] }
+    if (merge) {                                                          // the eyes glide into one circle on the body's centre
+        const px = x, py = y, lx = frame(-EYE_LON, EYE_LAT, yaw, pitch, su)[4], ly = F[5], rx = frame(EYE_LON, EYE_LAT, yaw, pitch, su)[4], ry = F[5], mx = (lx + rx) / 2, my = (ly + ry) / 2
+        x = mx * (1 - merge) + (CX + R * su[0]) * merge + (px - mx) * (1 - merge); y = my * (1 - merge) + (CY + R * su[1]) * merge + (py - my) * (1 - merge)
+    }
     return `matrix(${r3(a * sx)} ${r3(b * sx)} ${r3(c * sy)} ${r3(d * sy)} ${r1(x)} ${r1(y)})`
 }
 function mouthD(curve: number, len: number, side: number, scale: number) {
@@ -501,7 +539,7 @@ export default function OrbSlider(input: Partial<Props>) {
             // act frame
             Object.assign(A, NO_ACT)
             if (s.act) {
-                const t = now - s.actT0, ms = ACT_MS[s.act], run = ACT_RUN[s.act]!
+                const t = Math.max(0, now - s.actT0), ms = ACT_MS[s.act], run = ACT_RUN[s.act]!
                 if (t >= ms) { Object.assign(FA, NO_ACT); run(ms / 1000, FA); s.act = 0; s.fadeT0 = now; s.manual = false; schedule(now) }
                 else { run(t / 1000, A); if (A.look) look(A.look[0], A.look[1]) }
             }
@@ -524,10 +562,10 @@ export default function OrbSlider(input: Partial<Props>) {
             for (let q = 0; q < 4; q++) s.su[q] = s.su0[q] + (suT[q] - s.su0[q]) * e
 
             // body outline: traced again only when the pieces moved or a morph is running
-            const cs = piecesFor(s.cur, now / 1000, s.pokeS, s.hy, s.hp, A), key = cs.map(p => p.map(v => v.toFixed(4)).join(",")).join(";")
+            const cs = piecesFor(s.cur, now / 1000, s.pokeS, s.hy, s.hp, A, s.hvy / D.head), key = A.softMul + "|" + cs.map(p => p.map(v => v.toFixed(4)).join(",")).join(";")
             if (key !== s.lastPieces || s.morphT0 || e < 1) {
                 const [soft, grow] = SHAPE[s.cur]
-                fillField(cs, soft, grow, G)
+                fillField(cs, soft * A.softMul, grow, G)
                 if (e < 1) for (let q = 0; q < G.length; q++) G[q] = SNAP[q] + (G[q] - SNAP[q]) * e
                 LAST.set(G); s.lastPieces = s.morphT0 ? "" : key
                 put(path, "d", "d", contourPath(G))
@@ -540,8 +578,8 @@ export default function OrbSlider(input: Partial<Props>) {
             if (cache.face !== face) { cache.face = face; for (const el of [eyeL, eyeR, starL, starR]) el.setAttribute("fill", face); mouth.setAttribute("stroke", face) }
             const blink = Math.max(s.blink, mb)
             const sx = s.eyeScale * A.eyeScale, sy = s.eyeScale * s.squash * (1 - blink * 0.94) * A.eyeSquash
-            put(eyeL, "transform", "l", eyeTf(-1, s.yaw, s.pitch, sx, sy, blink, s.su, A.orbit))
-            put(eyeR, "transform", "r", eyeTf(1, s.yaw, s.pitch, sx, sy, blink, s.su, A.orbit))
+            put(eyeL, "transform", "l", eyeTf(-1, s.yaw, s.pitch, sx, sy, blink, s.su, A.orbit, A.merge))
+            put(eyeR, "transform", "r", eyeTf(1, s.yaw, s.pitch, sx, sy, blink, s.su, A.orbit, A.merge))
             if (A.star > 0.001) {
                 const us = sx * (1 + 0.38 * A.star)
                 put(starL, "d", "sd", starD(A.star)); starR.setAttribute("d", cache.sd)
@@ -549,7 +587,7 @@ export default function OrbSlider(input: Partial<Props>) {
             }
             const sv = A.star > 0.001 ? "visible" : "hidden"
             if (cache.sv !== sv) { cache.sv = sv; const ev = sv === "visible" ? "hidden" : "visible"; starL.setAttribute("visibility", sv); starR.setAttribute("visibility", sv); eyeL.setAttribute("visibility", ev); eyeR.setAttribute("visibility", ev) }
-            put(mouth, "d", "md", mouthD(A.curve ?? s.mouth, (A.len ?? s.len) * (1 - 0.5 * mb), A.side || s.side, sx))
+            put(mouth, "d", "md", A.trim <= 0.01 ? "" : mouthD(A.curve ?? s.mouth, (A.len ?? s.len) * (1 - 0.5 * mb) * A.trim, A.side || s.side, sx))
             put(mouth, "transform", "mt", mouthTf(s.yaw, s.pitch, s.tilt + A.tilt, s.su, A.orbit))
             // overlay: the seacow's flippers drawn over its eyes, in the body colour
             const ov = A.overlay
@@ -558,7 +596,7 @@ export default function OrbSlider(input: Partial<Props>) {
                 if (p) { el.setAttribute("cx", "" + r1(CX + p[0] * R)); el.setAttribute("cy", "" + r1(CY + p[1] * R)); el.setAttribute("r", "" + r1(p[2] * R)); el.setAttribute("fill", fill) }
                 const v = p ? "visible" : "hidden"; if (cache["ov" + q] !== v) { cache["ov" + q] = v; el.setAttribute("visibility", v) }
             }
-            put(mouth, "stroke-width", "sw", "" + r1(MOUTH_STROKE * s.eyeScale))
+            put(mouth, "stroke-width", "sw", "" + r1(MOUTH_STROKE * s.eyeScale * (0.6 + 0.4 * A.trim)))
             // body transform: lean, act start, morph nudge, drag with a slight tilt, pivoting on the bottom centre
             const nudge = s.morphT0 && s.push ? -s.dir * 10 * S(Math.PI * e) : 0, squish = s.morphT0 ? 1 - 0.05 * S(Math.PI * e) : 1
             const tx = (o.lean ? (s.yaw / MAX_YAW) * 3 : 0) + nudge + s.drag, ty = (o.lean ? (-s.pitch / MAX_PITCH) * 2 : 0) + A.dy
@@ -722,7 +760,7 @@ addPropertyControls(OrbSlider, {
     autoplayMotion: { type: ControlType.Enum, title: "Motion", options: ["morph", "swipe"], optionTitles: ["Morph", "Swipe"], displaySegmentedControl: true, defaultValue: DEFAULTS.autoplayMotion, hidden: (p: Props) => !p.autoplay,
         description: "Morph: changes in place. Swipe: the mascot is pushed aside first, like a hand swipe." },
     autoplayEvery: { type: ControlType.Number, title: "Next every", min: 2, max: 30, step: 0.5, unit: "s", displayStepper: true, defaultValue: DEFAULTS.autoplayEvery, hidden: (p: Props) => !p.autoplay },
-    play: { type: ControlType.Boolean, title: "Animations", enabledTitle: "Random", disabledTitle: "Off", defaultValue: DEFAULTS.play, description: "Each mascot plays its own acts at random: Bear New ears; Lemon Bell, Propeller; Cloud Quarter turns, Hop; Seacow Wave, Cover eyes. Plus Quick turns on all." },
+    play: { type: ControlType.Boolean, title: "Animations", enabledTitle: "Random", disabledTitle: "Off", defaultValue: DEFAULTS.play, description: "Each mascot plays its own acts at random: Bear New ears; Lemon Bell, Propeller; Cloud Quarter turns, Hop; Seacow Wave, Cover eyes; Ghost Tuck in, Piano; Flower Spin, Inflate. Plus Quick turns on all." },
     every: { type: ControlType.Number, title: "Every", min: 3, max: 60, step: 1, unit: "s", displayStepper: true, defaultValue: DEFAULTS.every, hidden: (p: Props) => !p.play },
     hoverTarget: { type: ControlType.String, title: "Surprise on", placeholder: "Layer name", defaultValue: DEFAULTS.hoverTarget, description: "Hovering this layer plays Surprised. A layer name, or a CSS selector starting with # . or [" },
     follow: { type: ControlType.Boolean, title: "Follow cursor", defaultValue: DEFAULTS.follow },

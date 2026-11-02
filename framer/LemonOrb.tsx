@@ -307,7 +307,7 @@ export default function LemonOrb(input: Partial<Props>) {
 
             Object.assign(A, NO_ACT)
             if (s.act) {
-                const t = now - s.actT0, ms = ACT_MS[s.act], run = ACT_RUN[s.act]!
+                const t = Math.max(0, now - s.actT0), ms = ACT_MS[s.act], run = ACT_RUN[s.act]!
                 if (t >= ms) { Object.assign(FA, NO_ACT); run(ms / 1000, FA); s.act = 0; s.fadeT0 = now; s.manual = false; schedule(now) }
                 else run(t / 1000, A)
             }

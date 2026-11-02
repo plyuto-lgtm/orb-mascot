@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Standalone orbs test harness</title>
+<style>body{margin:0;font:14px/1.5 system-ui,sans-serif;background:#f5f5f2;color:#141416;padding:24px}.row{display:flex;gap:16px;flex-wrap:wrap}.box{width:190px;height:190px;background:#ebebe6;border-radius:12px}pre{font:12px ui-monospace,monospace;white-space:pre-wrap}</style>
+<p>Dev harness: compiles the standalone orbs with a stand-in for the <code>framer</code> module. Not part of the components.</p>
+<div class="row" id="live"></div>
+<p><button data-framer-name="Button" style="font:500 14px system-ui;padding:10px 16px;border-radius:10px;border:0;background:#141416;color:#fff">Hover me (layer "Button")</button></p>
+<pre id="out"></pre>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+<script src="../mascot.js"></script>
+<script>
+(async () => {
+  const framer = { addPropertyControls: (c, p) => { c.__controls = p; }, ControlType: new Proxy({}, { get: (_, k) => k }), RenderTarget: { current: () => 'preview', canvas: 'canvas' } };
+  const load = async name => { let code = await (await fetch(name + 'Orb.tsx?' + Date.now())).text(); code += '\nexport const __t = { piecesFor, fillField, contourPath, G, NO_ACT, ACT_RUN, ACT_MS };'; code = code.replace('const A: Act = { ...NO_ACT }, FA: Act = { ...NO_ACT }', 'const A: Act = { ...NO_ACT }, FA: Act = { ...NO_ACT }; (window as any).__st = s'); const js = Babel.transform(code, { filename: name + '.tsx', presets: ['typescript', ['react', { runtime: 'classic' }]], plugins: ['transform-modules-commonjs'] }).code; const ex = {}; new Function('require', 'exports', 'React', js)(n => n === 'react' ? React : framer, ex, React); return ex; };
+  window.orbs = {}; const msg = [];
+  for (const n of ['Ghost', 'Cloud', 'Lemon']) { const m = await load(n); window.orbs[n] = m; const d = document.createElement('div'); d.className = 'box'; document.getElementById('live').append(d); if (location.hash !== '#nolive') ReactDOM.createRoot(d).render(React.createElement(m.default, { hoverTarget: 'Button', every: 3 })); msg.push(n + ' ' + Object.keys(m.default.__controls).length + ' controls'); }
+  document.getElementById('out').textContent = 'loaded: ' + msg.join(', ');
+})().catch(e => { document.getElementById('out').textContent = 'ERROR: ' + e.message + '\n' + e.stack; });
+</script>

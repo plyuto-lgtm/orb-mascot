@@ -13,6 +13,8 @@ export const ShowBear = onClick("orbslider:go", "bear")
 export const ShowLemon = onClick("orbslider:go", "lemon")
 export const ShowCloud = onClick("orbslider:go", "cloud")
 export const ShowSeacow = onClick("orbslider:go", "seacow")
+export const ShowGhost = onClick("orbslider:go", "ghost")
+export const ShowFlower = onClick("orbslider:go", "flower")
 
 export function SurpriseOrbOnHover(Component: ComponentType<any>): ComponentType<any> {
     return (props: any) => <Component {...props} onMouseEnter={(e: unknown) => { fire("orbslider:surprise"); props.onMouseEnter?.(e) }} />

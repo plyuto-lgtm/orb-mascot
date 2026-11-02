@@ -8,7 +8,8 @@ so they foreshorten and converge as it looks around. Blinks, follows the cursor,
 - `api.html` — API reference: every option, method, scenario id and size token.
 - `framer/BearOrb.tsx` — the Bear as one self-contained, filter-free Framer code component.
 - `framer/LemonOrb.tsx` — the Lemon as its own Framer code component, with Bell and Propeller.
-- `framer/OrbSlider.tsx` — Bear, Lemon, Cloud and Seacow as a morphing slider, one Framer code component.
+- `framer/GhostOrb.tsx`, `framer/CloudOrb.tsx` — the Ghost and the Cloud as their own Framer code components.
+- `framer/OrbSlider.tsx` — Bear, Lemon, Cloud, Seacow, Ghost and Flower as a morphing slider, one Framer code component.
 - `packages/orb-mascot` — the same core plus a React component (`orb-mascot/react`), type definitions and a README for using it in an app.
 
 ## Use
