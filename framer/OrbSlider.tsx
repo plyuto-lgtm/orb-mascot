@@ -12,7 +12,7 @@ const R = 96, CX = 100, CY = 100
 const MAX_YAW = 20, MAX_PITCH = 15
 const EYE_LON = 16, EYE_LAT = 4, EYE_R = 11
 const MOUTH_DROP = 22, MOUTH_HW = 14, MOUTH_STROKE = 7.8, SMILE = 0.4
-const AUTO_PUSH = 300, AUTO_DRAG = 90   // autoplay's synthetic swipe: how long and how far the orb is pushed before the morph
+const AUTO_PUSH = 320, AUTO_DRAG = 0.3   // autoplay's synthetic swipe: how long, and how far as a share of the component's width
 const MORPH_MS = 720, FADE = 380, NEW_EARS = 3250, QUICK_TURNS = 2030, SURPRISE = 1700
 const D2R = Math.PI / 180, TAU = Math.PI * 2, S = Math.sin
 const r1 = (v: number) => Math.round(v * 10) / 10
@@ -309,7 +309,7 @@ export default function OrbSlider(input: Partial<Props>) {
             manual: false, act: 0, actT0: 0, fadeT0: 0, last: 0,
             nextIdle: 0, nextBlink: 0, nextAct: 0, nextSlide: 0, hold: 0,
             px: 0, py: 0, pT: -1e9, rcx: 0, rcy: 0, rw: 240, rT: -1e9, hover: false,
-            drag: 0, dragOn: false, dragX0: 0, dragT0: 0, dragMoved: 0, dragPx: 0, onOrb: false, autoT0: 0, scale: 1,
+            drag: 0, dragOn: false, dragX0: 0, dragT0: 0, dragMoved: 0, dragPx: 0, onOrb: false, autoT0: 0, travel: 100, scale: 1,
             lastPieces: "", gen: -1,
         }
         const A: Act = { ...NO_ACT }, FA: Act = { ...NO_ACT }
@@ -392,12 +392,12 @@ export default function OrbSlider(input: Partial<Props>) {
                 }
             }
             // autoplay plays a swipe: the orb is pushed aside as if dragged, then released into the morph, exactly like a hand swipe
-            if (o.autoplay && !s.dragOn && !s.autoT0 && !s.hover && !s.morphT0 && now > s.hold && now > s.nextSlide && !s.act) { stopAct(); s.manual = true; look(-MAX_YAW * 0.5, 0); s.autoT0 = now }
+            if (o.autoplay && !s.dragOn && !s.autoT0 && !s.hover && !s.morphT0 && now > s.hold && now > s.nextSlide && !s.act) { stopAct(); s.manual = true; look(-MAX_YAW * 0.5, 0); s.autoT0 = now; s.travel = travelOf() }
             if (s.autoT0) {
                 const u = (now - s.autoT0) / AUTO_PUSH
                 if (s.dragOn || s.hover) { s.autoT0 = 0; s.manual = false; s.nextSlide = now + o.autoplayEvery * 1000 }     // a hand takes over
                 else if (u >= 1) { s.autoT0 = 0; s.manual = false; go(s.cur + 1, 1) }
-                else s.drag = -AUTO_DRAG * easeIn(u)
+                else s.drag = -AUTO_DRAG * 2 * s.travel * easeIn(u)
             }
             if (o.blink && now > s.nextBlink && !s.act) { startBlink(now, Math.random() < 0.2 ? 2 : 1); s.nextBlink = now + 2000 + Math.random() * 4000 }
             if (s.blinkN) {
@@ -415,7 +415,7 @@ export default function OrbSlider(input: Partial<Props>) {
             s.mouth += (s.tMouth - s.mouth) * k2; s.side += (s.tSide - s.side) * k2; s.len += (s.tLen - s.len) * k2; s.tilt += (s.tTilt - s.tilt) * k2
             s.poke *= Math.exp(-dt / 420); if (s.poke < 0.002) s.poke = 0
             s.pokeS += (s.poke - s.pokeS) * (1 - Math.exp(-dt / 90))
-            if (!s.dragOn && !s.autoT0) s.drag += (0 - s.drag) * (1 - Math.exp(-dt / 140))
+            if (!s.dragOn && !s.autoT0) s.drag += (0 - s.drag) * (1 - Math.exp(-dt / 190))            // spring back to its place, arriving as the new mascot
 
             // act frame
             Object.assign(A, NO_ACT)
@@ -472,8 +472,8 @@ export default function OrbSlider(input: Partial<Props>) {
             put(mouth, "stroke-width", "sw", "" + r1(MOUTH_STROKE * s.eyeScale))
             // body transform: lean, act start, morph nudge, drag with a slight tilt, pivoting on the bottom centre
             const nudge = s.morphT0 ? -s.dir * 10 * S(Math.PI * e) : 0, squish = s.morphT0 ? 1 - 0.05 * S(Math.PI * e) : 1
-            const tx = (o.lean ? (s.yaw / MAX_YAW) * 3 : 0) + nudge + s.drag * 0.55, ty = (o.lean ? (-s.pitch / MAX_PITCH) * 2 : 0) + A.dy
-            const th = Math.max(-8, Math.min(8, s.drag * 0.12)) * D2R, c = Math.cos(th), sn = Math.sin(th), syy = A.sy * squish, pX = CX, pY = CY + R
+            const tx = (o.lean ? (s.yaw / MAX_YAW) * 3 : 0) + nudge + s.drag, ty = (o.lean ? (-s.pitch / MAX_PITCH) * 2 : 0) + A.dy
+            const th = Math.max(-10, Math.min(10, (s.drag / Math.max(1, s.travel)) * 14)) * D2R, c = Math.cos(th), sn = Math.sin(th), syy = A.sy * squish, pX = CX, pY = CY + R
             const ma = c, mb2 = sn, mc = -sn * syy, md = c * syy
             put(body, "transform", "b", `matrix(${r3(ma)} ${r3(mb2)} ${r3(mc)} ${r3(md)} ${r1(pX - (ma * pX + mc * pY) + tx)} ${r1(pY - (mb2 * pX + md * pY) + ty)})`)
             const br = o.breathe ? 1 + 0.012 * Math.sin((now / 3200) * TAU) : 1
@@ -492,18 +492,20 @@ export default function OrbSlider(input: Partial<Props>) {
 
         // ---------- input ----------
         const toUnits = () => { const m = svg.getScreenCTM(); return m ? 1 / m.a : 1 }
+        const travelOf = () => (wrap.getBoundingClientRect().width / 2) * toUnits()     // half the swipe area, in the orb's units
         const onMove = (e: PointerEvent) => {
             s.px = e.clientX; s.py = e.clientY; s.pT = performance.now()
             if (s.dragOn) {
                 const px = e.clientX - s.dragX0; s.dragMoved = Math.max(s.dragMoved, Math.abs(px))
-                s.drag = Math.max(-70, Math.min(70, px * toUnits()))                 // the orb follows the finger, within reason
+                const u = px * toUnits(), lim = s.travel, a = Math.abs(u)             // 1:1 with the finger, easing off near the component's edge
+                s.drag = Math.sign(u) * (a < lim * 0.7 ? a : lim * 0.7 + (lim * 0.3) * (1 - Math.exp(-(a - lim * 0.7) / (lim * 0.3))))
             }
         }
         // the whole component is the swipe area; the orb keeps its own size. Taps poke only when they land on the orb.
         const onDown = (e: PointerEvent) => {
             if (!e.isPrimary || (e.target as Element).closest?.("button")) return
             const onOrb = svg.contains(e.target as Node)
-            if (opts.current.swipe) { s.dragOn = true; s.onOrb = onOrb; s.dragX0 = e.clientX; s.dragT0 = performance.now(); s.dragMoved = 0; s.drag = 0; try { wrap.setPointerCapture(e.pointerId) } catch {} }
+            if (opts.current.swipe) { s.dragOn = true; s.onOrb = onOrb; s.travel = travelOf(); s.dragX0 = e.clientX; s.dragT0 = performance.now(); s.dragMoved = 0; s.drag = 0; try { wrap.setPointerCapture(e.pointerId) } catch {} }
             else if (onOrb && opts.current.tap) poke(performance.now())
         }
         const onUp = (e: PointerEvent) => {

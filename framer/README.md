@@ -16,11 +16,13 @@ the canvas or into a Frame. It sizes like BearOrb: any Frame shape, with Align a
 ## Changing slide
 
 - **Arrows and dots** inside the component (Arrows & dots, on by default; Arrows color).
-- **Swipe or drag** sideways anywhere on the component (Swipe), not only on the mascot, so a small
-  Fixed orb still has the full area to swipe. A tap on the mascot is a poke; a tap elsewhere does nothing.
+- **Swipe or drag** sideways anywhere on the component (Swipe). The sliding area is the whole
+  component, larger than the orb: with a small Fixed orb, the orb follows the finger one to one across
+  the full width (easing off near the edge), then springs back to its place as the next mascot morphs in.
+  A tap on the mascot is a poke; a tap elsewhere does nothing.
 - **Arrow keys** when the slider has focus.
-- **Autoplay** every few seconds, played as a swipe: the mascot is pushed aside, then released into
-  the morph. It pauses while the pointer is over the slider and for 4 s after any manual change.
+- **Autoplay** every few seconds, played as a swipe: the mascot is pushed aside by about 30% of the
+  component's width, then released into the morph. It pauses while the pointer is over the slider and for 4 s after any manual change.
 - **Your own buttons**: add `OrbSliderOverrides.tsx` as a code file and apply `NextOrb`, `PrevOrb`,
   `ShowBear`, `ShowLemon`, `ShowCloud` or `ShowSeacow` to any layer. Or dispatch the events yourself:
   `orbslider:next`, `orbslider:prev`, `orbslider:go` (detail: `"cloud"` or an index).
