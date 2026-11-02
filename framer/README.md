@@ -6,7 +6,8 @@ Cloud and Seacow in one slider). Neither imports the `orb-mascot` library.
 # Orb Slider
 
 `OrbSlider.tsx` shows one mascot at a time and morphs between them: the outline melts from one
-shape into the next while the colour blends and the eyes blink through the middle of the change.
+shape into the next while the eyes blink through the middle of the change. All four share one body
+colour and one face colour.
 
 ## Add it
 
@@ -15,14 +16,17 @@ the canvas or into a Frame. It sizes like BearOrb: any Frame shape, with Align a
 
 ## Changing slide
 
-- **Arrows and dots** inside the component (Arrows & dots, on by default; Arrows color).
+- **Arrows** on both sides (Arrows) and **Pagination** at the bottom (Pagination: Dots, `1 / 4`, or
+  None). They are independent; each reserves its own room so it never covers the mascot. Controls color
+  styles both.
 - **Swipe or drag** sideways anywhere on the component (Swipe). The sliding area is the whole
-  component, larger than the orb: with a small Fixed orb, the orb follows the finger one to one across
-  the full width (easing off near the edge), then springs back to its place as the next mascot morphs in.
+  component, larger than the orb. The orb follows the finger one to one up to **Swipe travel** (80 px by
+  default, easing into the limit), then springs back to its place as the next mascot morphs in. At 0 the
+  orb stays still and the swipe only changes the mascot.
   A tap on the mascot is a poke; a tap elsewhere does nothing.
 - **Arrow keys** when the slider has focus.
-- **Autoplay** every few seconds, played as a swipe: the mascot is pushed aside by about 30% of the
-  component's width, then released into the morph. It pauses while the pointer is over the slider and for 4 s after any manual change.
+- **Autoplay** every few seconds, played as a swipe: the mascot is pushed aside to the Swipe travel
+  limit, then released into the morph. It pauses while the pointer is over the slider and for 4 s after any manual change.
 - **Your own buttons**: add `OrbSliderOverrides.tsx` as a code file and apply `NextOrb`, `PrevOrb`,
   `ShowBear`, `ShowLemon`, `ShowCloud` or `ShowSeacow` to any layer. Or dispatch the events yourself:
   `orbslider:next`, `orbslider:prev`, `orbslider:go` (detail: `"cloud"` or an index).
@@ -34,10 +38,12 @@ the canvas or into a Frame. It sizes like BearOrb: any Frame shape, with Align a
 | Control | Default | Meaning |
 |---|---|---|
 | Start at | Bear | first slide |
-| Bear, Lemon, Cloud, Seacow | blue, lime, cyan, orchid | each mascot's own colour; eyes switch to dark on light colours automatically |
-| Arrows & dots | on | built-in navigation; the mascot is inset so they never cover it |
-| Arrows color | `#141416` | |
-| Swipe | on | |
+| Body | `#1E6DF6` | one colour for every mascot |
+| Face | `#FFFFFF` | one colour for the eyes and mouth of every mascot |
+| Arrows | on | previous and next buttons at the sides |
+| Pagination | Dots | Dots, `1 / 4`, or None |
+| Controls color | `#141416` | arrows and pagination |
+| Swipe, Swipe travel | on, 80 px | how far the orb slides while swiping or on autoplay |
 | Autoplay, Next every | off, 5 s | |
 | Animations, Every | Random, 7 s | Quick turns on every mascot, New ears too on the bear |
 | Surprise on | empty | layer name or CSS selector whose hover plays Surprised (or apply `SurpriseOrbOnHover`) |

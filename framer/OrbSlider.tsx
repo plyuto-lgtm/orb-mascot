@@ -12,7 +12,7 @@ const R = 96, CX = 100, CY = 100
 const MAX_YAW = 20, MAX_PITCH = 15
 const EYE_LON = 16, EYE_LAT = 4, EYE_R = 11
 const MOUTH_DROP = 22, MOUTH_HW = 14, MOUTH_STROKE = 7.8, SMILE = 0.4
-const AUTO_PUSH = 320, AUTO_DRAG = 0.3   // autoplay's synthetic swipe: how long, and how far as a share of the component's width
+const AUTO_PUSH = 320                    // autoplay's synthetic swipe: how long the push lasts; it reaches the Swipe travel limit
 const MORPH_MS = 720, FADE = 380, NEW_EARS = 3250, QUICK_TURNS = 2030, SURPRISE = 1700
 const D2R = Math.PI / 180, TAU = Math.PI * 2, S = Math.sin
 const r1 = (v: number) => Math.round(v * 10) / 10
@@ -222,7 +222,6 @@ function rgbOf(c: string): number[] {
     else { const n = s.match(/[\d.]+/g); v = n && n.length >= 3 ? [+n[0], +n[1], +n[2]] : [10, 10, 10] }
     rgbCache.set(c, v); return v
 }
-const faceOf = (rgb: number[]) => ((0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255 > 0.55 ? [20, 20, 22] : [255, 255, 255])   // ink on light bodies, white on dark
 const css = (c: ArrayLike<number>) => `rgb(${Math.round(c[0])} ${Math.round(c[1])} ${Math.round(c[2])})`
 
 // resting pose of each body, also what the server and the Framer canvas render
@@ -249,8 +248,9 @@ const orbBox = (p: { sizing: string; orbSize: number }): CSSProperties =>
 
 type Props = {
     start: string
-    bearColor: string; lemonColor: string; cloudColor: string; seacowColor: string
-    controls: boolean; uiColor: string; swipe: boolean
+    color: string; faceColor: string
+    arrows: boolean; pagination: "dots" | "numbers" | "none"; uiColor: string
+    swipe: boolean; swipeTravel: number
     autoplay: boolean; autoplayEvery: number
     play: boolean; every: number; hoverTarget: string
     follow: boolean; idle: boolean; blink: boolean; breathe: boolean; lean: boolean; tap: boolean
@@ -261,15 +261,17 @@ type Props = {
 }
 const DEFAULTS = {
     start: "bear",
-    bearColor: "#1E6DF6", lemonColor: "#EEF679", cloudColor: "#00CCFF", seacowColor: "#CF72D9",
-    controls: true, uiColor: "#141416", swipe: true,
+    color: "#1E6DF6", faceColor: "#FFFFFF",
+    arrows: true, pagination: "dots" as Props["pagination"], uiColor: "#141416",
+    swipe: true, swipeTravel: 80,
     autoplay: false, autoplayEvery: 5,
     play: true, every: 7, hoverTarget: "",
     follow: true, idle: true, blink: true, breathe: true, lean: true, tap: true,
     align: "center" as Props["align"], safeArea: true,
     sizing: "fill" as Props["sizing"], orbSize: 160,
 }
-const colorOf = (p: Props, b: number) => [p.bearColor, p.lemonColor, p.cloudColor, p.seacowColor][b]
+const colorOf = (p: Props, _b: number) => p.color                 // one body colour for every mascot
+const faceRgb = (p: Props) => rgbOf(p.faceColor)                     // one colour for eyes and mouth
 
 /**
  * @framerSupportedLayoutWidth any-prefer-fixed
@@ -287,7 +289,7 @@ export default function OrbSlider(input: Partial<Props>) {
     const opts = useRef(props); opts.current = props
     const api = useRef({ go: (_i: number, _dir?: number) => {}, step: (_dir: number) => {}, gen: 0 })
     api.current.gen++                                            // a re-render may rewrite colours: the loop repaints them
-    const rest = REST[startIdx], startRgb = rgbOf(colorOf(props, startIdx)), startFace = css(faceOf(startRgb))
+    const rest = REST[startIdx], startRgb = rgbOf(colorOf(props, startIdx)), startFace = css(faceRgb(props))
 
     useEffect(() => {
         const svg = svgRef.current, wrap = wrapRef.current
@@ -301,7 +303,7 @@ export default function OrbSlider(input: Partial<Props>) {
         fillField(piecesFor(startIdx, 0, 0, 0, 0, NO_ACT), SHAPE[startIdx][0], SHAPE[startIdx][1], LAST)
         const s = {
             cur: startIdx, morphT0: 0, dir: 1, su: Float64Array.from(SURF[startIdx]), su0: new Float64Array(4),
-            rgb: startRgb.slice(), rgb0: startRgb.slice(), face: faceOf(startRgb).slice(), face0: [0, 0, 0],
+            rgb: startRgb.slice(), rgb0: startRgb.slice(), face: faceRgb(props).slice(), face0: [0, 0, 0],
             yaw: 0, pitch: 0, tYaw: 0, tPitch: 0, hy: 0, hp: 0, hvy: 0, hvp: 0,
             eyeScale: 1, tEyeScale: 1, squash: 1, tSquash: 1,
             mouth: SMILE, tMouth: SMILE, side: 0, tSide: 0, len: 1, tLen: 1, tilt: 0, tTilt: 0,
@@ -357,8 +359,8 @@ export default function OrbSlider(input: Partial<Props>) {
 
         // reduced motion and the canvas: no loop, the resting pose of the current slide
         const paintStatic = () => {
-            const b = s.cur, c = rgbOf(colorOf(opts.current, b)), fc = css(faceOf(c)), r = REST[b]
-            s.morphT0 = 0; s.su.set(SURF[b]); s.rgb = c.slice(); s.face = faceOf(c).slice()
+            const b = s.cur, c = rgbOf(colorOf(opts.current, b)), fc = css(faceRgb(opts.current)), r = REST[b]
+            s.morphT0 = 0; s.su.set(SURF[b]); s.rgb = c.slice(); s.face = faceRgb(opts.current).slice()
             put(path, "d", "d", r.d); put(eyeL, "transform", "l", r.eyeL); put(eyeR, "transform", "r", r.eyeR)
             put(mouth, "d", "md", r.mouthD); put(mouth, "transform", "mt", r.mouthTf)
             path.setAttribute("fill", css(c)); for (const e of [eyeL, eyeR, starL, starR]) e.setAttribute("fill", fc); mouth.setAttribute("stroke", fc)
@@ -397,7 +399,7 @@ export default function OrbSlider(input: Partial<Props>) {
                 const u = (now - s.autoT0) / AUTO_PUSH
                 if (s.dragOn || s.hover) { s.autoT0 = 0; s.manual = false; s.nextSlide = now + o.autoplayEvery * 1000 }     // a hand takes over
                 else if (u >= 1) { s.autoT0 = 0; s.manual = false; go(s.cur + 1, 1) }
-                else s.drag = -AUTO_DRAG * 2 * s.travel * easeIn(u)
+                else s.drag = -s.travel * Math.min(1, easeIn(u) * 1.15)
             }
             if (o.blink && now > s.nextBlink && !s.act) { startBlink(now, Math.random() < 0.2 ? 2 : 1); s.nextBlink = now + 2000 + Math.random() * 4000 }
             if (s.blinkN) {
@@ -437,7 +439,7 @@ export default function OrbSlider(input: Partial<Props>) {
                 if (f >= 1) s.morphT0 = 0
                 else { e = easeIO(f); mb = clamp01(1 - Math.abs(f - 0.5) / 0.3) }          // the eyes close through the middle of the morph
             }
-            const cT = rgbOf(colorOf(o, s.cur)), fT = faceOf(cT), suT = SURF[s.cur]
+            const cT = rgbOf(colorOf(o, s.cur)), fT = faceRgb(o), suT = SURF[s.cur]
             for (let q = 0; q < 3; q++) { s.rgb[q] = s.rgb0[q] + (cT[q] - s.rgb0[q]) * e; s.face[q] = s.face0[q] + (fT[q] - s.face0[q]) * e }
             for (let q = 0; q < 4; q++) s.su[q] = s.su0[q] + (suT[q] - s.su0[q]) * e
 
@@ -492,12 +494,12 @@ export default function OrbSlider(input: Partial<Props>) {
 
         // ---------- input ----------
         const toUnits = () => { const m = svg.getScreenCTM(); return m ? 1 / m.a : 1 }
-        const travelOf = () => (wrap.getBoundingClientRect().width / 2) * toUnits()     // half the swipe area, in the orb's units
+        const travelOf = () => Math.min(wrap.getBoundingClientRect().width / 2, Math.max(0, opts.current.swipeTravel)) * toUnits()   // the farthest the orb may slide, in its own units
         const onMove = (e: PointerEvent) => {
             s.px = e.clientX; s.py = e.clientY; s.pT = performance.now()
             if (s.dragOn) {
                 const px = e.clientX - s.dragX0; s.dragMoved = Math.max(s.dragMoved, Math.abs(px))
-                const u = px * toUnits(), lim = s.travel, a = Math.abs(u)             // 1:1 with the finger, easing off near the component's edge
+                const u = px * toUnits(), lim = Math.max(1e-3, s.travel), a = Math.abs(u)   // 1:1 with the finger, easing into the travel limit
                 s.drag = Math.sign(u) * (a < lim * 0.7 ? a : lim * 0.7 + (lim * 0.3) * (1 - Math.exp(-(a - lim * 0.7) / (lim * 0.3))))
             }
         }
@@ -573,7 +575,7 @@ export default function OrbSlider(input: Partial<Props>) {
         <div ref={wrapRef} role="group" aria-roledescription="carousel" aria-label="Mascots" tabIndex={0}
             style={{ position: "relative", width: "100%", height: "100%", aspectRatio: "1 / 1", outline: "none", userSelect: "none",
                 touchAction: props.swipe ? "pan-y" : "auto", cursor: props.swipe ? "grab" : "default", ...props.style }}>
-            <div style={{ position: "absolute", inset: props.controls ? "0 36px 24px 36px" : 0, display: "flex", pointerEvents: "none", ...(STAGE_ALIGN[props.align] || STAGE_ALIGN.center) }}>
+            <div style={{ position: "absolute", inset: `0 ${props.arrows ? 36 : 0}px ${props.pagination !== "none" ? 24 : 0}px ${props.arrows ? 36 : 0}px`, display: "flex", pointerEvents: "none", ...(STAGE_ALIGN[props.align] || STAGE_ALIGN.center) }}>
             <svg ref={svgRef} viewBox={props.safeArea ? SAFE_VIEWBOX : "0 0 200 200"} preserveAspectRatio={ALIGN[props.align] || ALIGN.center}
                 role="img" aria-label={`${DEFS[startIdx].name}, ${startIdx + 1} of ${DEFS.length}`}
                 style={{ ...orbBox(props), display: "block", overflow: "visible", pointerEvents: "auto" }}>
@@ -589,8 +591,8 @@ export default function OrbSlider(input: Partial<Props>) {
                 </g>
             </svg>
             </div>
-            {props.controls && (<>
-                {arrow(-1)}{arrow(1)}
+            {props.arrows && (<>{arrow(-1)}{arrow(1)}</>)}
+            {props.pagination === "dots" && (
                 <div role="tablist" aria-label="Choose a mascot" style={{ position: "absolute", left: 0, right: 0, bottom: 2, display: "flex", justifyContent: "center", gap: 2 }}>
                     {DEFS.map((D, b) => (
                         <button key={D.id} type="button" role="tab" aria-selected={b === index} aria-label={D.name} onClick={() => api.current.go(b)}
@@ -599,20 +601,27 @@ export default function OrbSlider(input: Partial<Props>) {
                         </button>
                     ))}
                 </div>
-            </>)}
+            )}
+            {props.pagination === "numbers" && (
+                <div aria-live="polite" style={{ position: "absolute", left: 0, right: 0, bottom: 2, height: 20, display: "flex", alignItems: "center", justifyContent: "center",
+                    font: "500 12px/1 system-ui, -apple-system, sans-serif", fontVariantNumeric: "tabular-nums", letterSpacing: "0.02em", color: ui }}>
+                    <span style={{ opacity: 0.9 }}>{index + 1}</span><span style={{ opacity: 0.35, margin: "0 5px" }}>/</span><span style={{ opacity: 0.35 }}>{DEFS.length}</span>
+                </div>
+            )}
         </div>
     )
 }
 
 addPropertyControls(OrbSlider, {
     start: { type: ControlType.Enum, title: "Start at", options: IDS, optionTitles: DEFS.map(D => D.name), defaultValue: DEFAULTS.start },
-    bearColor: { type: ControlType.Color, title: "Bear", defaultValue: DEFAULTS.bearColor },
-    lemonColor: { type: ControlType.Color, title: "Lemon", defaultValue: DEFAULTS.lemonColor },
-    cloudColor: { type: ControlType.Color, title: "Cloud", defaultValue: DEFAULTS.cloudColor },
-    seacowColor: { type: ControlType.Color, title: "Seacow", defaultValue: DEFAULTS.seacowColor },
-    controls: { type: ControlType.Boolean, title: "Arrows & dots", defaultValue: DEFAULTS.controls },
-    uiColor: { type: ControlType.Color, title: "Arrows color", defaultValue: DEFAULTS.uiColor, hidden: (p: Props) => !p.controls },
+    color: { type: ControlType.Color, title: "Body", defaultValue: DEFAULTS.color, description: "One colour for every mascot." },
+    faceColor: { type: ControlType.Color, title: "Face", defaultValue: DEFAULTS.faceColor, description: "Eyes and mouth." },
+    arrows: { type: ControlType.Boolean, title: "Arrows", defaultValue: DEFAULTS.arrows },
+    pagination: { type: ControlType.Enum, title: "Pagination", options: ["dots", "numbers", "none"], optionTitles: ["Dots", "1 / 4", "None"], displaySegmentedControl: true, defaultValue: DEFAULTS.pagination },
+    uiColor: { type: ControlType.Color, title: "Controls color", defaultValue: DEFAULTS.uiColor, hidden: (p: Props) => !p.arrows && p.pagination === "none" },
     swipe: { type: ControlType.Boolean, title: "Swipe", defaultValue: DEFAULTS.swipe },
+    swipeTravel: { type: ControlType.Number, title: "Swipe travel", min: 0, max: 600, step: 4, unit: "px", displayStepper: true, defaultValue: DEFAULTS.swipeTravel, hidden: (p: Props) => !p.swipe,
+        description: "How far the orb may slide while swiping or on autoplay. The swipe still works across the whole component." },
     autoplay: { type: ControlType.Boolean, title: "Autoplay", defaultValue: DEFAULTS.autoplay },
     autoplayEvery: { type: ControlType.Number, title: "Next every", min: 2, max: 30, step: 0.5, unit: "s", displayStepper: true, defaultValue: DEFAULTS.autoplayEvery, hidden: (p: Props) => !p.autoplay },
     play: { type: ControlType.Boolean, title: "Animations", enabledTitle: "Random", disabledTitle: "Off", defaultValue: DEFAULTS.play, description: "Quick turns on every body; New ears too on the bear." },
