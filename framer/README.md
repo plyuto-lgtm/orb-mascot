@@ -46,11 +46,11 @@ the canvas or into a Frame. It sizes like BearOrb: any Frame shape, with Align a
 | Controls color | `#141416` | arrows and pagination |
 | Swipe, Swipe travel | on, 80 px | how far the orb slides while swiping or on autoplay |
 | Autoplay, Next every | off, 5 s | |
-| Animations, Every | Random, 7 s | Quick turns on every mascot, New ears too on the bear |
+| Animations, Every | Random, 7 s | each mascot plays all of its own acts at random, plus Quick turns: Bear New ears; Lemon Bell, Propeller; Cloud Quarter turns, Hop; Seacow Wave, Cover eyes |
 | Surprise on | empty | layer name or CSS selector whose hover plays Surprised (or apply `SurpriseOrbOnHover`) |
 | Follow cursor, Idle wander, Blink, Breathe, Lean, Tap reaction | on | |
 | Orb size, Size | Fill, 160 px | Fill: as large as the component allows. Fixed: a set pixel size, never larger than the space |
-| Align, Safe area | Center, on | as in BearOrb |
+| Align, Safe area | Center, on | as in BearOrb. The slider's safe area is wider than the single orbs' because Seacow's Wave reaches far to the sides; every act of every mascot was measured inside it. Turn it off for a larger mascot if the Frame does not clip |
 
 ## How it stays light
 

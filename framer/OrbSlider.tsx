@@ -162,8 +162,15 @@ function contourPath(field: Float32Array) {
 }
 
 // ---------- scripted moments ----------
-type Act = { eyeScale: number; eyeSquash: number; sy: number; dy: number; star: number; curve: number | null; len: number | null; up: number; grow: number; phase: number }
-const NO_ACT: Act = { eyeScale: 1, eyeSquash: 1, sy: 1, dy: 0, star: 0, curve: null, len: null, up: 0, grow: 1, phase: 0 }
+// A: one frame of an act. rot/sx/sy pivot on (centre x, pivotY in R units, 1 = bottom); side/tilt shape the mouth;
+// orbit swings the eyes (and mouth) around their midpoint; look holds the gaze; pieces edits the body before fitting;
+// overlay draws circles in the body colour over the face (the seacow's flippers covering its eyes).
+type Act = { eyeScale: number; eyeSquash: number; rot: number; pivotY: number; sx: number; sy: number; dy: number; star: number
+    curve: number | null; len: number | null; side: number; tilt: number; orbit: number; look: number[] | null
+    pieces: ((cs: Piece[]) => Piece[]) | null; overlay: number[][] | null; up: number; grow: number; phase: number }
+const NO_ACT: Act = { eyeScale: 1, eyeSquash: 1, rot: 0, pivotY: 1, sx: 1, sy: 1, dy: 0, star: 0, curve: null, len: null, side: 0, tilt: 0, orbit: 0, look: null, pieces: null, overlay: null, up: 0, grow: 1, phase: 0 }
+const easeOut = (t: number) => 1 - Math.pow(1 - t, 3)
+const rotPiece = (p: Piece, deg: number): Piece => { const a = deg * D2R, c = Math.cos(a), sn = Math.sin(a), q = p.slice(); q[0] = p[0] * c - p[1] * sn; q[1] = p[0] * sn + p[1] * c; if (q.length > 3) q[4] = (p[4] || 0) + deg; return q }
 function newEars(t: number, A: Act) {                                  // bear: the ears pull up and off, then grow back
     A.eyeScale = 1 + 0.2 * pulse(t, 0, 0.4); A.eyeSquash = 1 - 0.3 * pulse(t, 0.4, 1.4)
     if (t < 1.9) { A.phase = 1; A.up = easeIn(seg(t, 0.4, 1.4)); A.grow = 0; A.curve = 0.4 - 0.9 * pulse(t, 0.3, 1.5); A.len = 1 - 0.25 * pulse(t, 0.3, 1.5) }
@@ -173,11 +180,67 @@ function surprised(t: number, A: Act) {                                // any bo
     const k = Math.min(easeBack(seg(t, 0, 0.28)), 1 - easeIO(seg(t, 1.2, 1.6))), p = pulse(t, 0, 0.35)
     A.star = clamp01(k); A.eyeScale = 1 + 0.2 * k; A.curve = 0.4 + 0.5 * k; A.len = 1 - 0.25 * k; A.dy = -5 * p; A.sy = 1 + 0.03 * p
 }
-const ACT_RUN = [null, newEars, surprised], ACT_MS = [0, NEW_EARS, SURPRISE]
+// Lemon, Bell: swings from its top nub like an old alarm-clock bell, ringing down to rest
+function bell(t: number, A: Act) {
+    const e = Math.exp(-t / 1.1), lag = 0.05 * S((TAU * t) / 0.85 - 1.2) * e
+    A.rot = 18 * S((TAU * t) / 0.85) * e; A.pivotY = -0.98
+    A.pieces = cs => cs.map((p, i) => (i === 2 ? [p[0] + lag, p[1], p[2]] : p))
+    A.curve = 0.5 + 0.4 * e; A.tilt = -0.35 * A.rot
+}
+// Lemon, Propeller: eyes bump, then the nubs orbit the core two full turns; the body shrinks with the speed of the spin
+function propeller(t: number, A: Act) {
+    const b = pulse(t, 0, 0.45); A.eyeScale = 1 + 0.3 * b; A.eyeSquash = 1 - 0.15 * b
+    const u = seg(t, 0.45, 2.75), th = 720 * easeIO(u), speed = (u < 0.5 ? 12 * u * u : 12 * (1 - u) * (1 - u)) / 3
+    A.pieces = cs => cs.map((p, i) => (i ? rotPiece(p, th) : p))
+    A.sx = A.sy = 1 - 0.14 * speed; A.pivotY = 0; A.eyeSquash *= 1 - 0.4 * speed
+    A.curve = t < 0.45 ? 0.2 : 0.05 + (1 - speed) * (u >= 1 ? 0.95 : 0.2); A.len = u >= 1 ? 1.2 : 1 - 0.35 * speed
+}
+// Cloud, Quarter turns: a full circle in four springy 90 degree steps; the eyes start to follow each turn and swing back
+function quarterTurns(t: number, A: Act) {
+    const step = 0.85, k = Math.min(3, Math.floor(t / step)), u = seg(t, k * step, k * step + 0.62), th = t >= 4 * step ? 360 : 90 * k + 90 * easeBack(u)
+    A.pieces = cs => cs.map(p => (p.length > 3 ? [p[0], p[1], p[2], p[3], (p[4] || 0) + th] : p))
+    A.dy = -3 * S(Math.PI * u); A.orbit = 14 * S(Math.PI * Math.min(1, u * 1.3))
+    A.curve = t >= 4 * step ? 0.9 : 0.1; A.len = t >= 4 * step ? 1.2 : 0.75
+}
+// Cloud, Hop: two soft hops with a small squash on landing
+function hop(t: number, A: Act) {
+    const n = 2, P = 1.0, h = 20
+    if (t >= n * P) return
+    const u = (t % P) / P
+    if (u < 0.2) { const c = easeIO(u / 0.2); A.sy = 1 - 0.06 * c; A.sx = 1 + 0.03 * c; A.curve = 0.2 + 0.3 * c; return }
+    if (u < 0.66) { const f = (u - 0.2) / 0.46, c = 1 - easeOut(Math.min(1, f * 3)); A.dy = -h * S(Math.PI * f); A.sy = 1 - 0.06 * c; A.sx = 1 + 0.03 * c; A.curve = 0.5 + 0.5 * S(Math.PI * f); A.len = 1 + 0.25 * S(Math.PI * f); return }
+    if (u < 0.82) { const c = S((Math.PI * (u - 0.66)) / 0.16); A.sy = 1 - 0.07 * c; A.sx = 1 + 0.05 * c; A.curve = 0.5 - 0.3 * c; return }
+    A.sy = 1 + 0.02 * S(((u - 0.82) / 0.18) * Math.PI)
+}
+// Seacow, Wave: lifts and waves the left flipper, then the right, glancing at each
+function wave(t: number, A: Act) {
+    const side = t < 1.55 ? 1 : 2, u = side === 1 ? seg(t, 0.1, 1.5) : seg(t, 1.6, 3.0), lift = S(Math.PI * u), wig = S(TAU * u * 3) * 0.06 * lift, d = side === 1 ? -1 : 1
+    A.pieces = cs => cs.map((p, i) => (i === side ? [p[0] + 0.12 * d * lift + wig, p[1] - 0.55 * lift, p[2]] : p))
+    A.look = [18 * d, 8]; A.rot = 4 * d * lift; A.curve = 0.5 + 0.5 * lift; A.side = d * lift; A.len = 1 + 0.15 * lift; A.tilt = -10 * d * lift
+}
+// Seacow, Cover eyes: each flipper travels up its own side and in over the eye, holds, then goes back down the same way
+function coverEyes(t: number, A: Act) {
+    const su = SURF[3], ex = Math.sin(EYE_LON * D2R) * su[2], ey = su[1] - Math.sin(EYE_LAT * D2R) * su[3]
+    const u = t < 1.0 ? easeIO(seg(t, 0, 1.0)) : t < 2.1 ? 1 : 1 - easeIO(seg(t, 2.1, 3.2))
+    const path = (side: number, k: number) => {                         // corner, up the side, in over the eye
+        const x0 = side * 0.62, y0 = 0.6, x1 = side * 0.7, y1 = 0.02, x2 = side * ex, y2 = ey
+        if (k < 0.55) { const a = easeIO(k / 0.55); return [x0 + (x1 - x0) * a, y0 + (y1 - y0) * a] }
+        const a = easeIO((k - 0.55) / 0.45); return [x1 + (x2 - x1) * a, y1 + (y2 - y1) * a]
+    }
+    const L = path(-1, u), Rr = path(1, u), r = 0.32 - 0.06 * u
+    A.pieces = cs => cs.map((p, i) => (i === 1 ? [L[0], L[1], r] : i === 2 ? [Rr[0], Rr[1], r] : p))
+    if (u > 0) A.overlay = [[L[0], L[1], r], [Rr[0], Rr[1], r]]
+    A.look = [0, 0]; A.curve = 0.4 - 0.4 * u + (t > 2.8 ? 0.5 * pulse(t, 2.8, 3.4) : 0)
+}
+// act ids: 1 New ears, 2 Surprised, 3 Bell, 4 Propeller, 5 Quarter turns, 6 Hop, 7 Wave, 8 Cover eyes
+const ACT_RUN = [null, newEars, surprised, bell, propeller, quarterTurns, hop, wave, coverEyes]
+const ACT_MS = [0, NEW_EARS, SURPRISE, 3000, 2900, 3500, 2050, 3100, 3250]
+const BODY_ACTS = [[1], [3, 4], [5, 6], [7, 8]]                       // each mascot's own acts; Quick turns is shared by all
 
 function piecesFor(b: number, t: number, poke: number, hy: number, hp: number, A: Act): Piece[] {
     const D = DEFS[b], f = FIT[b]
     let cs = D.anim(D.c, t, poke, hy, hp)
+    if (A.pieces) cs = A.pieces(cs)
     if (b === 0 && A.phase) cs = cs.map((p, i) => {
         if (!i) return p
         if (A.phase === 1) return [p[0] * (1 + 0.15 * A.up), p[1] - 0.5 * A.up, p[2] * (1 - A.up)]
@@ -189,17 +252,28 @@ function piecesFor(b: number, t: number, poke: number, hy: number, hp: number, A
 }
 
 // ---------- face ----------
-function eyeTf(side: number, yaw: number, pitch: number, sx: number, sy: number, blink: number, su: ArrayLike<number>) {
+// orbit: how far a face point at (x, y) moves when the face swings `deg` around the eyes' midpoint
+function orbitOffset(x: number, y: number, yaw: number, pitch: number, su: ArrayLike<number>, deg: number) {
+    const l = frame(-EYE_LON, EYE_LAT, yaw, pitch, su), lx = l[4], ly = l[5], r = frame(EYE_LON, EYE_LAT, yaw, pitch, su), mx = (lx + r[4]) / 2, my = (ly + r[5]) / 2
+    const a = deg * D2R, c = Math.cos(a), s = Math.sin(a), dx = x - mx, dy = y - my
+    return [dx * c - dy * s - dx, dx * s + dy * c - dy]
+}
+function eyeTf(side: number, yaw: number, pitch: number, sx: number, sy: number, blink: number, su: ArrayLike<number>, orbit = 0) {
     const m = frame(side * EYE_LON, EYE_LAT, yaw, pitch, su), ty = blink * EYE_R * 2 * 0.08
-    return `matrix(${r3(m[0] * sx)} ${r3(m[1] * sx)} ${r3(m[2] * sy)} ${r3(m[3] * sy)} ${r1(m[4] + m[2] * ty)} ${r1(m[5] + m[3] * ty)})`
+    const a = m[0], b = m[1], c = m[2], d = m[3]
+    let x = m[4] + c * ty, y = m[5] + d * ty
+    if (orbit) { const o = orbitOffset(m[4], m[5], yaw, pitch, su, orbit); x += o[0]; y += o[1] }
+    return `matrix(${r3(a * sx)} ${r3(b * sx)} ${r3(c * sy)} ${r3(d * sy)} ${r1(x)} ${r1(y)})`
 }
 function mouthD(curve: number, len: number, side: number, scale: number) {
     const hw = MOUTH_HW * scale * len, hl = hw * (1 - 0.7 * Math.max(0, side)), hr = hw * (1 - 0.7 * Math.max(0, -side))
     return `M${r1(-hl)} 0Q${r1((hr - hl) / 2)} ${r1(((curve * (hl + hr)) / 2) * 1.15)} ${r1(hr)} 0`
 }
-function mouthTf(yaw: number, pitch: number, tilt: number, su: ArrayLike<number>) {
+function mouthTf(yaw: number, pitch: number, tilt: number, su: ArrayLike<number>, orbit = 0) {
     const m = frame(0, EYE_LAT - MOUTH_DROP, yaw, pitch, su)
-    return `matrix(${r3(m[0])} ${r3(m[1])} ${r3(m[2])} ${r3(m[3])} ${r1(m[4])} ${r1(m[5])})` + (tilt ? ` rotate(${r1(tilt)})` : "")
+    let x = m[4], y = m[5]
+    if (orbit) { const o = orbitOffset(x, y, yaw, pitch, su, orbit); x += o[0]; y += o[1]; tilt += orbit }
+    return `matrix(${r3(m[0])} ${r3(m[1])} ${r3(m[2])} ${r3(m[3])} ${r1(x)} ${r1(y)})` + (tilt ? ` rotate(${r1(tilt)})` : "")
 }
 function starD(star: number) {
     const pt = (i: number) => { const a = -Math.PI / 2 + (i % 10) * Math.PI / 5, rr = EYE_R * (1 + star * (i % 2 ? -0.55 : 0.28)); return [Math.cos(a) * rr, Math.sin(a) * rr] }
@@ -233,7 +307,7 @@ const REST = DEFS.map((_, b) => {
 })
 
 // ---------- frame fit ----------
-const SAFE_VIEWBOX = "-4 -8 208 208"
+const SAFE_VIEWBOX = "-28 -28 256 256"        // measured over every act of every mascot: x -24..222, y -6..204 (Seacow's Wave reaches widest)
 const ALIGN: Record<string, string> = { center: "xMidYMid meet", top: "xMidYMin meet", bottom: "xMidYMax meet", left: "xMinYMid meet", right: "xMaxYMid meet" }
 const IDS = DEFS.map(D => D.id)
 
@@ -286,6 +360,7 @@ export default function OrbSlider(input: Partial<Props>) {
     const wrapRef = useRef<HTMLDivElement>(null), svgRef = useRef<SVGSVGElement>(null), rootRef = useRef<SVGGElement>(null), bodyRef = useRef<SVGGElement>(null)
     const pathRef = useRef<SVGPathElement>(null), eyeLRef = useRef<SVGCircleElement>(null), eyeRRef = useRef<SVGCircleElement>(null)
     const starLRef = useRef<SVGPathElement>(null), starRRef = useRef<SVGPathElement>(null), mouthRef = useRef<SVGPathElement>(null)
+    const ovLRef = useRef<SVGCircleElement>(null), ovRRef = useRef<SVGCircleElement>(null)
     const opts = useRef(props); opts.current = props
     const api = useRef({ go: (_i: number, _dir?: number) => {}, step: (_dir: number) => {}, gen: 0 })
     api.current.gen++                                            // a re-render may rewrite colours: the loop repaints them
@@ -295,7 +370,7 @@ export default function OrbSlider(input: Partial<Props>) {
         const svg = svgRef.current, wrap = wrapRef.current
         if (!svg || !wrap) return
         const root = rootRef.current!, body = bodyRef.current!, path = pathRef.current!, eyeL = eyeLRef.current!, eyeR = eyeRRef.current!
-        const starL = starLRef.current!, starR = starRRef.current!, mouth = mouthRef.current!
+        const starL = starLRef.current!, starR = starRRef.current!, mouth = mouthRef.current!, ovL = ovLRef.current!, ovR = ovRRef.current!
         const canvas = RenderTarget.current() === RenderTarget.canvas
         const reduced = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches
         const SNAP = new Float32Array(GP * GP)                   // the outline being morphed away from
@@ -390,7 +465,8 @@ export default function OrbSlider(input: Partial<Props>) {
                     s.nextIdle = now + 1200 + Math.random() * 2600
                 }
                 if (o.play && !s.act && !s.morphT0 && now > s.nextAct) {
-                    if (s.cur === 0 && Math.random() < 0.5) playAct(1, now); else playQuickTurns(now)
+                    const own = BODY_ACTS[s.cur], pick = Math.floor(Math.random() * (own.length + 1))   // the mascot's own acts and Quick turns, equally likely
+                    if (pick < own.length) playAct(own[pick], now); else playQuickTurns(now)
                 }
             }
             // autoplay plays a swipe: the orb is pushed aside as if dragged, then released into the morph, exactly like a hand swipe
@@ -424,12 +500,13 @@ export default function OrbSlider(input: Partial<Props>) {
             if (s.act) {
                 const t = now - s.actT0, ms = ACT_MS[s.act], run = ACT_RUN[s.act]!
                 if (t >= ms) { Object.assign(FA, NO_ACT); run(ms / 1000, FA); s.act = 0; s.fadeT0 = now; s.manual = false; schedule(now) }
-                else run(t / 1000, A)
+                else { run(t / 1000, A); if (A.look) look(A.look[0], A.look[1]) }
             }
             if (!s.act && s.fadeT0) {
                 const f = (now - s.fadeT0) / FADE
                 if (f >= 1) s.fadeT0 = 0
-                else { const e = 1 - easeIO(f); A.curve = s.mouth + ((FA.curve ?? s.mouth) - s.mouth) * e; A.len = s.len + ((FA.len ?? s.len) - s.len) * e; A.eyeScale = 1 + (FA.eyeScale - 1) * e; A.eyeSquash = 1 + (FA.eyeSquash - 1) * e; A.sy = 1 + (FA.sy - 1) * e }
+                else { const e = 1 - easeIO(f); A.curve = s.mouth + ((FA.curve ?? s.mouth) - s.mouth) * e; A.len = s.len + ((FA.len ?? s.len) - s.len) * e; A.eyeScale = 1 + (FA.eyeScale - 1) * e; A.eyeSquash = 1 + (FA.eyeSquash - 1) * e; A.sy = 1 + (FA.sy - 1) * e
+                    A.sx = 1 + (FA.sx - 1) * e; A.rot = FA.rot * e; A.pivotY = FA.pivotY; A.dy = FA.dy * e; A.side = FA.side * e; A.tilt = FA.tilt * e; A.orbit = FA.orbit * e }
             }
 
             // morph progress
@@ -460,8 +537,8 @@ export default function OrbSlider(input: Partial<Props>) {
             if (cache.face !== face) { cache.face = face; for (const el of [eyeL, eyeR, starL, starR]) el.setAttribute("fill", face); mouth.setAttribute("stroke", face) }
             const blink = Math.max(s.blink, mb)
             const sx = s.eyeScale * A.eyeScale, sy = s.eyeScale * s.squash * (1 - blink * 0.94) * A.eyeSquash
-            put(eyeL, "transform", "l", eyeTf(-1, s.yaw, s.pitch, sx, sy, blink, s.su))
-            put(eyeR, "transform", "r", eyeTf(1, s.yaw, s.pitch, sx, sy, blink, s.su))
+            put(eyeL, "transform", "l", eyeTf(-1, s.yaw, s.pitch, sx, sy, blink, s.su, A.orbit))
+            put(eyeR, "transform", "r", eyeTf(1, s.yaw, s.pitch, sx, sy, blink, s.su, A.orbit))
             if (A.star > 0.001) {
                 const us = sx * (1 + 0.38 * A.star)
                 put(starL, "d", "sd", starD(A.star)); starR.setAttribute("d", cache.sd)
@@ -469,8 +546,15 @@ export default function OrbSlider(input: Partial<Props>) {
             }
             const sv = A.star > 0.001 ? "visible" : "hidden"
             if (cache.sv !== sv) { cache.sv = sv; const ev = sv === "visible" ? "hidden" : "visible"; starL.setAttribute("visibility", sv); starR.setAttribute("visibility", sv); eyeL.setAttribute("visibility", ev); eyeR.setAttribute("visibility", ev) }
-            put(mouth, "d", "md", mouthD(A.curve ?? s.mouth, (A.len ?? s.len) * (1 - 0.5 * mb), s.side, sx))
-            put(mouth, "transform", "mt", mouthTf(s.yaw, s.pitch, s.tilt, s.su))
+            put(mouth, "d", "md", mouthD(A.curve ?? s.mouth, (A.len ?? s.len) * (1 - 0.5 * mb), A.side || s.side, sx))
+            put(mouth, "transform", "mt", mouthTf(s.yaw, s.pitch, s.tilt + A.tilt, s.su, A.orbit))
+            // overlay: the seacow's flippers drawn over its eyes, in the body colour
+            const ov = A.overlay
+            for (let q = 0; q < 2; q++) {
+                const el = q ? ovR : ovL, p = ov && ov[q]
+                if (p) { el.setAttribute("cx", "" + r1(CX + p[0] * R)); el.setAttribute("cy", "" + r1(CY + p[1] * R)); el.setAttribute("r", "" + r1(p[2] * R)); el.setAttribute("fill", fill) }
+                const v = p ? "visible" : "hidden"; if (cache["ov" + q] !== v) { cache["ov" + q] = v; el.setAttribute("visibility", v) }
+            }
             put(mouth, "stroke-width", "sw", "" + r1(MOUTH_STROKE * s.eyeScale))
             // body transform: lean, act start, morph nudge, drag with a slight tilt, pivoting on the bottom centre
             const nudge = s.morphT0 ? -s.dir * 10 * S(Math.PI * e) : 0, squish = s.morphT0 ? 1 - 0.05 * S(Math.PI * e) : 1
@@ -478,7 +562,13 @@ export default function OrbSlider(input: Partial<Props>) {
             const th = Math.max(-10, Math.min(10, (s.drag / Math.max(1, s.travel)) * 14)) * D2R, c = Math.cos(th), sn = Math.sin(th), syy = A.sy * squish, pX = CX, pY = CY + R
             const ma = c, mb2 = sn, mc = -sn * syy, md = c * syy
             const tiltShift = sn * syy * R                                                  // the tilt about the bottom moves the centre sideways; cancel it so travel is exact
-            put(body, "transform", "b", `matrix(${r3(ma)} ${r3(mb2)} ${r3(mc)} ${r3(md)} ${r1(pX - (ma * pX + mc * pY) + tx - tiltShift)} ${r1(pY - (mb2 * pX + md * pY) + ty)})`)
+            // outer: drag tilt and the moves (T1); inner: the act's own rotation and scale about its pivot (T2)
+            const T1 = [ma, mb2, mc, md, pX - (ma * pX + mc * pY) + tx - tiltShift, pY - (mb2 * pX + md * pY) + ty]
+            const ar = A.rot * D2R, ac = Math.cos(ar), as = Math.sin(ar), qY = CY + R * A.pivotY
+            const n0 = ac * A.sx, n1 = as * A.sx, n2 = -as * A.sy, n3 = ac * A.sy, T2 = [n0, n1, n2, n3, CX - (n0 * CX + n2 * qY), qY - (n1 * CX + n3 * qY)]
+            const M = [T1[0] * T2[0] + T1[2] * T2[1], T1[1] * T2[0] + T1[3] * T2[1], T1[0] * T2[2] + T1[2] * T2[3], T1[1] * T2[2] + T1[3] * T2[3],
+                T1[0] * T2[4] + T1[2] * T2[5] + T1[4], T1[1] * T2[4] + T1[3] * T2[5] + T1[5]]
+            put(body, "transform", "b", `matrix(${r3(M[0])} ${r3(M[1])} ${r3(M[2])} ${r3(M[3])} ${r1(M[4])} ${r1(M[5])})`)
             const br = o.breathe ? 1 + 0.012 * Math.sin((now / 3200) * TAU) : 1
             put(root, "transform", "o", `matrix(${r3(br)} 0 0 ${r3(br)} ${r1(CX * (1 - br))} ${r1(CY * (1 - br))})`)
 
@@ -588,6 +678,8 @@ export default function OrbSlider(input: Partial<Props>) {
                         <path ref={starLRef} fill={startFace} visibility="hidden" />
                         <path ref={starRRef} fill={startFace} visibility="hidden" />
                         <path ref={mouthRef} d={rest.mouthD} transform={rest.mouthTf} fill="none" stroke={startFace} strokeWidth={MOUTH_STROKE} strokeLinecap="round" />
+                        <circle ref={ovLRef} r={0} visibility="hidden" />
+                        <circle ref={ovRRef} r={0} visibility="hidden" />
                     </g>
                 </g>
             </svg>
@@ -625,7 +717,7 @@ addPropertyControls(OrbSlider, {
         description: "How far the orb may slide while swiping or on autoplay. The swipe still works across the whole component." },
     autoplay: { type: ControlType.Boolean, title: "Autoplay", defaultValue: DEFAULTS.autoplay },
     autoplayEvery: { type: ControlType.Number, title: "Next every", min: 2, max: 30, step: 0.5, unit: "s", displayStepper: true, defaultValue: DEFAULTS.autoplayEvery, hidden: (p: Props) => !p.autoplay },
-    play: { type: ControlType.Boolean, title: "Animations", enabledTitle: "Random", disabledTitle: "Off", defaultValue: DEFAULTS.play, description: "Quick turns on every body; New ears too on the bear." },
+    play: { type: ControlType.Boolean, title: "Animations", enabledTitle: "Random", disabledTitle: "Off", defaultValue: DEFAULTS.play, description: "Each mascot plays its own acts at random: Bear New ears; Lemon Bell, Propeller; Cloud Quarter turns, Hop; Seacow Wave, Cover eyes. Plus Quick turns on all." },
     every: { type: ControlType.Number, title: "Every", min: 3, max: 60, step: 1, unit: "s", displayStepper: true, defaultValue: DEFAULTS.every, hidden: (p: Props) => !p.play },
     hoverTarget: { type: ControlType.String, title: "Surprise on", placeholder: "Layer name", defaultValue: DEFAULTS.hoverTarget, description: "Hovering this layer plays Surprised. A layer name, or a CSS selector starting with # . or [" },
     follow: { type: ControlType.Boolean, title: "Follow cursor", defaultValue: DEFAULTS.follow },

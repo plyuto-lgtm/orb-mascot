@@ -26,7 +26,7 @@
   window.loadSlider = (shape) => {
     let code = src;
     if (shape) code = code.replace(/const SHAPE: number\[\]\[\] = [^\n]*/, 'const SHAPE: number[][] = ' + JSON.stringify(shape));
-    code += '\nexport const __t = { fillField, contourPath, piecesFor, NO_ACT, G, REST, DEFS, FIT };';
+    code += '\nexport const __t = { fillField, contourPath, piecesFor, NO_ACT, G, REST, DEFS, FIT, ACT_RUN, ACT_MS, BODY_ACTS };';
     const js = Babel.transform(code, { filename: 'OrbSlider.tsx', presets: ['typescript', ['react', { runtime: 'classic' }]], plugins: ['transform-modules-commonjs'] }).code;
     const exports = {}; new Function('require', 'exports', 'React', js)(n => n === 'react' ? React : framer, exports, React); return exports;
   };
