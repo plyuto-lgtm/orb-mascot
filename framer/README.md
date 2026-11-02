@@ -20,8 +20,9 @@ the canvas or into a Frame. It sizes like BearOrb: any Frame shape, with Align a
   None). They are independent; each reserves its own room so it never covers the mascot. Controls color
   styles both.
 - **Swipe or drag** sideways anywhere on the component (Swipe). The sliding area is the whole
-  component, larger than the orb. The orb follows the finger one to one up to **Swipe travel** (80 px by
-  default, easing into the limit), then springs back to its place as the next mascot morphs in. At 0 the
+  component, larger than the orb. The orb moves like a rubber band: it follows the finger at first,
+  slows steadily as it goes, and never passes **Swipe travel** (80 px by default), then springs back to
+  its place as the next mascot morphs in. At 0 the
   orb stays still and the swipe only changes the mascot.
   A tap on the mascot is a poke; a tap elsewhere does nothing.
 - **Arrow keys** when the slider has focus.

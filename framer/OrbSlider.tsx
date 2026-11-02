@@ -399,7 +399,7 @@ export default function OrbSlider(input: Partial<Props>) {
                 const u = (now - s.autoT0) / AUTO_PUSH
                 if (s.dragOn || s.hover) { s.autoT0 = 0; s.manual = false; s.nextSlide = now + o.autoplayEvery * 1000 }     // a hand takes over
                 else if (u >= 1) { s.autoT0 = 0; s.manual = false; go(s.cur + 1, 1) }
-                else s.drag = -s.travel * Math.min(1, easeIn(u) * 1.15)
+                else s.drag = -s.travel * Math.tanh(1.6 * easeIn(u))                      // the same rubber band as a hand swipe
             }
             if (o.blink && now > s.nextBlink && !s.act) { startBlink(now, Math.random() < 0.2 ? 2 : 1); s.nextBlink = now + 2000 + Math.random() * 4000 }
             if (s.blinkN) {
@@ -477,7 +477,8 @@ export default function OrbSlider(input: Partial<Props>) {
             const tx = (o.lean ? (s.yaw / MAX_YAW) * 3 : 0) + nudge + s.drag, ty = (o.lean ? (-s.pitch / MAX_PITCH) * 2 : 0) + A.dy
             const th = Math.max(-10, Math.min(10, (s.drag / Math.max(1, s.travel)) * 14)) * D2R, c = Math.cos(th), sn = Math.sin(th), syy = A.sy * squish, pX = CX, pY = CY + R
             const ma = c, mb2 = sn, mc = -sn * syy, md = c * syy
-            put(body, "transform", "b", `matrix(${r3(ma)} ${r3(mb2)} ${r3(mc)} ${r3(md)} ${r1(pX - (ma * pX + mc * pY) + tx)} ${r1(pY - (mb2 * pX + md * pY) + ty)})`)
+            const tiltShift = sn * syy * R                                                  // the tilt about the bottom moves the centre sideways; cancel it so travel is exact
+            put(body, "transform", "b", `matrix(${r3(ma)} ${r3(mb2)} ${r3(mc)} ${r3(md)} ${r1(pX - (ma * pX + mc * pY) + tx - tiltShift)} ${r1(pY - (mb2 * pX + md * pY) + ty)})`)
             const br = o.breathe ? 1 + 0.012 * Math.sin((now / 3200) * TAU) : 1
             put(root, "transform", "o", `matrix(${r3(br)} 0 0 ${r3(br)} ${r1(CX * (1 - br))} ${r1(CY * (1 - br))})`)
 
@@ -499,8 +500,8 @@ export default function OrbSlider(input: Partial<Props>) {
             s.px = e.clientX; s.py = e.clientY; s.pT = performance.now()
             if (s.dragOn) {
                 const px = e.clientX - s.dragX0; s.dragMoved = Math.max(s.dragMoved, Math.abs(px))
-                const u = px * toUnits(), lim = Math.max(1e-3, s.travel), a = Math.abs(u)   // 1:1 with the finger, easing into the travel limit
-                s.drag = Math.sign(u) * (a < lim * 0.7 ? a : lim * 0.7 + (lim * 0.3) * (1 - Math.exp(-(a - lim * 0.7) / (lim * 0.3))))
+                const u = px * toUnits(), lim = Math.max(1e-3, s.travel)        // rubber band: follows the finger at first, slows steadily, never passes the limit
+                s.drag = lim * Math.tanh(u / lim)
             }
         }
         // the whole component is the swipe area; the orb keeps its own size. Taps poke only when they land on the orb.
