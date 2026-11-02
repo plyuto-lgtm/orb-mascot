@@ -26,7 +26,8 @@ the canvas or into a Frame. It sizes like BearOrb: any Frame shape, with Align a
   orb stays still and the swipe only changes the mascot.
   A tap on the mascot is a poke; a tap elsewhere does nothing.
 - **Arrow keys** when the slider has focus.
-- **Autoplay** every few seconds, played as a swipe: the mascot is pushed aside to the Swipe travel
+- **Autoplay** every few seconds. **Motion: Morph** (default) changes the mascot in place, with no
+  sideways movement. **Motion: Swipe** plays it like a hand swipe: pushed aside to the Swipe travel
   limit, then released into the morph. It pauses while the pointer is over the slider and for 4 s after any manual change.
 - **Your own buttons**: add `OrbSliderOverrides.tsx` as a code file and apply `NextOrb`, `PrevOrb`,
   `ShowBear`, `ShowLemon`, `ShowCloud` or `ShowSeacow` to any layer. Or dispatch the events yourself:
@@ -45,7 +46,7 @@ the canvas or into a Frame. It sizes like BearOrb: any Frame shape, with Align a
 | Pagination | Dots | Dots, `1 / 4`, or None |
 | Controls color | `#141416` | arrows and pagination |
 | Swipe, Swipe travel | on, 80 px | how far the orb slides while swiping or on autoplay |
-| Autoplay, Next every | off, 5 s | |
+| Autoplay, Motion, Next every | off, Morph, 5 s | Morph changes in place; Swipe pushes the mascot aside first |
 | Animations, Every | Random, 7 s | each mascot plays all of its own acts at random, plus Quick turns: Bear New ears; Lemon Bell, Propeller; Cloud Quarter turns, Hop; Seacow Wave, Cover eyes |
 | Surprise on | empty | layer name or CSS selector whose hover plays Surprised (or apply `SurpriseOrbOnHover`) |
 | Follow cursor, Idle wander, Blink, Breathe, Lean, Tap reaction | on | |

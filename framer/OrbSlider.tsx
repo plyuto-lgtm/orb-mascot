@@ -325,7 +325,7 @@ type Props = {
     color: string; faceColor: string
     arrows: boolean; pagination: "dots" | "numbers" | "none"; uiColor: string
     swipe: boolean; swipeTravel: number
-    autoplay: boolean; autoplayEvery: number
+    autoplay: boolean; autoplayEvery: number; autoplayMotion: "morph" | "swipe"
     play: boolean; every: number; hoverTarget: string
     follow: boolean; idle: boolean; blink: boolean; breathe: boolean; lean: boolean; tap: boolean
     align: "center" | "top" | "bottom" | "left" | "right"; safeArea: boolean
@@ -338,7 +338,7 @@ const DEFAULTS = {
     color: "#1E6DF6", faceColor: "#FFFFFF",
     arrows: true, pagination: "dots" as Props["pagination"], uiColor: "#141416",
     swipe: true, swipeTravel: 80,
-    autoplay: false, autoplayEvery: 5,
+    autoplay: false, autoplayEvery: 5, autoplayMotion: "morph" as Props["autoplayMotion"],
     play: true, every: 7, hoverTarget: "",
     follow: true, idle: true, blink: true, breathe: true, lean: true, tap: true,
     align: "center" as Props["align"], safeArea: true,
@@ -377,7 +377,7 @@ export default function OrbSlider(input: Partial<Props>) {
         const LAST = new Float32Array(GP * GP)                   // this instance's last traced field, seeded with the resting shape
         fillField(piecesFor(startIdx, 0, 0, 0, 0, NO_ACT), SHAPE[startIdx][0], SHAPE[startIdx][1], LAST)
         const s = {
-            cur: startIdx, morphT0: 0, dir: 1, su: Float64Array.from(SURF[startIdx]), su0: new Float64Array(4),
+            cur: startIdx, morphT0: 0, dir: 1, push: true, su: Float64Array.from(SURF[startIdx]), su0: new Float64Array(4),
             rgb: startRgb.slice(), rgb0: startRgb.slice(), face: faceRgb(props).slice(), face0: [0, 0, 0],
             yaw: 0, pitch: 0, tYaw: 0, tPitch: 0, hy: 0, hp: 0, hvy: 0, hvp: 0,
             eyeScale: 1, tEyeScale: 1, squash: 1, tSquash: 1,
@@ -416,14 +416,14 @@ export default function OrbSlider(input: Partial<Props>) {
 
         // ---------- slide change ----------
         const announce = (b: number) => svg.setAttribute("aria-label", `${DEFS[b].name}, ${b + 1} of ${DEFS.length}`)
-        const go = (target: number, dir?: number) => {
+        const go = (target: number, dir?: number, push = true) => {
             const n = DEFS.length, b = ((target % n) + n) % n
             if (b === s.cur && !s.morphT0) return
             const now = performance.now()
             stopAct()
             SNAP.set(LAST)                                                         // freeze the outline we are leaving
             s.su0.set(s.su); s.rgb0 = s.rgb.slice(); s.face0 = s.face.slice()
-            s.dir = dir ?? (b > s.cur ? 1 : -1); s.cur = b; s.morphT0 = now; s.hold = now + 4000
+            s.dir = dir ?? (b > s.cur ? 1 : -1); s.push = push; s.cur = b; s.morphT0 = now; s.hold = now + 4000
             s.nextSlide = now + opts.current.autoplayEvery * 1000
             announce(b); setIndex(b); opts.current.onChange?.()
             wrap.dispatchEvent(new CustomEvent("orbslider:change", { bubbles: true, detail: { index: b, id: DEFS[b].id } }))
@@ -470,7 +470,10 @@ export default function OrbSlider(input: Partial<Props>) {
                 }
             }
             // autoplay plays a swipe: the orb is pushed aside as if dragged, then released into the morph, exactly like a hand swipe
-            if (o.autoplay && !s.dragOn && !s.autoT0 && !s.hover && !s.morphT0 && now > s.hold && now > s.nextSlide && !s.act) { stopAct(); s.manual = true; look(-MAX_YAW * 0.5, 0); s.autoT0 = now; s.travel = travelOf() }
+            if (o.autoplay && !s.dragOn && !s.autoT0 && !s.hover && !s.morphT0 && now > s.hold && now > s.nextSlide && !s.act) {
+                if (o.autoplayMotion === "swipe") { stopAct(); s.manual = true; look(-MAX_YAW * 0.5, 0); s.autoT0 = now; s.travel = travelOf() }   // played as a swipe: pushed aside, then released
+                else go(s.cur + 1, 1, false)                                                                                    // morph in place: no push, no sideways nudge
+            }
             if (s.autoT0) {
                 const u = (now - s.autoT0) / AUTO_PUSH
                 if (s.dragOn || s.hover) { s.autoT0 = 0; s.manual = false; s.nextSlide = now + o.autoplayEvery * 1000 }     // a hand takes over
@@ -557,7 +560,7 @@ export default function OrbSlider(input: Partial<Props>) {
             }
             put(mouth, "stroke-width", "sw", "" + r1(MOUTH_STROKE * s.eyeScale))
             // body transform: lean, act start, morph nudge, drag with a slight tilt, pivoting on the bottom centre
-            const nudge = s.morphT0 ? -s.dir * 10 * S(Math.PI * e) : 0, squish = s.morphT0 ? 1 - 0.05 * S(Math.PI * e) : 1
+            const nudge = s.morphT0 && s.push ? -s.dir * 10 * S(Math.PI * e) : 0, squish = s.morphT0 ? 1 - 0.05 * S(Math.PI * e) : 1
             const tx = (o.lean ? (s.yaw / MAX_YAW) * 3 : 0) + nudge + s.drag, ty = (o.lean ? (-s.pitch / MAX_PITCH) * 2 : 0) + A.dy
             const th = Math.max(-10, Math.min(10, (s.drag / Math.max(1, s.travel)) * 14)) * D2R, c = Math.cos(th), sn = Math.sin(th), syy = A.sy * squish, pX = CX, pY = CY + R
             const ma = c, mb2 = sn, mc = -sn * syy, md = c * syy
@@ -716,6 +719,8 @@ addPropertyControls(OrbSlider, {
     swipeTravel: { type: ControlType.Number, title: "Swipe travel", min: 0, max: 600, step: 4, unit: "px", displayStepper: true, defaultValue: DEFAULTS.swipeTravel, hidden: (p: Props) => !p.swipe,
         description: "How far the orb may slide while swiping or on autoplay. The swipe still works across the whole component." },
     autoplay: { type: ControlType.Boolean, title: "Autoplay", defaultValue: DEFAULTS.autoplay },
+    autoplayMotion: { type: ControlType.Enum, title: "Motion", options: ["morph", "swipe"], optionTitles: ["Morph", "Swipe"], displaySegmentedControl: true, defaultValue: DEFAULTS.autoplayMotion, hidden: (p: Props) => !p.autoplay,
+        description: "Morph: changes in place. Swipe: the mascot is pushed aside first, like a hand swipe." },
     autoplayEvery: { type: ControlType.Number, title: "Next every", min: 2, max: 30, step: 0.5, unit: "s", displayStepper: true, defaultValue: DEFAULTS.autoplayEvery, hidden: (p: Props) => !p.autoplay },
     play: { type: ControlType.Boolean, title: "Animations", enabledTitle: "Random", disabledTitle: "Off", defaultValue: DEFAULTS.play, description: "Each mascot plays its own acts at random: Bear New ears; Lemon Bell, Propeller; Cloud Quarter turns, Hop; Seacow Wave, Cover eyes. Plus Quick turns on all." },
     every: { type: ControlType.Number, title: "Every", min: 3, max: 60, step: 1, unit: "s", displayStepper: true, defaultValue: DEFAULTS.every, hidden: (p: Props) => !p.play },
